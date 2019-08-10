@@ -24,6 +24,7 @@ class Particles{
         this->positions.row(this->positions.rows() - 1) << x, y, z;
         this->particles.push_back(std::make_shared<T>());
         this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
+        this->particles.back()->index = this->particles.size() - 1;
         //Update distribution for random generator
         distribution = std::make_shared< std::uniform_int_distribution<int> >(0, particles.size() - 1);
     }

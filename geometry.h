@@ -30,6 +30,4 @@ class Cuboid : public Geometry<Cuboid>{
            }
         return false;
     }
-
-
 };

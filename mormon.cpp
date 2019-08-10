@@ -1,8 +1,14 @@
 #pragma once
 
+#include <iostream>
 #include "state.h"
 #include "move.h"
 #include <functional>
+#include <pybind11/pybind11.h>
+
+
+
+namespace py = pybind11;
 
 class Simulator{
     private:
@@ -27,34 +33,31 @@ class Simulator{
     void run(){
         currentState.particles.add<RPM>(1,1,1);
         currentState.particles.add<ARPM>(1,1,1);
-        ps.push_back(new RPM());
-        ps.push_back(new ARPM());
         moves.push_back(new Translate());
         moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
             for(int micro = 0; micro < microSteps; micro++){
                 for(auto move : moves){
-                    std::cout << "moved before: " << currentState.movedParticles.size() << std::endl;
-
                     //Move  
                     //Move should check if particle is part of molecule
                     (*move)(currentState.particles.get_random(), move_callback); // Two virtual calls
-                    //state->update();
-                    std::cout << "moved after: " <<  currentState.movedParticles.back() << std::endl;
-                                                            
-
+                    //state->update(); //not needed since currentstate is directly updated
+                    
                     if(move->accept( currentState.get_energy_change(previousState) )){
                         currentState.save();
                     }
                     else{
                         currentState.revert(previousState);
                     }
+                    
+
                     //should also be able to
                     //state.get_energy(subset_of_particles);
                     //energy.get_energy(subset of particles)
                 }
             }
+            std::cout << "Iteration: " << macro * microSteps + microSteps << std::endl;
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
@@ -63,3 +66,9 @@ class Simulator{
         }
     }
 };
+
+PYBIND11_MODULE(mormon, m) {
+    py::class_<Simulator>(m, "Simulator")
+        .def(py::init<int, int>())
+        .def("run", &Simulator::run);
+}

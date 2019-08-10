@@ -5,12 +5,12 @@
 class Particle{
 
     private:
-    static int _count;
+    //static int _count;
 
     public:
     Particle(){
-        this->index = _count;
-        _count++;
+        //this->index = _count;
+        //_count++;
     }
     virtual ~Particle(){}
 
@@ -29,11 +29,9 @@ class RPM : public Particle{
     ~RPM(){}
 
     void translate(){
-        printf("translating RPM ind %i\n", this->index);
     }
 
     void rotate(){
-        printf("rotating RPM ind %i\n", this->index);
     }
 };
 
@@ -43,10 +41,8 @@ class ARPM : public Particle{
     ~ARPM(){}
 
     void translate(){
-        printf("translating ARPM ind %i\n", this->index); 
     }
 
     void rotate(){
-        printf("rotating ARPM ind %i\n", this->index);
     }
 };

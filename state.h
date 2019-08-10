@@ -2,6 +2,8 @@
 
 #include <vector>
 #include "particles.h"
+#include <limits>
+//#include <math.h>
 
 class State{
     public:
@@ -31,12 +33,13 @@ class State{
     }
 
     double get_energy_change(State old){ //get energy different between this and old state
-        double dE;
+        double dE = 0.0;
 
         for(int particle : movedParticles){
             //dE += get_energy(particle);
         }
         //If moved outside box or overlap, return inf
+        //dE = std::numeric_limits<double>::infinity();
         return dE;
     }
 
