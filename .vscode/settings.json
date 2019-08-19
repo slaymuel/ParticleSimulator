@@ -55,6 +55,21 @@
         "__split_buffer": "cpp",
         "vector": "cpp",
         "numeric": "cpp",
-        "random": "cpp"
+        "random": "cpp",
+        "__functional_base_03": "cpp",
+        "__hash_table": "cpp",
+        "__tree": "cpp",
+        "array": "cpp",
+        "forward_list": "cpp",
+        "variant": "cpp",
+        "deque": "cpp",
+        "optional": "cpp",
+        "list": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "typeindex": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp",
+        "valarray": "cpp"
     }
 }

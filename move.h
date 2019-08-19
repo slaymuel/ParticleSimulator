@@ -1,13 +1,13 @@
 #pragma once
 #include "particle.h"
-
+#include <math.h>
 
 using CallBack = std::function<void(std::vector< std::shared_ptr<Particle> >)>;
 
-class MoveBase{};
-
 class Move{
     public:
+    
+    double stepSize;
     virtual void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
     virtual bool accept(double dE) = 0;
 };
@@ -22,7 +22,7 @@ class Translate : public Move{
     }
 
     bool accept(double dE){
-        return true;
+        return exp(-dE);
     }
 };
 
@@ -36,6 +36,6 @@ class Rotate : public Move{
     }
 
     bool accept(double dE){
-        return true;
+        return exp(-dE);
     }
 };

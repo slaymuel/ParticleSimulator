@@ -19,21 +19,40 @@ class Particles{
     std::vector<int> anions;
     
     template <typename T>
-    void add(double x, double y, double z){
+    void add(std::vector<double> pos, double q, double b){
+        //Resize positions
         this->positions.conservativeResize(this->positions.rows() + 1, 3);
-        this->positions.row(this->positions.rows() - 1) << x, y, z;
+        this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
+        //Create particle
         this->particles.push_back(std::make_shared<T>());
         this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
         this->particles.back()->index = this->particles.size() - 1;
+        this->particles.back()->q = q;
+        this->particles.back()->b = b;
+
         //Update distribution for random generator
         distribution = std::make_shared< std::uniform_int_distribution<int> >(0, particles.size() - 1);
     }
 
     std::shared_ptr<Particle> get_random(){
+        //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
+        //std::sample
+
         return particles[(*distribution)(rand_gen)];
     }
 
     Eigen::MatrixXd get_subset(int sr, int fr){
         return this->positions.block(sr, 0, fr, 3);
+    }
+
+    bool overlap(std::size_t i){
+        for(auto p : this->particles){
+            if(p->index == i) continue;
+
+            if(p->distance(this->particles[i]) <= p->r + this->particles[i]->r){
+                return true;
+            }
+        }
+        return false;
     }
 };

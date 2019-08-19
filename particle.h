@@ -8,41 +8,24 @@ class Particle{
     //static int _count;
 
     public:
-    Particle(){
-        //this->index = _count;
-        //_count++;
-    }
-    virtual ~Particle(){}
 
     Eigen::VectorXd pos;
     Eigen::VectorXd* chargePos;
+    double r;
+    double q;
+    double b;
     int index;
 
-    virtual void translate() = 0;
-    virtual void rotate() = 0;
-};
-
-class RPM : public Particle{
-
-    public:
-    RPM(){}
-    ~RPM(){}
-
     void translate(){
-    }
-
+        printf("Translating particle %i\n", this->index);
+    };
     void rotate(){
-    }
-};
+        printf("Rotating particle %i\n", this->index);
+    };
 
-class ARPM : public Particle{
-    public:
-    ARPM(){}
-    ~ARPM(){}
-
-    void translate(){
-    }
-
-    void rotate(){
+    double distance(std::shared_ptr<Particle> other){
+        return std::sqrt( (this->pos[0] - other->pos[0]) * (this->pos[0] - other->pos[0])
+                         + (this->pos[1] - other->pos[1]) * (this->pos[1] - other->pos[1]) 
+                         + (this->pos[2] - other->pos[2]) * (this->pos[2] - other->pos[2]) );
     }
 };
