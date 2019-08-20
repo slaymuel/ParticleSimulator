@@ -21,21 +21,29 @@ class State{
     Geometry *geo;
     std::shared_ptr<EnergyBase> energyFunc;
     
-    void initialize(){
+    void finalize(){
         _old = std::make_unique<State>();
-        _old->particles.particles = particles.particles;
+
+        for(std::shared_ptr<Particle> p : this->particles.particles){
+            _old->particles.particles.push_back(std::make_shared<Particle>());
+            *(_old->particles.particles.back()) = *p;
+        }
     }
 
     void save(){
+        printf("Saving state\n");
         movedParticles.clear();
     }
 
 
     void revert(){
+        printf("Reverting state\n");
         //Set moved partiles in current state equal to previous state
         //also need to set volume and maybe other properties
         for(auto i : this->movedParticles){
-            this->particles.particles[i->index] = _old->particles.particles[i->index];
+            printf("new %lf %lf %lf, old %lf %lf %lf\n", this->particles.particles[i->index]->pos[0], this->particles.particles[i->index]->pos[1], this->particles.particles[i->index]->pos[2],
+                                                    _old->particles.particles[i->index]->pos[0], _old->particles.particles[i->index]->pos[1], _old->particles.particles[i->index]->pos[2]);
+            *(this->particles.particles[i->index]) = *(_old->particles.particles[i->index]);
         }
         movedParticles.clear();
     }
@@ -52,7 +60,7 @@ class State{
         }
         E1 += (*energyFunc)(_old->particles.get_subset(this->movedParticles), this->particles.particles);
         E2 += (*energyFunc)(movedParticles, this->particles.particles);
-        printf("Energy difference = %lf\n", E2 - E1);
+        printf("Energies = new %lf, old %lf\n", E2, E1);
 
         return E2 - E1;
     }

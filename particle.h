@@ -16,9 +16,21 @@ class Particle{
     double b;
     int index;
 
+    Particle& operator=(const Particle& p){
+        this->pos = p.pos;
+        this->r = p.r;
+        this->q = p.q;
+        this->b = p.b;
+        this->index = p.index;
+
+        return *this;
+    }
+
     void translate(){
+        this->pos += Random::get_random_vector();
         printf("Translating particle %i\n", this->index);
     };
+
     void rotate(){
         printf("Rotating particle %i\n", this->index);
     };

@@ -3,13 +3,13 @@
 #include <Eigen/Dense>
 #include <vector>
 #include "particle.h"
-#include <random>
+#include <chrono>
 
 class Particles{
 
     private:
     std::default_random_engine rand_gen;
-    std::shared_ptr< std::uniform_int_distribution<int> > distribution;
+    std::unique_ptr< std::uniform_int_distribution<int> > distribution;
 
     public:
     Eigen::MatrixXd positions;
@@ -31,7 +31,7 @@ class Particles{
         this->particles.back()->b = b;
 
         //Update distribution for random generator
-        distribution = std::make_shared< std::uniform_int_distribution<int> >(0, particles.size() - 1);
+        distribution = std::make_unique< std::uniform_int_distribution<int> >(0, particles.size() - 1);
     }
 
     std::shared_ptr<Particle> get_random(){

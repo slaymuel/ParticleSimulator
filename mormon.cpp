@@ -1,3 +1,5 @@
+#include <random>
+#include "random.h"
 #include <assert.h>
 #include "constants.h"
 #include <iostream>
@@ -28,6 +30,7 @@ class Simulator{
         constants::D = Dielec;
         constants::T = T; 
         constants::lB = constants::C * (1.0 / (Dielec * T));
+        Random::initialize();
     }
 
     //Energy<Coulomb> energy;
@@ -45,7 +48,7 @@ class Simulator{
                                                                 << " particles" << std::endl;
 
         moves.push_back(new Translate());
-        moves.push_back(new Rotate());
+        //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
             for(int micro = 0; micro < microSteps; micro++){
@@ -97,7 +100,7 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.load_particles(pos, q, b);
-    sim->state.initialize();
+    sim->state.finalize();
     sim->run();
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 }
