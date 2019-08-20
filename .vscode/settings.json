@@ -70,6 +70,7 @@
         "typeindex": "cpp",
         "unordered_map": "cpp",
         "unordered_set": "cpp",
-        "valarray": "cpp"
+        "valarray": "cpp",
+        "fstream": "cpp"
     }
 }

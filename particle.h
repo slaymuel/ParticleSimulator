@@ -26,12 +26,12 @@ class Particle{
         return *this;
     }
 
-    void translate(){
-        this->pos += Random::get_random_vector();
+    void translate(double step){
+        this->pos += Random::get_random_vector() * step;
         printf("Translating particle %i\n", this->index);
     };
 
-    void rotate(){
+    void rotate(double step){
         printf("Rotating particle %i\n", this->index);
     };
 

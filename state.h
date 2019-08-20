@@ -11,28 +11,47 @@
 class State{
     private:
 
-    std::unique_ptr<State> _old;
+    std::shared_ptr<State> _old;
 
     public:
 
-    double energy;
+    double energy, cummulativeEnergy, dE, error;
     Particles particles;
     std::vector< std::shared_ptr<Particle> > movedParticles;    //Particles that has moved from previous state
     Geometry *geo;
     std::shared_ptr<EnergyBase> energyFunc;
     
+
+    void control(){
+        energy = (*energyFunc).all2all(this->particles.particles);
+        error = std::fabs((energy - cummulativeEnergy) / energy);
+        
+        if(error > 1e-10){
+            printf("\n\nEnergy drift is too large!\n\n");
+            exit(1);
+        } 
+    }
+
     void finalize(){
-        _old = std::make_unique<State>();
+        _old = std::make_shared<State>();
 
         for(std::shared_ptr<Particle> p : this->particles.particles){
             _old->particles.particles.push_back(std::make_shared<Particle>());
             *(_old->particles.particles.back()) = *p;
         }
+
+        //Calculate the initial energy of the system
+        this->energy = (*energyFunc).all2all(this->particles.particles);
+        this->cummulativeEnergy = this->energy;
     }
 
     void save(){
         printf("Saving state\n");
+        for(auto i : this->movedParticles){
+            *(_old->particles.particles[i->index]) = *(this->particles.particles[i->index]);
+        }
         movedParticles.clear();
+        cummulativeEnergy += this->dE;
     }
 
 
@@ -60,9 +79,11 @@ class State{
         }
         E1 += (*energyFunc)(_old->particles.get_subset(this->movedParticles), this->particles.particles);
         E2 += (*energyFunc)(movedParticles, this->particles.particles);
+        this->dE = E2 - E1;
+
         printf("Energies = new %lf, old %lf\n", E2, E1);
 
-        return E2 - E1;
+        return dE;
     }
 
     //Called when a move is accepted - set movedParticles

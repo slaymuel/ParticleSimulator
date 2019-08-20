@@ -4,12 +4,15 @@
 #include <vector>
 #include "particle.h"
 #include <chrono>
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 class Particles{
 
     private:
     std::default_random_engine rand_gen;
-    std::unique_ptr< std::uniform_int_distribution<int> > distribution;
+    std::shared_ptr< std::uniform_int_distribution<int> > distribution;
 
     public:
     Eigen::MatrixXd positions;
@@ -31,7 +34,7 @@ class Particles{
         this->particles.back()->b = b;
 
         //Update distribution for random generator
-        distribution = std::make_unique< std::uniform_int_distribution<int> >(0, particles.size() - 1);
+        distribution = std::make_shared< std::uniform_int_distribution<int> >(0, particles.size() - 1);
     }
 
     std::shared_ptr<Particle> get_random(){
@@ -61,5 +64,27 @@ class Particles{
             }
         }
         return false;
+    }
+
+    //Write gro file
+    void to_gro(std::string fileName){
+        std::ofstream f (fileName);
+        if (f.is_open())
+        {
+            f << "MORMON" << "\n";
+            f << particles.size() << "\n";
+            for(auto p : particles){
+
+                f << std::fixed << std::setprecision(2) << 1 << " ion " << "na " << p->index << " " <<  p->pos[0] << " " << p->pos[1] << " " << p->pos[2] << "\n";
+            }
+            f << "10 10 10" << "\n";
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+    }
+
+    //write checkpoint file
+    void to_cpt(){
+
     }
 };

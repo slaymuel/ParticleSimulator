@@ -19,8 +19,7 @@ namespace py = pybind11;
 
 class Simulator{
     private:
-    int macroSteps;
-    int microSteps;
+    int macroSteps, microSteps;
     std::vector<Particle*> ps;
     
     public:
@@ -47,13 +46,13 @@ class Simulator{
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
-        moves.push_back(new Translate());
+        moves.push_back(new Translate(0.1));
         //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
             for(int micro = 0; micro < microSteps; micro++){
                 for(auto move : moves){
-                    //Move  
+
                     //Move should check if particle is part of molecule
                     (*move)(state.particles.get_random(), move_callback); // Two virtual calls
 
@@ -69,7 +68,17 @@ class Simulator{
                     //state.get_energy(subset_of_particles);
                 }
             }
-            std::cout << "Iteration: " << macro * microSteps + microSteps << std::endl;
+            //Check energy drift etc
+            state.control();
+
+            //Print progress
+            std::cout << "\nIteration: " << macro * microSteps + microSteps << std::endl;
+            printf("Acceptance: %.1lf%%\n", (double)moves[0]->accepted / Move::totalMoves * 100.0);
+            printf("Total energy is: %lf, error: %.15lf\n", state.energy, state.error);
+
+            //Write gro file
+            state.particles.to_gro("hej.gro");
+
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
@@ -117,6 +126,7 @@ PYBIND11_MODULE(mormon, m) {
         .def("load_state", &State::load_state)
         .def("set_geometry", &State::set_geometry)
         .def("set_energy", &State::set_energy)
-        .def("load_particles", &State::load_particles);
+        .def("load_particles", &State::load_particles)
+        .def("finalize", &State::finalize);
 }
 #endif
