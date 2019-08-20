@@ -6,7 +6,7 @@ using CallBack = std::function<void(std::vector< std::shared_ptr<Particle> >)>;
 
 class Move{
     public:
-    
+
     double stepSize;
     virtual void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
     virtual bool accept(double dE) = 0;

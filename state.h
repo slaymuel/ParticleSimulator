@@ -9,6 +9,10 @@
 #include "potentials.h"
 
 class State{
+    private:
+
+    std::unique_ptr<State> _old;
+
     public:
 
     double energy;
@@ -17,46 +21,48 @@ class State{
     Geometry *geo;
     std::shared_ptr<EnergyBase> energyFunc;
     
+    void initialize(){
+        _old = std::make_unique<State>();
+        _old->particles.particles = particles.particles;
+    }
+
     void save(){
         movedParticles.clear();
     }
 
 
-    void revert(State& old){
+    void revert(){
         //Set moved partiles in current state equal to previous state
         //also need to set volume and maybe other properties
         for(auto i : this->movedParticles){
-            this->particles.particles[i->index] = old.particles.particles[i->index];
+            this->particles.particles[i->index] = _old->particles.particles[i->index];
         }
         movedParticles.clear();
     }
 
-
-    double get_energy_change(State old){ //get energy different between this and old state
-        double dE = 0.0;
+    //Get energy different between this and old state
+    double get_energy_change(){ 
+        double E1 = 0.0, E2 = 0.0;
 
         for(auto p : movedParticles){
             if(!geo->is_inside(this->particles.particles[p->index]->pos)){
+                //If moved outside box or overlap, return inf
                 return std::numeric_limits<double>::infinity();
             }
-            dE += (*energyFunc)(movedParticles, this->particles.particles);
         }
-        //If moved outside box or overlap, return inf
-        //dE = std::numeric_limits<double>::infinity();
-        printf("Energy = %lf\n", dE);
-        return dE;
+        E1 += (*energyFunc)(_old->particles.get_subset(this->movedParticles), this->particles.particles);
+        E2 += (*energyFunc)(movedParticles, this->particles.particles);
+        printf("Energy difference = %lf\n", E2 - E1);
+
+        return E2 - E1;
     }
 
-
-    void move_callback(std::vector< std::shared_ptr<Particle> > ps){   //Called when a move is accepted
-        //this->movedParticles.insert(std::end(movedParticles), std::begin(indices), std::end(indices));
+    //Called when a move is accepted - set movedParticles
+    void move_callback(std::vector< std::shared_ptr<Particle> > ps){   
+        //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
         std::for_each(std::begin(ps), std::end(ps), [this](std::shared_ptr<Particle> p){ 
                                                             this->movedParticles.push_back(p); 
                                                             });
-        //for(auto p : ps){
-        //    this->movedParticles.push_back(p->index);
-            //particles.particles[p->index] = p; //dont need to do this since state.particle is already moved
-        //}
     }
 
 

@@ -41,8 +41,15 @@ class Particles{
         return particles[(*distribution)(rand_gen)];
     }
 
-    Eigen::MatrixXd get_subset(int sr, int fr){
-        return this->positions.block(sr, 0, fr, 3);
+    //Eigen::MatrixXd get_subset(int sr, int fr){
+    //    return this->positions.block(sr, 0, fr, 3);
+    //}
+    std::vector< std::shared_ptr<Particle> > get_subset(std::vector< std::shared_ptr<Particle> >& ps){
+        std::vector< std::shared_ptr<Particle> > subset;
+        for(std::shared_ptr<Particle> p : ps){
+            subset.push_back(particles[p->index]);
+        }
+        return subset;
     }
 
     bool overlap(std::size_t i){

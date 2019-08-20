@@ -20,10 +20,9 @@ class Simulator{
     int macroSteps;
     int microSteps;
     std::vector<Particle*> ps;
-    State previousState;
     
     public:
-    State currentState;
+    State state;
     Simulator(int macro, int micro, double Dielec, double T) : macroSteps(macro), microSteps(micro){
         //Set some constants
         constants::D = Dielec;
@@ -38,11 +37,11 @@ class Simulator{
     
     /* State callback after move */
     std::function< void(std::vector< std::shared_ptr<Particle> >) > move_callback 
-                = std::bind(&State::move_callback, &currentState, std::placeholders::_1);
+                = std::bind(&State::move_callback, &state, std::placeholders::_1);
 
 
     void run(){
-        std::cout << "Running simulation at: " << constants::T << "K with: " << currentState.particles.particles.size() 
+        std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
         moves.push_back(new Translate());
@@ -53,14 +52,14 @@ class Simulator{
                 for(auto move : moves){
                     //Move  
                     //Move should check if particle is part of molecule
-                    (*move)(currentState.particles.get_random(), move_callback); // Two virtual calls
+                    (*move)(state.particles.get_random(), move_callback); // Two virtual calls
 
                     
-                    if(move->accept( currentState.get_energy_change(previousState) )){
-                        currentState.save();
+                    if(move->accept( state.get_energy_change() )){
+                        state.save();
                     }
                     else{
-                        currentState.revert(previousState);
+                        state.revert();
                     }
 
                     //should also be able to
@@ -79,14 +78,13 @@ class Simulator{
 
 #ifndef PY11
 int main(){
-    //ps.push_back(new RPM());
-    //ps.push_back(new ARPM());
+
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
     Simulator* sim = new Simulator(10, 10, 2.0, 298.0);
 
-    sim->currentState.set_geometry(0);
-    sim->currentState.set_energy(0);
+    sim->state.set_geometry(0);
+    sim->state.set_energy(0);
     std::vector< double > b;
     std::vector< double > q;
     b.push_back(0.0);
@@ -98,9 +96,10 @@ int main(){
     pos.back() = {1, 2, 3};
     pos.emplace_back();
     pos.back() = {2, 2, 3};
-    sim->currentState.load_particles(pos, q, b);
+    sim->state.load_particles(pos, q, b);
+    sim->state.initialize();
     sim->run();
-    //std::function<void(std::vector<int>)> move_callback = [currentState](std::vector<int> indices) { currentState.move_callback(indices); }
+    //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 }
 #endif
 
@@ -109,7 +108,7 @@ PYBIND11_MODULE(mormon, m) {
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<int, int, double, double>())
         .def("run", &Simulator::run)
-        .def_readwrite("state", &Simulator::currentState);
+        .def_readwrite("state", &Simulator::state);
 
     py::class_<State>(m, "State")
         .def("load_state", &State::load_state)

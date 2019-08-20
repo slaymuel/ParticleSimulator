@@ -8,6 +8,7 @@ class EnergyBase{
     virtual double all2all(std::vector< std::shared_ptr<Particle> >& particles) = 0;
     virtual double i2all(std::shared_ptr<Particle> p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
     virtual double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2) = 0;
+    virtual double operator()(std::vector< std::shared_ptr<Particle> >&& p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
     virtual double operator()(std::vector< std::shared_ptr<Particle> >& p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
 };
 
@@ -38,6 +39,10 @@ class Energy : public EnergyBase{
             energy += i2i(p, particle);
         }
         return energy * constants::lB;
+    }
+
+    double operator()(std::vector< std::shared_ptr<Particle> >&& p, std::vector< std::shared_ptr<Particle> >& particles){
+        return i2all(p[0], particles);
     }
 
     double operator()(std::vector< std::shared_ptr<Particle> >& p, std::vector< std::shared_ptr<Particle> >& particles){
