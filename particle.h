@@ -11,6 +11,7 @@ class Particle{
 
     Eigen::VectorXd pos;
     Eigen::VectorXd* chargePos;
+    std::string name;
     double r;
     double q;
     double b;
@@ -28,7 +29,6 @@ class Particle{
 
     void translate(double step){
         this->pos += Random::get_random_vector() * step;
-        printf("Translating particle %i\n", this->index);
     };
 
     void rotate(double step){

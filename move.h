@@ -26,13 +26,9 @@ class Translate : public Move{
 
     void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
         std::vector< std::shared_ptr<Particle> > particles = {p};
-        std::cout << "Before:" << std::endl;
-        std::cout << p->pos[0] << " " << p->pos[1] << " " << p->pos[2] << std::endl;
 
         p->translate(this->stepSize);
 
-        std::cout << "After:" << std::endl;
-        std::cout << p->pos[0] << " " << p->pos[1] << " " << p->pos[2] << std::endl;
         move_callback(particles);
         totalMoves++;
     }
@@ -53,7 +49,7 @@ class Translate : public Move{
 
 class Rotate : public Move{
     public:
-    
+
     Rotate(double step) : Move(step){}
 
     void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){

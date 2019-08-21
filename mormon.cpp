@@ -68,6 +68,9 @@ class Simulator{
                     //state.get_energy(subset_of_particles);
                 }
             }
+
+            /*                                HALF TIME                                  */
+
             //Check energy drift etc
             state.control();
 
@@ -77,7 +80,7 @@ class Simulator{
             printf("Total energy is: %lf, error: %.15lf\n", state.energy, state.error);
 
             //Write gro file
-            state.particles.to_gro("hej.gro");
+            state.particles.to_xyz("hej.xyz");
 
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
@@ -93,11 +96,11 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(10, 10, 2.0, 298.0);
+    Simulator* sim = new Simulator(10, 1000, 2.0, 298.0);
 
     sim->state.set_geometry(0);
     sim->state.set_energy(0);
-    std::vector< double > b;
+    /*std::vector< double > b;
     std::vector< double > q;
     b.push_back(0.0);
     b.push_back(0.0);
@@ -108,10 +111,14 @@ int main(){
     pos.back() = {1, 2, 3};
     pos.emplace_back();
     pos.back() = {2, 2, 3};
-    sim->state.load_particles(pos, q, b);
+    sim->state.particles.load(pos, q, b);*/
+    sim->state.particles.create(20, 20);
+    sim->state.equilibrate();
     sim->state.finalize();
     sim->run();
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
+
+    return 0;
 }
 #endif
 

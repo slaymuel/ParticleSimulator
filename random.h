@@ -1,16 +1,19 @@
 #pragma once
 #include <Eigen/Dense>
+#include <vector>
 
 class Random{
     private:
-
+    static std::random_device r;
+    static std::seed_seq ssq;
     static std::default_random_engine rand_gen;
-    static std::shared_ptr< std::uniform_real_distribution<double> > real_dist;
+    static std::unique_ptr< std::uniform_real_distribution<double> > real_dist;
     
     public:
 
     static void initialize(){
-        real_dist = std::make_shared< std::uniform_real_distribution<double> >(0.0, 1.0);
+
+        real_dist = std::make_unique< std::uniform_real_distribution<double> >(0.0, 1.0);
     }
 
     static double get_random(){
@@ -21,7 +24,21 @@ class Random{
         Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
         return a.normalized();
     }
+
+    struct get_vector{
+        operator Eigen::Vector3d(){
+            Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
+            return a.normalized();
+        }
+        operator std::vector<double>(){
+            std::vector<double> v = { (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen) };
+            return v;
+        }
+    };
 };
 
-std::default_random_engine Random::rand_gen;
-std::shared_ptr< std::uniform_real_distribution<double> > Random::real_dist;
+
+std::unique_ptr< std::uniform_real_distribution<double> > Random::real_dist;
+std::random_device Random::r;
+std::seed_seq Random::ssq{r()};
+std::default_random_engine Random::rand_gen(ssq);
