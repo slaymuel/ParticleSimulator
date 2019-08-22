@@ -9,8 +9,8 @@ class Particle{
 
     public:
 
-    Eigen::VectorXd pos;
-    Eigen::VectorXd* chargePos;
+    Eigen::Vector3d pos;
+    Eigen::Vector3d com;
     std::string name;
     double r;
     double q;
@@ -28,7 +28,10 @@ class Particle{
     }
 
     void translate(double step){
-        this->pos += Random::get_random_vector() * step;
+        Eigen::Vector3d v = Random::get_vector();
+        this->pos[0] += step * (v[0] * 2.0 - 1);
+        this->pos[1] += step * (v[1] * 2.0 - 1);
+        this->pos[2] += step * (v[2] * 2.0 - 1);
     };
 
     void rotate(double step){

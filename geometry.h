@@ -10,8 +10,8 @@ class Geometry{
     std::vector<double> dh;  //half dimensions
 
     virtual void resize() = 0;
-    virtual bool is_inside(Eigen::VectorXd& pos) = 0;
-    virtual double distance(Eigen::VectorXd& a, Eigen::VectorXd& b) = 0;
+    virtual bool is_inside(Eigen::Vector3d& pos) = 0;
+    virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual ~Geometry(){};
 
 };
@@ -32,32 +32,32 @@ class Cuboid : public Geometry{
 
 
 
-    bool is_inside(Eigen::VectorXd& pos){
+    bool is_inside(Eigen::Vector3d& pos){
         assert(pos.size() == 3 && "Position is malformed...");
 
         if(X){
             if(pos[0] > this->dh[0]){
-                pos[0] -= dh[0];
+                pos[0] -= d[0];
             }
             else if(pos[0] < -this->dh[0]){
-                pos[0] += dh[0];
+                pos[0] += d[0];
             }
         }
         if(Y){
             if(pos[1] > this->dh[1]){
-                pos[1] -= dh[1];
+                pos[1] -= d[1];
             }
             else if(pos[1] < -this->dh[1]){
-                pos[1] += dh[1];
+                pos[1] += d[1];
             }
         }
 
         if(Z){
             if(pos[2] > this->dh[2]){
-                pos[2] -= dh[2];
+                pos[2] -= d[2];
             }
             else if(pos[2] < -this->dh[2]){
-                pos[2] += dh[2];
+                pos[2] += d[2];
             }
         }
 
@@ -70,7 +70,7 @@ class Cuboid : public Geometry{
     }
 
 
-    double distance(Eigen::VectorXd& a, Eigen::VectorXd& b){
+    double distance(Eigen::Vector3d& a, Eigen::Vector3d& b){
         Eigen::Vector3d disp = a - b;
 
         if(X){
@@ -114,12 +114,12 @@ class Sphere : public Geometry{
 
     }
 
-    bool is_inside(Eigen::VectorXd& pos){
+    bool is_inside(Eigen::Vector3d& pos){
         if(sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]) < this->dh[0]){
                return true;
            }
         return false;
     }
 
-    double distance(Eigen::VectorXd& a, Eigen::VectorXd& b){ return 0.0; }
+    double distance(Eigen::Vector3d& a, Eigen::Vector3d& b){ return 0.0; }
 };

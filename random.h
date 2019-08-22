@@ -28,7 +28,7 @@ class Random{
     struct get_vector{
         operator Eigen::Vector3d(){
             Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
-            return a.normalized();
+            return a;
         }
         operator std::vector<double>(){
             std::vector<double> v = { (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen) };

@@ -39,7 +39,7 @@ class Particles{
         //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
         //std::sample
 
-        return particles[(*distribution)(rand_gen)];
+        return this->particles[(*distribution)(rand_gen)];
     }
 
 
@@ -56,7 +56,7 @@ class Particles{
         this->particles.back()->b = b;
         this->particles.back()->name = name;
         //Update distribution for random generator
-        distribution = std::make_shared< std::uniform_int_distribution<int> >(0, particles.size() - 1);
+        this->distribution = std::make_shared< std::uniform_int_distribution<int> >(0, particles.size() - 1);
     }
 
 
@@ -83,8 +83,8 @@ class Particles{
         std::ofstream f (fileName);
         if (f.is_open())
         {
-            f << particles.size() << "\n\n";
-            for(auto p : particles){
+            f << this->particles.size() << "\n\n";
+            for(auto p : this->particles){
 
                 f << std::fixed << std::setprecision(3) << p->name << " " <<  p->pos[0] << " " << p->pos[1] << " " << p->pos[2] << "\n";
             }

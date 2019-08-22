@@ -46,7 +46,7 @@ class Simulator{
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
-        moves.push_back(new Translate(0.1));
+        moves.push_back(new Translate(1.0));
         //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
@@ -79,9 +79,6 @@ class Simulator{
             printf("Acceptance: %.1lf%%\n", (double)moves[0]->accepted / Move::totalMoves * 100.0);
             printf("Total energy is: %lf, error: %.15lf\n", state.energy, state.error);
 
-            //Write gro file
-            state.particles.to_xyz("hej.xyz");
-
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
@@ -112,10 +109,11 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(20, 20);
+    sim->state.particles.create(50, 50);
     sim->state.equilibrate();
     sim->state.finalize();
     sim->run();
+    sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
     return 0;
@@ -134,6 +132,7 @@ PYBIND11_MODULE(mormon, m) {
         .def("set_geometry", &State::set_geometry)
         .def("set_energy", &State::set_energy)
         .def("load_particles", &State::load_particles)
+        .def("equilibrate", &State::equilibrate)
         .def("finalize", &State::finalize);
 }
 #endif

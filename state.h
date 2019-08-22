@@ -67,7 +67,7 @@ class State{
     //Get energy different between this and old state
     double get_energy_change(){
         for(auto p : movedParticles){
-            if(!geo->is_inside(this->particles.particles[p->index]->pos) || this->overlap(p->index)){
+            if(!this->geo->is_inside(p->pos) || this->overlap(p->index)){
                 //If moved outside box or overlap, return inf
                 return std::numeric_limits<double>::infinity();
             }
@@ -98,27 +98,62 @@ class State{
 
 
     void equilibrate(){
-        std::vector<double> v;
+        Eigen::Vector3d v;
         for(auto p : this->particles.particles){
             v = Random::get_vector();
             p->pos[0] = this->geo->dh[0] * (v[0] * 2.0 - 1);
             p->pos[1] = this->geo->dh[1] * (v[1] * 2.0 - 1);
             p->pos[2] = this->geo->dh[2] * (v[2] * 2.0 - 1);
         }
+        
+        int i, overlaps = 1;
+        Eigen::Vector3d oldPos;
+        std::shared_ptr<Particle> p;
+
+        //Move particles to prevent overlap
+        while(overlaps > 0){
+            p = this->particles.get_random();
+            oldPos = p->pos;
+            p->translate(10.0);
+
+            if(this->overlap(p->index) || !this->geo->is_inside(p->pos)){
+                p->pos = oldPos;
+            }
+
+
+            if(i % 50000 == 0){
+                overlaps = this->get_overlaps();
+                printf("Overlaps: %d, iteration: %d\r", overlaps, i);
+                fflush(stdout);
+            }
+            i++;
+            if(i > 1E9){
+                i = 0;
+            }
+        }
+        printf("\nEquilibration done\n\n");
     }
+
 
 
     bool overlap(std::size_t i){
         for(auto p : this->particles.particles){
             if(p->index == i) continue;
 
-            if(geo->distance(p->pos, this->particles.particles[i]->pos) <= p->r + this->particles.particles[i]->r){
+            if(this->geo->distance(p->pos, this->particles.particles[i]->pos) <= p->r + this->particles.particles[i]->r){
                 return true;
             }
         }
         return false;
     }
 
+    int get_overlaps(){
+        int count = 0;
+        for(auto p : this->particles.particles){
+            (this->overlap(p->index)) ? count++ : 0;
+        }
+        return count;
+    }
 
     void set_geometry(int type){
 
