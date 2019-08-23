@@ -36,8 +36,7 @@ class State{
         _old = std::make_shared<State>();
 
         for(std::shared_ptr<Particle> p : this->particles.particles){
-            _old->particles.particles.push_back(std::make_shared<Particle>());
-            *(_old->particles.particles.back()) = *p;
+            _old->particles.add(p);
         }
 
         //Calculate the initial energy of the system
@@ -47,8 +46,14 @@ class State{
 
     void save(){
         for(auto i : this->movedParticles){
-            *(_old->particles.particles[i->index]) = *(this->particles.particles[i->index]);
+            if(i->index > this->_old->particles.particles.size() - 1){
+                this->_old->particles.add(i);
+            }
+            else{
+                *(this->_old->particles.particles[i->index]) = *(this->particles.particles[i->index]);
+            }
         }
+
         movedParticles.clear();
         cummulativeEnergy += this->dE;
     }

@@ -19,6 +19,8 @@ class Move{
     virtual bool accept(double dE) = 0;
 };
 
+
+
 class Translate : public Move{
     public:
 
@@ -47,6 +49,8 @@ class Translate : public Move{
     }
 };
 
+
+
 class Rotate : public Move{
     public:
 
@@ -58,11 +62,33 @@ class Rotate : public Move{
         p->rotate(this->stepSize);
 
         move_callback(particles);
+        totalMoves++;
     }
 
     bool accept(double dE){
-        return exp(-dE);
+        bool ret = false;
+        if(exp(-dE) > Random::get_random()){
+            ret = true;
+            accepted++;
+         } 
+         else{
+             ret = false;
+             rejected++;
+         }
+        return ret;
     }
 };
+
+
+
+class GrandCanonical : public Move{
+    public:
+
+    void operator()(Particles p){
+        //p.add();
+    }
+};
+
+
 
 int Move::totalMoves = 0;

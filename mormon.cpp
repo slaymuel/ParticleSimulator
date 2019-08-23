@@ -19,12 +19,11 @@ namespace py = pybind11;
 
 class Simulator{
     private:
-    int macroSteps, microSteps;
     std::vector<Particle*> ps;
     
     public:
     State state;
-    Simulator(int macro, int micro, double Dielec, double T) : macroSteps(macro), microSteps(micro){
+    Simulator(double Dielec, double T){
         //Set some constants
         constants::D = Dielec;
         constants::T = T; 
@@ -42,11 +41,11 @@ class Simulator{
                 = std::bind(&State::move_callback, &state, std::placeholders::_1);
 
 
-    void run(){
+    void run(int macroSteps, int microSteps){
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
-        moves.push_back(new Translate(1.0));
+        moves.push_back(new Translate(0.2));
         //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
@@ -55,7 +54,6 @@ class Simulator{
 
                     //Move should check if particle is part of molecule
                     (*move)(state.particles.get_random(), move_callback); // Two virtual calls
-
                     
                     if(move->accept( state.get_energy_change() )){
                         state.save();
@@ -83,6 +81,10 @@ class Simulator{
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
             //sampler.sample(state);
+            //for(auto s : sampler){
+            //    s.sample(??????);
+            //    s.sample(s.arguments);
+            //}
             
         }
     }
@@ -93,7 +95,7 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(10, 1000, 2.0, 298.0);
+    Simulator* sim = new Simulator(2.0, 298.0);
 
     sim->state.set_geometry(0);
     sim->state.set_energy(0);
@@ -109,10 +111,10 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(50, 50);
+    sim->state.particles.create(200, 200);
     sim->state.equilibrate();
     sim->state.finalize();
-    sim->run();
+    sim->run(1000, 10000);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
