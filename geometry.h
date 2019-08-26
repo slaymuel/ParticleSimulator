@@ -12,6 +12,8 @@ class Geometry{
     virtual void resize() = 0;
     virtual bool is_inside(Eigen::Vector3d& pos) = 0;
     virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
+    virtual Eigen::Vector3d mirror(Eigen::Vector3d pos) = 0;
+    virtual Eigen::Vector3d random_pos() = 0;
     virtual ~Geometry(){};
 
 };
@@ -105,6 +107,20 @@ class Cuboid : public Geometry{
 
         return disp.norm();
     }
+
+
+    Eigen::Vector3d mirror(Eigen::Vector3d pos){
+        Eigen::Vector3d m;
+        m << pos[0], pos[1], (pos[2] >= 0) ? 2.0 * dh[2] - pos[2] : -2.0 * dh[2] - pos[2];
+        return m;
+    }
+
+    Eigen::Vector3d random_pos(){
+        Eigen::Vector3d v;
+        v = Random::get_vector();
+        v << dh[0] * (v[0] * 2.0 - 1), dh[1] * (v[1] * 2.0 - 1), dh[2] * (v[2] * 2.0 - 1);
+        return v;
+    }
 };
 
 
@@ -122,4 +138,14 @@ class Sphere : public Geometry{
     }
 
     double distance(Eigen::Vector3d& a, Eigen::Vector3d& b){ return 0.0; }
+
+    Eigen::Vector3d mirror(Eigen::Vector3d pos){
+        Eigen::Vector3d m;
+        return m;
+    }
+
+    Eigen::Vector3d random_pos(){
+        Eigen::Vector3d v;
+        return v;
+    }
 };

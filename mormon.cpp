@@ -53,7 +53,7 @@ class Simulator{
                 for(auto move : moves){
 
                     //Move should check if particle is part of molecule
-                    (*move)(state.particles.get_random(), move_callback); // Two virtual calls
+                    (*move)(state.particles.random(), move_callback); // Two virtual calls
                     
                     if(move->accept( state.get_energy_change() )){
                         state.save();
@@ -113,8 +113,9 @@ int main(){
     sim->state.particles.load(pos, q, b);*/
     sim->state.particles.create(200, 200);
     sim->state.equilibrate();
+    sim->state.add_images();
     sim->state.finalize();
-    sim->run(1000, 10000);
+    sim->run(100, 1000);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 

@@ -42,7 +42,11 @@ class Energy : public EnergyBase{
     }
 
     double operator()(std::vector< std::shared_ptr<Particle> >&& p, std::vector< std::shared_ptr<Particle> >& particles){
-        return i2all(p[0], particles);
+        double e = 0;
+        for(auto s : p){
+            e += i2all(s, particles);
+        }
+        return e;
     }
 
     double operator()(std::vector< std::shared_ptr<Particle> >& p, std::vector< std::shared_ptr<Particle> >& particles){

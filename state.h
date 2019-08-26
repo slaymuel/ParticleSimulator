@@ -101,23 +101,33 @@ class State{
         }
     }
 
+    void add_particle(){
+        //this->particles.add(this->geo->random_pos(), p->r, p->q, p->b, p->name);
+    }
+
+    void add_images(){
+        for(int i = 0; i < this->particles.pTot; i++){
+            this->particles.add(this->geo->mirror(this->particles.particles[i]->pos), this->particles.particles[i]->r, 
+                                                 -this->particles.particles[i]->q,    this->particles.particles[i]->b, 
+                                                  this->particles.particles[i]->name + "I", true);
+        }
+    }
+
 
     void equilibrate(){
         Eigen::Vector3d v;
-        for(auto p : this->particles.particles){
-            v = Random::get_vector();
-            p->pos[0] = this->geo->dh[0] * (v[0] * 2.0 - 1);
-            p->pos[1] = this->geo->dh[1] * (v[1] * 2.0 - 1);
-            p->pos[2] = this->geo->dh[2] * (v[2] * 2.0 - 1);
+
+        for(int i = 0; i < this->particles.pTot; i++){
+            this->particles.particles[i]->pos = this->geo->random_pos();
         }
         
-        int i, overlaps = 1;
+        int i = 0, overlaps = 1;
         Eigen::Vector3d oldPos;
         std::shared_ptr<Particle> p;
 
         //Move particles to prevent overlap
         while(overlaps > 0){
-            p = this->particles.get_random();
+            p = this->particles.random();
             oldPos = p->pos;
             p->translate(10.0);
 
@@ -128,7 +138,7 @@ class State{
 
             if(i % 50000 == 0){
                 overlaps = this->get_overlaps();
-                printf("Overlaps: %d, iteration: %d\r", overlaps, i);
+                printf("Overlaps: %i, iteration: %i\r", overlaps, i);
                 fflush(stdout);
             }
             i++;
