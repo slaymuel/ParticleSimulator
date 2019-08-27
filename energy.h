@@ -1,11 +1,12 @@
 #pragma once
 
 #include "particle.h"
+#include "particles.h"
 
 class EnergyBase{
     public:
     virtual ~EnergyBase(){};
-    virtual double all2all(std::vector< std::shared_ptr<Particle> >& particles) = 0;
+    virtual double all2all(Particles& particles) = 0;
     virtual double i2all(std::shared_ptr<Particle> p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
     virtual double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2) = 0;
     virtual double operator()(std::vector< std::shared_ptr<Particle> >&& p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
@@ -22,11 +23,11 @@ class Energy : public EnergyBase{
 
     public:
 
-    double all2all(std::vector< std::shared_ptr<Particle> >& particles){
+    double all2all(Particles& particles){
         double energy = 0;
-        for(int i = 0; i < particles.size(); i++){
-            for(int j = i + 1; j < particles.size(); j++){
-                energy += i2i(particles[i], particles[j]);
+        for(int i = 0; i < particles.tot; i++){
+            for(int j = i + 1; j < particles.tot; j++){
+                energy += i2i(particles.particles[i], particles.particles[j]);
             } 
         }
         return energy * constants::lB;

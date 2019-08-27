@@ -2,6 +2,7 @@
 #include "particle.h"
 #include "particles.h"
 #include <math.h>
+#include "state.h"
 
 using CallBack = std::function<void(std::vector< std::shared_ptr<Particle> >)>;
 
@@ -10,6 +11,7 @@ class Move{
 
     int accepted, rejected;
     double stepSize;
+
     static int totalMoves;
     ;
 
@@ -91,15 +93,21 @@ class GrandCanonical : public Move{
     double cp, d;
 
     public:
-    GrandCanonical(double chemPot, double donnan = 0) : cp(chemPot), d(donnan){}
+    State* s;
+    GrandCanonical(double chemPot, double donnan = 0) :  Move(0.0), cp(chemPot), d(donnan){}
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
-        std::shared_ptr<Particles> p = std::static_pointer_cast<Particles>(argument);
+        //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
+        
+        s->particles.add(s->geo->random_pos(), 2.5, 1, 0, "add"); // add particle
+        std::vector< std::shared_ptr<Particle> > particles = {s->particles.particles[s->particles.tot - 1]};
+        move_callback(particles);
 
-        //p->add(); // add particle
         if(HW){
             //p->add() // add image
         }
+
+        totalMoves++;
     }
 
 
@@ -112,7 +120,16 @@ class GrandCanonical : public Move{
         //prob =  particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
         //delete cation
         //prob = particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
-
+        bool ret = false;
+        if(exp(-dE) > Random::get_random()){
+            ret = true;
+            accepted++;
+         } 
+         else{
+             ret = false;
+             rejected++;
+         }
+        return ret;
     }
 };
 

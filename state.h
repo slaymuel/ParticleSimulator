@@ -23,11 +23,16 @@ class State{
     
 
     void control(){
-        energy = (*energyFunc).all2all(this->particles.particles);
+        energy = (*energyFunc).all2all(this->particles);
         error = std::fabs((energy - cummulativeEnergy) / energy);
 
+        if(this->particles.tot != _old->particles.tot){
+            printf("_old state has %i particles and current state has %i.\n", _old->particles.tot, this->particles.tot);
+            exit(1);
+        }
+
         if(error > 1e-10){
-            printf("\n\nEnergy drift is too large!\n\n");
+            printf("\n\nEnergy drift is too large: %.12lf\n\n", error);
             exit(1);
         } 
     }
@@ -40,13 +45,13 @@ class State{
         }
 
         //Calculate the initial energy of the system
-        this->energy = (*energyFunc).all2all(this->particles.particles);
+        this->energy = (*energyFunc).all2all(this->particles);
         this->cummulativeEnergy = this->energy;
     }
 
     void save(){
         for(auto i : this->movedParticles){
-            if(i->index > this->_old->particles.particles.size() - 1){
+            if(i->index >= this->_old->particles.tot){
                 this->_old->particles.add(i);
             }
             else{
@@ -63,7 +68,14 @@ class State{
         //Set moved partiles in current state equal to previous state
         //also need to set volume and maybe other properties
         for(auto i : this->movedParticles){
-            *(this->particles.particles[i->index]) = *(_old->particles.particles[i->index]);
+            if(this->particles.tot > _old->particles.tot){
+                //this->particles.remove(this->particles.particles[this->particles.tot - 1]->index);
+                this->particles.tot--;
+                this->particles.pTot--;
+            }
+            else{
+                *(this->particles.particles[i->index]) = *(_old->particles.particles[i->index]);
+            }
         }
         movedParticles.clear();
     }
@@ -79,7 +91,7 @@ class State{
         }
 
         double E1 = (*energyFunc)( this->_old->particles.get_subset(this->movedParticles), this->particles.particles );
-        double E2 = (*energyFunc)(movedParticles, this->particles.particles);
+        double E2 = (*energyFunc)( movedParticles, this->particles.particles );
         this->dE = E2 - E1;
 
         return dE;

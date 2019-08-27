@@ -46,29 +46,28 @@ class Simulator{
                                                                 << " particles" << std::endl;
 
         moves.push_back(new Translate(0.2));
+        GrandCanonical<false>* gc = new GrandCanonical<false>(1.0, 1.0);
+        gc->s = &state;
         //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
             for(int micro = 0; micro < microSteps; micro++){
-                for(auto move : moves){
 
-                    //Move should check if particle is part of molecule
-                    (*move)(state.particles.random(), move_callback); // Two virtual calls
-                    
-                    if(move->accept( state.get_energy_change() )){
-                        state.save();
-                    }
-                    else{
-                        state.revert();
-                    }
+                //Move should check if particle is part of molecule
+                //(*moves[0])(state.particles.random(), move_callback); // Two virtual calls
+                (*gc)(state.particles.random(), move_callback);
+
+                if(moves[0]->accept( state.get_energy_change() )){
+                    state.save();
+                }
+                else{
+                    state.revert();
+                }
 
                     //should also be able to
                     //state.get_energy(subset_of_particles);
-                }
             }
-
             /*                                HALF TIME                                  */
-
             //Check energy drift etc
             state.control();
 
@@ -111,11 +110,11 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(200, 200);
+    sim->state.particles.create(20, 20);
     sim->state.equilibrate();
-    sim->state.add_images();
+    //sim->state.add_images();
     sim->state.finalize();
-    sim->run(100, 1000);
+    sim->run(100, 10);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
