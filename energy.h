@@ -7,10 +7,10 @@ class EnergyBase{
     public:
     virtual ~EnergyBase(){};
     virtual double all2all(Particles& particles) = 0;
-    virtual double i2all(std::shared_ptr<Particle> p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
+    virtual double i2all(std::shared_ptr<Particle> p, Particles& particles) = 0;
     virtual double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2) = 0;
-    virtual double operator()(std::vector< std::shared_ptr<Particle> >&& p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
-    virtual double operator()(std::vector< std::shared_ptr<Particle> >& p, std::vector< std::shared_ptr<Particle> >& particles) = 0;
+    virtual double operator()(std::vector< int >&& p, Particles& particles) = 0;
+    virtual double operator()(std::vector< int >& p, Particles& particles) = 0;
 };
 
 
@@ -24,34 +24,38 @@ class Energy : public EnergyBase{
     public:
 
     double all2all(Particles& particles){
-        double energy = 0;
+        double e = 0.0;
         for(int i = 0; i < particles.tot; i++){
             for(int j = i + 1; j < particles.tot; j++){
-                energy += i2i(particles.particles[i], particles.particles[j]);
+                e += i2i(particles.particles[i], particles.particles[j]);
             } 
         }
-        return energy * constants::lB;
+        return e * constants::lB;
     }
 
-    double i2all(std::shared_ptr<Particle> p, std::vector< std::shared_ptr<Particle> >& particles){
-        double energy = 0;
-        for(auto particle : particles){
-            if(p->index == particle->index) continue;
-            energy += i2i(p, particle);
+    double i2all(std::shared_ptr<Particle> p, Particles& particles){
+        double e = 0.0;
+        for(int i = 0; i < particles.tot; i++){
+            if(p->index == particles.particles[i]->index) continue;
+            e += i2i(p, particles.particles[i]);
         }
-        return energy * constants::lB;
+        return e * constants::lB;
     }
 
-    double operator()(std::vector< std::shared_ptr<Particle> >&& p, std::vector< std::shared_ptr<Particle> >& particles){
-        double e = 0;
+    double operator()(std::vector< int >&& p, Particles& particles){
+        double e = 0.0;
         for(auto s : p){
-            e += i2all(s, particles);
+            e += i2all(particles.particles[s], particles);
         }
         return e;
     }
 
-    double operator()(std::vector< std::shared_ptr<Particle> >& p, std::vector< std::shared_ptr<Particle> >& particles){
-        return i2all(p[0], particles);
+    double operator()(std::vector< int >& p, Particles& particles){
+        double e = 0.0;
+        for(auto s : p){
+            e += i2all(particles.particles[s], particles);
+        }
+        return e;
     }
 
     inline double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){

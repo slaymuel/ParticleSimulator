@@ -17,12 +17,13 @@ class State{
 
     double energy, cummulativeEnergy, dE, error;
     Particles particles;
-    std::vector< std::shared_ptr<Particle> > movedParticles;    //Particles that has moved from previous state
+    std::vector< int > movedParticles;    //Particles that has moved from previous state
     Geometry *geo;
     std::shared_ptr<EnergyBase> energyFunc;
     
 
     void control(){
+        printf("Control\n");
         energy = (*energyFunc).all2all(this->particles);
         error = std::fabs((energy - cummulativeEnergy) / energy);
 
@@ -31,7 +32,22 @@ class State{
             exit(1);
         }
 
-        if(error > 1e-10){
+        for(int i = 0; i < this->particles.tot; i++){
+            if(this->particles.particles[i]->pos != this->_old->particles.particles[i]->pos){
+                printf("current positions is not equal to old positions for particle %i.\n", i);
+                std::cout << this->particles.particles[i]->pos << std::endl;
+                std::cout << "\n" << this->_old->particles.particles[i]->pos<< std::endl;
+                exit(1);
+            }
+            if(this->particles.particles[i]->index != i){
+                printf("index is wrong in current for particle %i, it has index %i.\n", i, this->particles.particles[i]->index );
+            }
+            if(this->_old->particles.particles[i]->index != i){
+                printf("index is wrong in current for particle %i, it has index %i.\n", i, this->_old->particles.particles[i]->index );
+            }
+        }
+
+        if(error > 1e-10 || energy > 1e30){
             printf("\n\nEnergy drift is too large: %.12lf\n\n", error);
             exit(1);
         } 
@@ -50,16 +66,28 @@ class State{
     }
 
     void save(){
+        //printf("Save:\n");
+        //printf("current moved %lu\n", this->movedParticles.size());
+        //printf("old moved %lu\n\n", this->_old->movedParticles.size());
         for(auto i : this->movedParticles){
-            if(i->index >= this->_old->particles.tot){
-                this->_old->particles.add(i);
+            if(this->particles.tot > this->_old->particles.tot){
+                //printf("\nSave: adding particle %i to old\n\n", i);
+                this->_old->particles.add(this->particles.particles[i]);
             }
-            else{
-                *(this->_old->particles.particles[i->index]) = *(this->particles.particles[i->index]);
+            else if(this->particles.tot == this->_old->particles.tot){
+                *(this->_old->particles.particles[i]) = *(this->particles.particles[i]);
+            }
+        }
+
+        for(auto i : this->_old->movedParticles){
+            if(this->particles.tot < this->_old->particles.tot){
+                //printf("\nSave: removing particle %i from old\n\n", i);
+                this->_old->particles.remove(i);
             }
         }
 
         movedParticles.clear();
+        this->_old->movedParticles.clear();
         cummulativeEnergy += this->dE;
     }
 
@@ -69,41 +97,58 @@ class State{
         //also need to set volume and maybe other properties
         for(auto i : this->movedParticles){
             if(this->particles.tot > _old->particles.tot){
-                //this->particles.remove(this->particles.particles[this->particles.tot - 1]->index);
-                this->particles.tot--;
-                this->particles.pTot--;
+                //printf("\nReject: removing particle %i from current\n\n", i);
+                this->particles.remove(i);
             }
-            else{
-                *(this->particles.particles[i->index]) = *(_old->particles.particles[i->index]);
+            else if(this->particles.tot == this->_old->particles.tot){
+                //printf("\nAssuming normal move\n");
+                *(this->particles.particles[i]) = *(_old->particles.particles[i]);
             }
         }
+
+        for(auto i : this->_old->movedParticles){
+            if(this->particles.tot < this->_old->particles.tot){
+                //printf("\nRevert: adding back particle %i to current\n", i);
+                this->particles.add(this->_old->particles.particles[i], i);
+            }
+
+        }
+
         movedParticles.clear();
+        this->_old->movedParticles.clear();
     }
 
 
     //Get energy different between this and old state
     double get_energy_change(){
         for(auto p : movedParticles){
-            if(!this->geo->is_inside(p->pos) || this->overlap(p->index)){
+            if(!this->geo->is_inside(this->particles.particles[p]->pos) || this->overlap(this->particles.particles[p]->index)){
                 //If moved outside box or overlap, return inf
                 return std::numeric_limits<double>::infinity();
             }
         }
-
-        double E1 = (*energyFunc)( this->_old->particles.get_subset(this->movedParticles), this->particles.particles );
-        double E2 = (*energyFunc)( movedParticles, this->particles.particles );
+        //printf("Moved particle is inside and does not overlap\n");
+        double E1 = (*energyFunc)( this->_old->movedParticles, this->_old->particles );
+        //printf("Calculated old\n");
+        double E2 = (*energyFunc)( this->movedParticles, this->particles );
+        //printf("Calculated current\n");
         this->dE = E2 - E1;
 
+        //printf("Energy change done\n");
         return dE;
     }
 
 
     //Called when a move is accepted - set movedParticles
-    void move_callback(std::vector< std::shared_ptr<Particle> > ps){   
+    void move_callback(std::vector< int > ps){   
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
-        std::for_each(std::begin(ps), std::end(ps), [this](std::shared_ptr<Particle> p){ 
-                                                            this->movedParticles.push_back(p); 
-                                                            });
+        if(this->particles.tot >= this->_old->particles.tot){
+            std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
+                                                    this->movedParticles.push_back(i); });
+        }
+
+        std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
+        //printf("Callback done\n");
     }
 
 

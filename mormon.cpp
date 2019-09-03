@@ -37,7 +37,7 @@ class Simulator{
     std::vector<Move*> moves;
     
     /* State callback after move */
-    std::function< void(std::vector< std::shared_ptr<Particle> >) > move_callback 
+    std::function< void(std::vector< int >) > move_callback 
                 = std::bind(&State::move_callback, &state, std::placeholders::_1);
 
 
@@ -46,26 +46,32 @@ class Simulator{
                                                                 << " particles" << std::endl;
 
         moves.push_back(new Translate(0.2));
-        GrandCanonical<false>* gc = new GrandCanonical<false>(1.0, 1.0);
-        gc->s = &state;
+        Move* gca = new GrandCanonicalAdd<false>(1.0, 1.0);
+        Move* gcr = new GrandCanonicalRemove<false>(1.0, 1.0);
+        gca->s = &state;
+        gcr->s = &state;
+        moves.push_back(gca);
+        moves.push_back(gcr);
         //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
             for(int micro = 0; micro < microSteps; micro++){
+                for(auto move : moves){
+                    //Move should check if particle is part of molecule
+                    //(*moves[0])(state.particles.random(), move_callback); // Two virtual calls
+                    //(*gc)(state.particles.random(), move_callback);
+                    //gc->remove(state.particles.random(), move_callback);
+                    (*move)(state.particles.random(), move_callback);
+                    if(move->accept( state.get_energy_change() )){
+                        state.save();
+                    }
+                    else{
+                        state.revert();
+                    }
 
-                //Move should check if particle is part of molecule
-                //(*moves[0])(state.particles.random(), move_callback); // Two virtual calls
-                (*gc)(state.particles.random(), move_callback);
-
-                if(moves[0]->accept( state.get_energy_change() )){
-                    state.save();
+                        //should also be able to
+                        //state.get_energy(subset_of_particles);
                 }
-                else{
-                    state.revert();
-                }
-
-                    //should also be able to
-                    //state.get_energy(subset_of_particles);
             }
             /*                                HALF TIME                                  */
             //Check energy drift etc
@@ -73,8 +79,14 @@ class Simulator{
 
             //Print progress
             std::cout << "\nIteration: " << macro * microSteps + microSteps << std::endl;
-            printf("Acceptance: %.1lf%%\n", (double)moves[0]->accepted / Move::totalMoves * 100.0);
+
+            printf("Acceptance ratios: ");
+            for(auto move : moves){
+                printf("%.1lf%% ", (double)move->accepted / move->attempted * 100.0);
+            }
+            printf("\n");
             printf("Total energy is: %lf, error: %.15lf\n", state.energy, state.error);
+            printf("Number of particles: %i\n", state.particles.tot);
 
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
@@ -84,7 +96,6 @@ class Simulator{
             //    s.sample(??????);
             //    s.sample(s.arguments);
             //}
-            
         }
     }
 };
@@ -110,11 +121,11 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(20, 20);
+    sim->state.particles.create(100, 100);
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();
-    sim->run(100, 10);
+    sim->run(100, 100);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
