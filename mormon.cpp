@@ -45,13 +45,12 @@ class Simulator{
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
-        moves.push_back(new Translate(0.2));
-        Move* gca = new GrandCanonicalAdd<false>(1.0, 1.0);
-        Move* gcr = new GrandCanonicalRemove<false>(1.0, 1.0);
-        gca->s = &state;
-        gcr->s = &state;
-        moves.push_back(gca);
-        moves.push_back(gcr);
+        moves.push_back(new Translate<false>(0.2));
+        moves.push_back(new GrandCanonicalAdd<false>(1.0, 1.0));
+        moves.back()->s =  &state;;
+        moves.push_back(new GrandCanonicalRemove<false>(1.0, 1.0));
+        moves.back()->s =  &state;;
+
         //moves.push_back(new Rotate());
 
         for(int macro = 0; macro < macroSteps; macro++){
@@ -125,7 +124,7 @@ int main(){
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();
-    sim->run(100, 100);
+    sim->run(100, 1000);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
@@ -136,7 +135,7 @@ int main(){
 #ifdef PY11
 PYBIND11_MODULE(mormon, m) {
     py::class_<Simulator>(m, "Simulator")
-        .def(py::init<int, int, double, double>())
+        .def(py::init<double, double>())
         .def("run", &Simulator::run)
         .def_readwrite("state", &Simulator::state);
 
@@ -144,8 +143,11 @@ PYBIND11_MODULE(mormon, m) {
         .def("load_state", &State::load_state)
         .def("set_geometry", &State::set_geometry)
         .def("set_energy", &State::set_energy)
-        .def("load_particles", &State::load_particles)
         .def("equilibrate", &State::equilibrate)
-        .def("finalize", &State::finalize);
+        .def("finalize", &State::finalize)
+        .def_readwrite("particles", &State::particles);
+
+    py::class_<Particles>(m, "Particles")
+        .def("create", &Particles::create);
 }
 #endif

@@ -20,6 +20,10 @@ class Random{
         return (*real_dist)(rand_gen);
     }
 
+    static int get_random(int i){
+        return i * (*real_dist)(rand_gen);
+    }
+
     static Eigen::Vector3d get_random_vector(){
         Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
         return a.normalized();

@@ -10,12 +10,6 @@
 
 class Particles{
 
-    private:
-    std::random_device r;
-    std::seed_seq ssq{r()};
-    std::default_random_engine rand_gen{ssq};
-    std::shared_ptr< std::uniform_int_distribution<int> > distribution;
-
     public:
     //Eigen::MatrixXd positions;
     std::vector< std::shared_ptr<Particle> > particles, cations, anions;
@@ -41,7 +35,8 @@ class Particles{
         //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
         //std::sample
 
-        return this->particles[(*distribution)(rand_gen)];
+        //return this->particles[(*distribution)(rand_gen)];
+        return this->particles[Random::get_random(this->tot)];
     }
 
 
@@ -64,7 +59,7 @@ class Particles{
         this->particles[tot]->q = q;
         this->particles[tot]->b = b;
         this->particles[tot]->name = name;
-        //Update distribution for random generator
+
 
         if(!image){
             std::shared_ptr<Particle> temp = this->particles[pTot];
@@ -78,7 +73,6 @@ class Particles{
                 this->aTot++;
             }
 
-            this->distribution = std::make_shared< std::uniform_int_distribution<int> >(0, this->pTot - 1);
             this->pTot++;
         }
         else{
@@ -109,8 +103,7 @@ class Particles{
         this->particles[tot]->b = p->b;
         this->particles[tot]->name = p->name;
         
-        //Update distribution for random generator
-        this->distribution = std::make_shared< std::uniform_int_distribution<int> >(0, this->pTot);
+
         this->pTot++;
         this->tot++;
     }
@@ -146,8 +139,6 @@ class Particles{
         this->particles[index]->b = p->b;
         this->particles[index]->name = p->name;
 
-        //Update distribution for random generator
-        this->distribution = std::make_shared< std::uniform_int_distribution<int> >(0, this->pTot);
 
         this->pTot++;
     }
@@ -179,7 +170,7 @@ class Particles{
         this->pTot--;
         this->tot--;
 
-        this->distribution = std::make_shared< std::uniform_int_distribution<int> >(0, this->pTot - 1);
+
     }
 
 
