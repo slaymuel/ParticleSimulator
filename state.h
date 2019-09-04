@@ -14,6 +14,9 @@ class State{
     std::shared_ptr<State> _old;
 
     public:
+    ~State(){
+        delete geo;
+    }
 
     double energy, cummulativeEnergy, dE, error;
     Particles particles;
@@ -122,11 +125,12 @@ class State{
     //Get energy different between this and old state
     double get_energy_change(){
         for(auto p : movedParticles){
-            if(!this->geo->is_inside(this->particles.particles[p]->pos) || this->overlap(this->particles.particles[p]->index)){
+            if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(this->particles.particles[p]->index)){
                 //If moved outside box or overlap, return inf
                 return std::numeric_limits<double>::infinity();
             }
         }
+
         //printf("Moved particle is inside and does not overlap\n");
         double E1 = (*energyFunc)( this->_old->movedParticles, this->_old->particles );
         //printf("Calculated old\n");
@@ -141,6 +145,8 @@ class State{
 
     //Called when a move is accepted - set movedParticles
     void move_callback(std::vector< int > ps){   
+        // Can do PBC here
+
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
         if(this->particles.tot >= this->_old->particles.tot){
             std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
@@ -187,8 +193,7 @@ class State{
             p = this->particles.random();
             oldPos = p->pos;
             p->translate(10.0);
-
-            if(this->overlap(p->index) || !this->geo->is_inside(p->pos)){
+            if(this->overlap(p->index) || !this->geo->is_inside(p)){
                 p->pos = oldPos;
             }
 
@@ -232,7 +237,7 @@ class State{
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
-                this->geo = new Cuboid<true, true, true>(50.0, 50.0, 50.0);
+                this->geo = new Cuboid<true, true, false>(60.0, 60.0, 30.0);
                 break;
             case 1:
                 this->geo = new Sphere();
@@ -247,6 +252,7 @@ class State{
             default:
                 printf("Adding Coulomb potential\n");
                 this->energyFunc = std::make_shared< Energy<Coulomb> >();
+                this->energyFunc->set_geo(this->geo);
                 break;
         }
         

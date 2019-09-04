@@ -2,9 +2,9 @@
 
 class Coulomb{
     public:
-    
-    inline double operator()(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
-        return p1->q * p2->q / p1->distance(p2);
+
+    inline double operator()(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2, double dist){
+        return p1->q * p2->q / dist;
     }
 };
 

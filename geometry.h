@@ -1,5 +1,8 @@
+#pragma once
+
 #include <vector>
 #include <Eigen/Dense>
+#include "particle.h"
 
 class Geometry{
     private:
@@ -10,7 +13,7 @@ class Geometry{
     std::vector<double> dh;  //half dimensions
 
     virtual void resize() = 0;
-    virtual bool is_inside(Eigen::Vector3d& pos) = 0;
+    virtual bool is_inside(std::shared_ptr<Particle>& p) = 0;
     virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual Eigen::Vector3d mirror(Eigen::Vector3d pos) = 0;
     virtual Eigen::Vector3d random_pos() = 0;
@@ -19,7 +22,7 @@ class Geometry{
 };
 
 
-template<bool X, bool Y, bool Z>
+template<bool X = true, bool Y = true, bool Z = true>
 class Cuboid : public Geometry{
     public:
 
@@ -34,38 +37,43 @@ class Cuboid : public Geometry{
 
 
 
-    bool is_inside(Eigen::Vector3d& pos){
-        assert(pos.size() == 3 && "Position is malformed...");
+    bool is_inside(std::shared_ptr<Particle>& p){
+        assert(p->pos.size() == 3 && "Position is malformed...");
 
         if(X){
-            if(pos[0] > this->dh[0]){
-                pos[0] -= d[0];
+            if(p->pos[0] > this->dh[0]){
+                p->pos[0] -= d[0];
             }
-            else if(pos[0] < -this->dh[0]){
-                pos[0] += d[0];
+            else if(p->pos[0] < -this->dh[0]){
+                p->pos[0] += d[0];
             }
         }
         if(Y){
-            if(pos[1] > this->dh[1]){
-                pos[1] -= d[1];
+            if(p->pos[1] > this->dh[1]){
+                p->pos[1] -= d[1];
             }
-            else if(pos[1] < -this->dh[1]){
-                pos[1] += d[1];
+            else if(p->pos[1] < -this->dh[1]){
+                p->pos[1] += d[1];
             }
         }
 
         if(Z){
-            if(pos[2] > this->dh[2]){
-                pos[2] -= d[2];
+            if(p->pos[2] > this->dh[2]){
+                p->pos[2] -= d[2];
             }
-            else if(pos[2] < -this->dh[2]){
-                pos[2] += d[2];
+            else if(p->pos[2] < -this->dh[2]){
+                p->pos[2] += d[2];
+            }
+        }
+        else{
+            if(p->pos[2] + p->r > this->dh[2] || p->pos[2] - p->r < -this->dh[2]){
+                return false;
             }
         }
 
-        if(pos[0] >= this->dh[0] || pos[0] <= -this->dh[0] ||
-           pos[1] >= this->dh[1] || pos[1] <= -this->dh[1] ||
-           pos[2] >= this->dh[2] || pos[2] <= -this->dh[2]){
+        if(p->pos[0] >= this->dh[0] || p->pos[0] <= -this->dh[0] ||
+           p->pos[1] >= this->dh[1] || p->pos[1] <= -this->dh[1] ||
+           p->pos[2] >= this->dh[2] || p->pos[2] <= -this->dh[2]){
                return false;
         }
         return true;
@@ -118,7 +126,7 @@ class Cuboid : public Geometry{
     Eigen::Vector3d random_pos(){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << dh[0] * (v[0] * 2.0 - 1), dh[1] * (v[1] * 2.0 - 1), dh[2] * (v[2] * 2.0 - 1);
+        v << (dh[0] - 2.5) * (v[0] * 2.0 - 1), (dh[1] - 2.5) * (v[1] * 2.0 - 1), (dh[2] - 2.5) * (v[2] * 2.0 - 1);
         return v;
     }
 };
@@ -130,8 +138,8 @@ class Sphere : public Geometry{
 
     }
 
-    bool is_inside(Eigen::Vector3d& pos){
-        if(sqrt(pos[0] * pos[0] + pos[1] * pos[1] + pos[2] * pos[2]) < this->dh[0]){
+    bool is_inside(std::shared_ptr<Particle>& p){
+        if(sqrt(p->pos[0] * p->pos[0] + p->pos[1] * p->pos[1] + p->pos[2] * p->pos[2]) < this->dh[0]){
                return true;
            }
         return false;

@@ -7,6 +7,8 @@
 #include "particle.h"
 #include "move.h"
 #include <functional>
+#include <chrono>
+#include "sampler.h"
 
 #ifdef PY11
 #include <pybind11/pybind11.h>
@@ -29,6 +31,12 @@ class Simulator{
         constants::T = T; 
         constants::lB = constants::C * (1.0 / (Dielec * T));
         Random::initialize();
+
+        #ifdef _OPENMP
+            printf("OpenMP is ENABLED\n");
+        #else
+            printf("OpenMP is DISABLED\n");
+        #endif
     }
 
     //Energy<Coulomb> energy;
@@ -42,18 +50,21 @@ class Simulator{
 
 
     void run(int macroSteps, int microSteps){
+
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
-        moves.push_back(new Translate<false>(0.2));
-        moves.push_back(new GrandCanonicalAdd<false>(1.0, 1.0));
-        moves.back()->s =  &state;;
-        moves.push_back(new GrandCanonicalRemove<false>(1.0, 1.0));
-        moves.back()->s =  &state;;
+        moves.push_back(new Translate<false>(0.6));
+        //moves.push_back(new GrandCanonicalAdd<false>(1.0, 1.0));
+        //moves.back()->s =  &state;;
+        //moves.push_back(new GrandCanonicalRemove<false>(1.0, 1.0));
+        //moves.back()->s =  &state;;
 
         //moves.push_back(new Rotate());
+        Sampler* samp = new Density(2, state.geo->d[2], 0.2);
 
         for(int macro = 0; macro < macroSteps; macro++){
+            auto start = std::chrono::steady_clock::now();
             for(int micro = 0; micro < microSteps; micro++){
                 for(auto move : moves){
                     //Move should check if particle is part of molecule
@@ -84,9 +95,12 @@ class Simulator{
                 printf("%.1lf%% ", (double)move->accepted / move->attempted * 100.0);
             }
             printf("\n");
-            printf("Total energy is: %lf, error: %.15lf\n", state.energy, state.error);
+            printf("Total energy is: %lf, energy drift: %.15lf\n", state.energy, state.error);
             printf("Number of particles: %i\n", state.particles.tot);
+            auto end = std::chrono::steady_clock::now();
+            std::cout << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / microSteps << "us\n\n";
 
+            samp->sample(state.particles);
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
@@ -96,6 +110,8 @@ class Simulator{
             //    s.sample(s.arguments);
             //}
         }
+
+        samp->save("z_dens.txt");
     }
 };
 
@@ -104,7 +120,7 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(2.0, 298.0);
+    Simulator* sim = new Simulator(78.0, 298.0);
 
     sim->state.set_geometry(0);
     sim->state.set_energy(0);
@@ -120,7 +136,7 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(100, 100);
+    sim->state.particles.create(200, 200);
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();

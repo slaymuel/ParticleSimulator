@@ -85,7 +85,7 @@ class Particles{
     }
 
 
-    void add(std::shared_ptr<Particle>& p){
+    void add(const std::shared_ptr<Particle>& p){
         //Resize positions
         //this->positions.conservativeResize(this->positions.rows() + 1, 3);
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];

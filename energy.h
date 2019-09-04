@@ -2,9 +2,19 @@
 
 #include "particle.h"
 #include "particles.h"
+#include "geometry.h"
+#include <omp.h>
+
 
 class EnergyBase{
+    protected:
+    Geometry *geo;
+
     public:
+    void set_geo(Geometry* geo){
+        this->geo = geo;
+    }
+
     virtual ~EnergyBase(){};
     virtual double all2all(Particles& particles) = 0;
     virtual double i2all(std::shared_ptr<Particle> p, Particles& particles) = 0;
@@ -25,6 +35,8 @@ class Energy : public EnergyBase{
 
     double all2all(Particles& particles){
         double e = 0.0;
+        
+        //#pragma omp parallel for reduction(+:e) if(particles.tot >= 200)
         for(int i = 0; i < particles.tot; i++){
             for(int j = i + 1; j < particles.tot; j++){
                 e += i2i(particles.particles[i], particles.particles[j]);
@@ -35,6 +47,8 @@ class Energy : public EnergyBase{
 
     double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double e = 0.0;
+
+        //#pragma omp parallel for reduction(+:e) if(particles.tot >= 500)
         for(int i = 0; i < particles.tot; i++){
             if(p->index == particles.particles[i]->index) continue;
             e += i2i(p, particles.particles[i]);
@@ -59,6 +73,6 @@ class Energy : public EnergyBase{
     }
 
     inline double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
-        return energy_func(p1, p2);
+        return energy_func(p1, p2, geo->distance(p1->pos, p2->pos));
     }
 };

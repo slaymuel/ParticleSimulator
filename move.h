@@ -38,6 +38,7 @@ class Translate : public Move{
         //printf("Translating\n");
         p->translate(this->stepSize);
         //PBC
+
         if(HW){
             //Move image particle
         }
@@ -77,6 +78,7 @@ class Rotate : public Move{
 
         p->rotate(this->stepSize);
         //PBC
+        
         move_callback(particles);
         totalMoves++;
         attempted++;
