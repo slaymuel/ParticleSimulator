@@ -50,6 +50,11 @@ class State{
             }
         }
 
+        if(this->particles.cTot + this->particles.aTot != this->particles.tot){
+            printf("Ctot + aTot != tot\n");
+            exit(1);
+        }
+
         if(error > 1e-10 || energy > 1e30){
             printf("\n\nEnergy drift is too large: %.12lf\n\n", error);
             exit(1);
@@ -237,7 +242,7 @@ class State{
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
-                this->geo = new Cuboid<true, true, false>(60.0, 60.0, 30.0);
+                this->geo = new Cuboid<true, true, true>(50.0, 50.0, 50.0);
                 break;
             case 1:
                 this->geo = new Sphere();

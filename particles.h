@@ -47,29 +47,26 @@ class Particles{
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
 
         //Create particle
-        if(tot == this->particles.size()){
-            printf("Allocating\n");
+        if(this->tot == this->particles.size()){
+            //printf("Allocating\n");
             this->particles.push_back(std::make_shared<Particle>());
         }
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
-        this->particles[tot]->pos  << pos[0], pos[1], pos[2];
+        this->particles[this->tot]->pos  << pos[0], pos[1], pos[2];
         //std::cout << this->particles[tot]->pos << " " << std::endl;
-        this->particles[tot]->index = this->tot;
-        this->particles[tot]->r = r;
-        this->particles[tot]->q = q;
-        this->particles[tot]->b = b;
-        this->particles[tot]->name = name;
+        this->particles[this->tot]->index = this->tot;
+        this->particles[this->tot]->r = r;
+        this->particles[this->tot]->q = q;
+        this->particles[this->tot]->b = b;
+        this->particles[this->tot]->name = name;
 
 
         if(!image){
-            std::shared_ptr<Particle> temp = this->particles[pTot];
             
             if(q > 0){
-                this->cations.push_back(temp);
                 this->cTot++;
             }
             else {
-                this->anions.push_back(temp);
                 this->aTot++;
             }
 
@@ -79,9 +76,9 @@ class Particles{
             this->iTot++;
         }
 
-        tot++;
+        this->tot++;
         assert(tot <= this->particles.size() && "tot is larger than particle vector size\n");
-        assert(tot == pTot + iTot && "pTot + iTot != tot!\n");
+        assert(tot == this->pTot + this->iTot && "pTot + iTot != tot!\n");
     }
 
 
@@ -91,7 +88,7 @@ class Particles{
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
         //Create particle
         if(this->tot == this->particles.size()){
-            printf("Allocating\n");
+            //printf("Allocating\n");
             this->particles.push_back(std::make_shared<Particle>());
         }
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
@@ -102,7 +99,13 @@ class Particles{
         this->particles[tot]->q = p->q;
         this->particles[tot]->b = p->b;
         this->particles[tot]->name = p->name;
-        
+
+        if(p->q > 0){
+            this->cTot++;
+        }
+        else {
+            this->aTot++;
+        }
 
         this->pTot++;
         this->tot++;
@@ -117,7 +120,7 @@ class Particles{
         //Create particle
 
         if(this->tot == this->particles.size()){
-            printf("Allocating\n");
+            //printf("Allocating\n");
             this->particles.push_back(std::make_shared<Particle>());
         }
         //std::copy(this->particles.begin() + index, this->particles.begin() + this->tot, this->particles.begin() + index + 1);
@@ -139,6 +142,12 @@ class Particles{
         this->particles[index]->b = p->b;
         this->particles[index]->name = p->name;
 
+        if(p->q > 0){
+            this->cTot++;
+        }
+        else {
+            this->aTot++;
+        }      
 
         this->pTot++;
     }
@@ -151,21 +160,19 @@ class Particles{
         //std::copy(this->particles.begin() + i, this->particles.begin() + this->tot, this->particles.begin() + i - 1);
 
         //this->particles.erase(this->particles.begin() + i);
+        if(this->particles[index]->q > 0){
+            this->cTot--;
+        }
+        else{
+            this->aTot--; 
+        }
+
 
         for(int i = index; i < this->tot - 1; i++){
             //printf("Remove: Moving particle %i to %i\n", i + 1, i);
             *(this->particles[i]) = *(this->particles[i + 1]);
             this->particles[i]->index = i;
         }
-
-
-        /*this->pTot--;
-        this->tot--;
-
-        for(;i < this->tot; i++){
-            this->particles[i]->index--;
-        }*/
-        //printf("Done\n\n");
 
         this->pTot--;
         this->tot--;

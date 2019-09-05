@@ -8,10 +8,8 @@ using CallBack = std::function<void(std::vector< int >)>;
 
 class Move{
     public:
-    State* s;
     int accepted, rejected, attempted;
     double stepSize;
-
     static int totalMoves;
 
     Move(double step) : stepSize(step){
@@ -98,102 +96,127 @@ class Rotate : public Move{
     }
 };
 
+class GrandCanonical : public Move{
+
+    protected:
+    State* s;
+    double q;
+    double cp = 10.0, d = 0.0;
+    
+    public:
+
+    GrandCanonical(double chemPot, double donnan, State* state) : Move(0.0), s(state) ,cp(chemPot), d(donnan){}
+    virtual void operator()(std::shared_ptr<void> argument, CallBack& move_callback){};
+    virtual bool accept(double dE){return false;};
+
+    template<bool ADD>
+    bool accept_imp(double dE){
+        //delete anion
+
+        double prob;
+        
+        if(ADD){
+            if(this->q > 0){
+                prob = s->geo->volume / s->particles.cTot * std::exp(cp - d * q - dE);;
+                //prob = std::exp(-dE);
+                //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
+            }
+            else{
+                prob = s->geo->volume / s->particles.aTot * std::exp(cp - d * q - dE);
+                //prob = std::exp(-dE);
+                //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
+            }            
+        }
+        else{
+            if(this->q > 0){
+                prob = s->particles.cTot / s->geo->volume * std::exp(d * this->q - cp - dE);
+                //particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
+            }
+            else{
+                prob =  s->particles.aTot / s->geo->volume * std::exp(d * this->q - cp - dE);
+                //particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
+            }
+        }
+        //printf("%lf\n", dE);
+        return prob > Random::get_random();
+    }
+};
 
 template <bool HW>
-class GrandCanonicalAdd : public Move{
-    private:
-    double cp, d;
+class GrandCanonicalAdd : public GrandCanonical{
 
     public:
-    GrandCanonicalAdd(double chemPot, double donnan = 0) :  Move(0.0), cp(chemPot), d(donnan){}
+    GrandCanonicalAdd(double chemPot, double donnan, State* state) : GrandCanonical(chemPot, donnan, state){}
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
         //printf("Adding\n");
-        s->particles.add(s->geo->random_pos(), 2.5, 1, 0, "add"); // add particle
+        this->q = (Random::get_random() > 0.5) ? 1.0 : -1.0;
+        s->particles.add(s->geo->random_pos(), 2.5, this->q, 0, (this->q > 0) ? "Na" : "Cl"); // add particle
         std::vector< int > particles{s->particles.tot - 1};
+
         //printf("Move: Added particle %i\n", s->particles.tot - 1);
-        move_callback(particles);
 
         if(HW){
             //p->add() // add image
         }
 
+        move_callback(particles);
         totalMoves++;
         attempted++;
     }
 
 
     bool accept(double dE){
-        //add anion
-        //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
-        //Add cation
-        //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
-        //delete anion
-        //prob =  particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
-        //delete cation
-        //prob = particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
-        bool ret = false;
-        if(exp(-dE) > Random::get_random()){
-            ret = true;
+        if(accept_imp<true>(dE)){
             accepted++;
-            //printf("Accepted\n");
-         } 
-         else{
-             ret = false;
-             rejected++;
-             //printf("Rejected\n");
-         }
-        return ret;
+            return true;
+        }
+        else{
+            rejected++;
+            return false;
+        }
+        
     }
 };
 
 template <bool HW>
-class GrandCanonicalRemove : public Move{
-    private:
-    double cp, d;
-
+class GrandCanonicalRemove : public GrandCanonical{
     public:
-    GrandCanonicalRemove(double chemPot, double donnan = 0) :  Move(0.0), cp(chemPot), d(donnan){}
+    GrandCanonicalRemove(double chemPot, double donnan, State* state) : GrandCanonical(chemPot, donnan, state){}
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
-        std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        std::vector< int > particles = {p->index};
-        //printf("\nremoving particle %i from current\n\n", p->index);
-        //printf("Removing\n");
-        s->particles.remove(p->index); // add particle
+        if(s->particles.tot > 0){
+            std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+            std::vector< int > particles = {p->index};
+            this->q = p->q;
+            //printf("\nremoving particle %i from current\n\n", p->index);
+            //printf("Removing\n");
+            s->particles.remove(p->index); // remove particle
 
-        if(HW){
-            // remove image
+            if(HW){
+                // remove image
+            }
+
+            move_callback(particles);
+            totalMoves++;
+            attempted++;
         }
-
-        move_callback(particles);
-
-        totalMoves++;
-        attempted++;
+        else{
+            printf("All particles have been removed!\n");
+            exit(1);
+        }
     }
 
     bool accept(double dE){
-        //add anion
-        //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
-        //Add cation
-        //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
-        //delete anion
-        //prob =  particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
-        //delete cation
-        //prob = particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
-        bool ret = false;
-        if(exp(-dE) > Random::get_random()){
-            ret = true;
+        if(accept_imp<false>(dE)){
             accepted++;
-            //printf("Accepted\n");
-         } 
-         else{
-             ret = false;
-             rejected++;
-             //printf("Rejected\n");
-         }
-        return ret;
+            return true;
+        }
+        else{
+            rejected++;
+            return false;
+        }
     }
 };
 

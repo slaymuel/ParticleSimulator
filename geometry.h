@@ -11,6 +11,7 @@ class Geometry{
 
     std::vector<double> d;
     std::vector<double> dh;  //half dimensions
+    double volume;
 
     virtual void resize() = 0;
     virtual bool is_inside(std::shared_ptr<Particle>& p) = 0;
@@ -29,6 +30,7 @@ class Cuboid : public Geometry{
     Cuboid(double x, double y, double z){
         this->d = {x, y, z};
         this->dh = {x / 2.0, y / 2.0, z / 2.0};
+        this->volume = x * y * z;
     }
 
     void resize(){
@@ -38,7 +40,7 @@ class Cuboid : public Geometry{
 
 
     bool is_inside(std::shared_ptr<Particle>& p){
-        assert(p->pos.size() == 3 && "Position is malformed...");
+        assert(p->pos.size() == 3);
 
         if(X){
             if(p->pos[0] > this->dh[0]){

@@ -50,18 +50,30 @@ class Simulator{
 
 
     void run(int macroSteps, int microSteps){
+        printf("            +\n"                                            
+               "           (|)\n"
+               " _____.___.|_|.\n"                                      
+               "|    / \\  |===|\n"                                           
+               "|   /   \\ | o |               MORMONS\n"                                           
+               "|__/__v__\\|, ,|    MOleculaR MOdelliNg Software\n"                                           
+               "| | | | | || ||   -----------------------------\n"   
+               "|/| . . . |','|\n"                                           
+               "||| A A A | , |\n"                                           
+               "||| M M M |   |\n"                                       
+               "---------------\n\n");
+
+
 
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
         moves.push_back(new Translate<false>(0.6));
-        //moves.push_back(new GrandCanonicalAdd<false>(1.0, 1.0));
-        //moves.back()->s =  &state;;
-        //moves.push_back(new GrandCanonicalRemove<false>(1.0, 1.0));
-        //moves.back()->s =  &state;;
-
+        
+        moves.push_back(new GrandCanonicalAdd<false>(-5.0, 0.0, &state));
+        moves.push_back(new GrandCanonicalRemove<false>(-5.0, 0.0, &state));
+        
         //moves.push_back(new Rotate());
-        Sampler* samp = new Density(2, state.geo->d[2], 0.2);
+        Sampler* sampler = new Density(2, state.geo->d[2], 0.2);
 
         for(int macro = 0; macro < macroSteps; macro++){
             auto start = std::chrono::steady_clock::now();
@@ -95,23 +107,25 @@ class Simulator{
                 printf("%.1lf%% ", (double)move->accepted / move->attempted * 100.0);
             }
             printf("\n");
+            
             printf("Total energy is: %lf, energy drift: %.15lf\n", state.energy, state.error);
-            printf("Number of particles: %i\n", state.particles.tot);
+            printf("Cations: %i Anions: %i Tot %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
             auto end = std::chrono::steady_clock::now();
             std::cout << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / microSteps << "us\n\n";
 
-            samp->sample(state.particles);
+            sampler->sample(state.particles);
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
-            //sampler.sample(state);
+
             //for(auto s : sampler){
             //    s.sample(??????);
             //    s.sample(s.arguments);
             //}
         }
-
-        samp->save("z_dens.txt");
+        printf("Saving analysis data...\n");
+        sampler->save("z_dens.txt");
+        printf("Simulation Done!\n\n");
     }
 };
 
@@ -136,11 +150,11 @@ int main(){
     pos.emplace_back();
     pos.back() = {2, 2, 3};
     sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(200, 200);
+    sim->state.particles.create(100, 100);
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();
-    sim->run(100, 1000);
+    sim->run(1000, 1000);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
