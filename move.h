@@ -10,9 +10,12 @@ class Move{
     public:
     int accepted, rejected, attempted;
     double stepSize;
+    double weight;
+    std::string id;
+
     static int totalMoves;
 
-    Move(double step) : stepSize(step){
+    Move(double step, double w) : stepSize(step), weight(w){
         accepted = 0;
         rejected = 0;
         attempted = 0;
@@ -27,7 +30,9 @@ template <bool HW>
 class Translate : public Move{
     public:
 
-    Translate(double step) : Move(step){}
+    Translate(double step, double w) : Move(step, w){
+        this->id = "Trans";
+    }
 
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
@@ -67,7 +72,9 @@ class Translate : public Move{
 class Rotate : public Move{
     public:
 
-    Rotate(double step) : Move(step){}
+    Rotate(double step, double w) : Move(step, w){
+        this->id = "Rot";
+    }
 
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
@@ -105,7 +112,7 @@ class GrandCanonical : public Move{
     
     public:
 
-    GrandCanonical(double chemPot, double donnan, State* state) : Move(0.0), s(state) ,cp(chemPot), d(donnan){}
+    GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state) ,cp(chemPot), d(donnan){}
     virtual void operator()(std::shared_ptr<void> argument, CallBack& move_callback){};
     virtual bool accept(double dE){return false;};
 
@@ -146,7 +153,9 @@ template <bool HW>
 class GrandCanonicalAdd : public GrandCanonical{
 
     public:
-    GrandCanonicalAdd(double chemPot, double donnan, State* state) : GrandCanonical(chemPot, donnan, state){}
+    GrandCanonicalAdd(double chemPot, double donnan, State* state, double w) : GrandCanonical(chemPot, donnan, state, w){
+        this->id = "GCAdd";
+    }
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
@@ -183,7 +192,9 @@ class GrandCanonicalAdd : public GrandCanonical{
 template <bool HW>
 class GrandCanonicalRemove : public GrandCanonical{
     public:
-    GrandCanonicalRemove(double chemPot, double donnan, State* state) : GrandCanonical(chemPot, donnan, state){}
+    GrandCanonicalRemove(double chemPot, double donnan, State* state, double w) : GrandCanonical(chemPot, donnan, state, w){
+        this->id = "GCRem";
+    }
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         if(s->particles.tot > 0){

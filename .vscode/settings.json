@@ -72,6 +72,10 @@
         "unordered_set": "cpp",
         "valarray": "cpp",
         "fstream": "cpp",
-        "iomanip": "cpp"
+        "iomanip": "cpp",
+        "clocale": "cpp",
+        "*.tcc": "cpp",
+        "cinttypes": "cpp",
+        "hashtable": "cpp"
     }
 }
