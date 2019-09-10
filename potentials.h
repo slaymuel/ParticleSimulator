@@ -19,8 +19,9 @@ class EwaldShort{
     double alpha;
 
     public:
-    inline double operator()(std::shared_ptr<Particle>& p1, std::shared_ptr<Particle>& p2, double dist){
 
+    inline double operator()(std::shared_ptr<Particle>& p1, std::shared_ptr<Particle>& p2, double dist){
+        this->alpha = 8.0 / 10.0;
         double energy = math::erfc_x(dist * this->alpha) / dist;
         double real = p1->q * p2->q * energy;
 
@@ -53,7 +54,7 @@ class EwaldLong{
         double k2 = 0;
         int kMax = 4;//8/this->xb;
         int zMax = (int) (this->zb / this->xb * kMax);
-        this->alpha = 6.0 / this->xb;
+        this->alpha = 8.0 / 10.0;
         printf("Setting up ewald\n");
         printf("\tWavevectors in x, y, z: %i, %i, %i\n", kMax, kMax, zMax);
 
@@ -113,7 +114,7 @@ class EwaldLong{
         printf("\tEwald initialization Complete\n");
     }
 
-    void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+    inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
         std::complex<double> rk_new;
         std::complex<double> rk_old;
         std::complex<double> charge;
@@ -149,7 +150,7 @@ class EwaldLong{
 
     inline double operator()(){
         double energy = 0.0;
-        
+
         #pragma omp parallel for reduction(+:energy)
         for(int k = 0; k < this->kVec.size(); k++){
                 energy += std::norm(this->rkVec[k]) * this->resFac[k];

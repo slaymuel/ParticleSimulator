@@ -47,8 +47,15 @@ class Simulator{
         #ifdef _OPENMP
             printf("\nOpenMP is ENABLED with %i cores.\n\n", omp_get_num_procs());
         #else
-            printf("\nOpenMP is DISABLED\n\n");
+            printf("\nOpenMP is DISABLED\n");
         #endif
+
+        #ifdef DEBUG
+        printf("Debug mode is ENABLED\n");
+        #else
+        printf("Debug mode is DISABLED\n");
+        #endif
+        printf("\n");
     }
     
     
@@ -163,31 +170,36 @@ class Simulator{
     }
 };
 
+
+
 #ifndef PY11
 int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
     Simulator* sim = new Simulator(78.0, 298.0);
-    sim->add_move(0, 1.0, 1.0);
-    //sim->add_move(1, 0.0, 0.005, -5.0, 0.0);
-    //sim->add_move(2, 0.0, 0.005, -5.0, 0.0);
+    sim->add_move(0, 5.0, 0.99);
+    sim->add_move(1, 0.0, 0.005, -5.0, 0.0);
+    sim->add_move(2, 0.0, 0.005, -5.0, 0.0);
     sim->state.set_geometry(0);
     sim->state.set_energy(1);
     sim->add_sampler(0);
     /*std::vector< double > b;
     std::vector< double > q;
+    std::vector< std::string > n;
+    n.push_back("Na");
+    n.push_back("Cl");
     b.push_back(0.0);
     b.push_back(0.0);
     q.push_back(1.0);
     q.push_back(-1.0);
     std::vector< std::vector<double> > pos;
     pos.emplace_back();
-    pos.back() = {1, 2, 3};
+    pos.back() = {0, 0, 4.5};
     pos.emplace_back();
-    pos.back() = {2, 2, 3};
-    sim->state.particles.load(pos, q, b);*/
-    sim->state.particles.create(100, 100);
+    pos.back() = {0, 0, -4.5};
+    sim->state.particles.load(pos, q, b, n);*/
+    sim->state.particles.create(1000, 1000);
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();

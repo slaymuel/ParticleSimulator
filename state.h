@@ -27,14 +27,21 @@ class State{
     
 
     void control(){
+        #ifdef DEBUG
+        printf("Control (DEBUG)\n");
+        #else
         printf("Control\n");
-        energy = 0.0;
-        for(auto e : energyFunc){
-            energy += e->all2all(this->particles);
+        #endif
+        
+        this->energy = 0.0;
+        for(auto e : this->energyFunc){
+            this->energy += e->all2all(this->particles);
         }
 
-        error = std::fabs((energy - cummulativeEnergy) / energy);
+        this->error = std::fabs((this->energy - this->cummulativeEnergy) / this->energy);
 
+
+        #ifdef DEBUG
         if(this->particles.tot != _old->particles.tot){
             printf("_old state has %i particles and current state has %i.\n", _old->particles.tot, this->particles.tot);
             exit(1);
@@ -59,9 +66,11 @@ class State{
             printf("Ctot + aTot != tot\n");
             exit(1);
         }
+        #endif
 
-        if(error > 1e-10 || energy > 1e30){
-            printf("\n\nEnergy drift is too large: %.12lf\n\n", error);
+
+        if(this->error > 1e-10 || this->energy > 1e30){
+            printf("\n\nEnergy drift is too large: %.12lf\n\n", this->error);
             exit(1);
         } 
     }
@@ -74,7 +83,7 @@ class State{
         }
 
         //Calculate the initial energy of the system
-        for(auto e : energyFunc){
+        for(auto e : this->energyFunc){
             e->initialize(particles);
             this->energy += e->all2all(this->particles);
         }
@@ -102,17 +111,19 @@ class State{
             }
         }
 
-        movedParticles.clear();
+        this->movedParticles.clear();
         this->_old->movedParticles.clear();
-        cummulativeEnergy += this->dE;
+        this->cummulativeEnergy += this->dE;
     }
 
 
     void revert(){
         //Set moved partiles in current state equal to previous state
         //also need to set volume and maybe other properties
-        for(auto e : energyFunc){
-            e->update( this->particles.get_subset(this->movedParticles), this->_old->particles.get_subset(this->_old->movedParticles) );
+        if(this->dE != std::numeric_limits<double>::infinity()){
+            for(auto e : this->energyFunc){
+                e->update( this->particles.get_subset(this->movedParticles), this->_old->particles.get_subset(this->_old->movedParticles) );
+            }
         }
 
         for(auto i : this->movedParticles){
@@ -122,7 +133,7 @@ class State{
             }
             else if(this->particles.tot == this->_old->particles.tot){
                 //printf("\nAssuming normal move\n");
-                *(this->particles.particles[i]) = *(_old->particles.particles[i]);
+                *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
             }
         }
         //                                                                                      REARRANGE, MOVE CONDITION OUTSIDE OF LOOP
@@ -134,7 +145,7 @@ class State{
 
         }
 
-        movedParticles.clear();
+        this->movedParticles.clear();
         this->_old->movedParticles.clear();
     }
 
@@ -143,17 +154,19 @@ class State{
     double get_energy_change(){
         double E1 = 0.0, E2 = 0.0;
 
-        for(auto p : movedParticles){
+        for(auto p : this->movedParticles){
             if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(this->particles.particles[p]->index)){
                 //If moved outside box or overlap, return inf
                                                                 // SHOULD NOT BE HERE, PLZ CHANGE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                for(auto e : energyFunc){
+                /*for(auto e : this->energyFunc){
                     e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
-                }
-                return std::numeric_limits<double>::infinity();
+                }*/
+                this->dE = std::numeric_limits<double>::infinity();
+                return this->dE;
             }
         }
-        for(auto e : energyFunc){
+
+        for(auto e : this->energyFunc){
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
             e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
             E2 += (*e)( this->movedParticles, this->particles );
@@ -264,7 +277,7 @@ class State{
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
-                this->geo = new Cuboid<true, true, true>(50.0, 50.0, 50.0);
+                this->geo = new Cuboid<true, true, true>(200.0, 200.0, 50.0);
                 break;
             case 1:
                 this->geo = new Sphere();
@@ -278,8 +291,9 @@ class State{
         switch (type){
             case 1:
                 printf("Adding Ewald potential\n");
-                //this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldShort> >() );
-                //this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldShort> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLong> >(geo->d[0], geo->d[1], geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
