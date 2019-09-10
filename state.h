@@ -14,20 +14,25 @@ class State{
     std::shared_ptr<State> _old;
 
     public:
+
     ~State(){
         delete geo;
     }
 
-    double energy, cummulativeEnergy, dE, error;
+    double energy = 0.0, cummulativeEnergy = 0.0, dE = 0.0, error = 0.0;
     Particles particles;
     std::vector< int > movedParticles;    //Particles that has moved from previous state
     Geometry *geo;
-    std::shared_ptr<EnergyBase> energyFunc;
+    std::vector< std::shared_ptr<EnergyBase> > energyFunc;
     
 
     void control(){
         printf("Control\n");
-        energy = (*energyFunc).all2all(this->particles);
+        energy = 0.0;
+        for(auto e : energyFunc){
+            energy += e->all2all(this->particles);
+        }
+
         error = std::fabs((energy - cummulativeEnergy) / energy);
 
         if(this->particles.tot != _old->particles.tot){
@@ -69,7 +74,10 @@ class State{
         }
 
         //Calculate the initial energy of the system
-        this->energy = (*energyFunc).all2all(this->particles);
+        for(auto e : energyFunc){
+            e->initialize(particles);
+            this->energy += e->all2all(this->particles);
+        }
         this->cummulativeEnergy = this->energy;
     }
 
@@ -103,6 +111,10 @@ class State{
     void revert(){
         //Set moved partiles in current state equal to previous state
         //also need to set volume and maybe other properties
+        for(auto e : energyFunc){
+            e->update( this->particles.get_subset(this->movedParticles), this->_old->particles.get_subset(this->_old->movedParticles) );
+        }
+
         for(auto i : this->movedParticles){
             if(this->particles.tot > _old->particles.tot){
                 //printf("\nReject: removing particle %i from current\n\n", i);
@@ -113,7 +125,7 @@ class State{
                 *(this->particles.particles[i]) = *(_old->particles.particles[i]);
             }
         }
-
+        //                                                                                      REARRANGE, MOVE CONDITION OUTSIDE OF LOOP
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
                 //printf("\nRevert: adding back particle %i to current\n", i);
@@ -129,28 +141,36 @@ class State{
 
     //Get energy different between this and old state
     double get_energy_change(){
+        double E1 = 0.0, E2 = 0.0;
+
         for(auto p : movedParticles){
             if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(this->particles.particles[p]->index)){
                 //If moved outside box or overlap, return inf
+                                                                // SHOULD NOT BE HERE, PLZ CHANGE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                for(auto e : energyFunc){
+                    e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
+                }
                 return std::numeric_limits<double>::infinity();
             }
         }
-
-        //printf("Moved particle is inside and does not overlap\n");
-        double E1 = (*energyFunc)( this->_old->movedParticles, this->_old->particles );
-        //printf("Calculated old\n");
-        double E2 = (*energyFunc)( this->movedParticles, this->particles );
+        for(auto e : energyFunc){
+            E1 += (*e)( this->_old->movedParticles, this->_old->particles );
+            e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
+            E2 += (*e)( this->movedParticles, this->particles );
+            //std::cout << "old: " << E1 << " new: " << E2 << "\n";
+        }
         //printf("Calculated current\n");
         this->dE = E2 - E1;
 
         //printf("Energy change done\n");
-        return dE;
+        return this->dE;
     }
 
 
     //Called when a move is accepted - set movedParticles
     void move_callback(std::vector< int > ps){   
         // Can do PBC here
+        // CHECK FOR OVERLAPS SOMWHERE HERE TO AVOID UNECESSARY COMPUTATIONS (EWALD RECIPROCAL SUM ETC)
 
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
         if(this->particles.tot >= this->_old->particles.tot){
@@ -159,6 +179,7 @@ class State{
         }
 
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
+
         //printf("Callback done\n");
     }
 
@@ -183,6 +204,7 @@ class State{
 
 
     void equilibrate(){
+        printf("Equilibrating:\n");
         Eigen::Vector3d v;
 
         for(int i = 0; i < this->particles.pTot; i++){
@@ -205,7 +227,7 @@ class State{
 
             if(i % 50000 == 0){
                 overlaps = this->get_overlaps();
-                printf("Overlaps: %i, iteration: %i\r", overlaps, i);
+                printf("\tOverlaps: %i, iteration: %i\r", overlaps, i);
                 fflush(stdout);
             }
             i++;
@@ -254,11 +276,21 @@ class State{
 
     void set_energy(int type){
         switch (type){
+            case 1:
+                printf("Adding Ewald potential\n");
+                //this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldShort> >() );
+                //this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLong> >(geo->d[0], geo->d[1], geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                break;
+
+            
             default:
                 printf("Adding Coulomb potential\n");
-                this->energyFunc = std::make_shared< Energy<Coulomb> >();
-                this->energyFunc->set_geo(this->geo);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );
+                this->energyFunc.back()->set_geo(this->geo);
                 break;
+            
         }
         
     }

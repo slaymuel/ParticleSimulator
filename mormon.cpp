@@ -3,6 +3,8 @@
 #include <assert.h>
 #include "constants.h"
 #include <iostream>
+#include <omp.h>
+#include "aux_math.h"
 #include "state.h"
 #include "particle.h"
 #include "move.h"
@@ -21,9 +23,18 @@ namespace py = pybind11;
 
 
 class Simulator{
+    
     private:
     std::vector<Particle*> ps;
     std::vector<double> mWeights;
+    std::vector<double>::iterator wIt;
+    std::vector<Move*> moves;
+    std::vector<Sampler*> sampler;
+    /* State callback after move */
+    std::function< void(std::vector< int >) > move_callback 
+                = std::bind(&State::move_callback, &state, std::placeholders::_1);
+
+
     public:
     State state;
     Simulator(double Dielec, double T){
@@ -34,23 +45,53 @@ class Simulator{
         Random::initialize();
 
         #ifdef _OPENMP
-            printf("OpenMP is ENABLED\n");
+            printf("\nOpenMP is ENABLED with %i cores.\n\n", omp_get_num_procs());
         #else
-            printf("OpenMP is DISABLED\n");
+            printf("\nOpenMP is DISABLED\n\n");
         #endif
     }
-
-    //Energy<Coulomb> energy;
-    //moves
     
-    std::vector<Move*> moves;
     
-    /* State callback after move */
-    std::function< void(std::vector< int >) > move_callback 
-                = std::bind(&State::move_callback, &state, std::placeholders::_1);
 
+
+    void add_move(int i, double dp, double p, double cp = 0.0, double d = 0.0){
+        switch(i){
+            case 0:
+                moves.push_back(new Translate<false>(dp, p));
+                break;
+            case 1:
+                moves.push_back(new GrandCanonicalAdd<false>(cp, d, &state, p));
+                break;
+            case 2:
+                moves.push_back(new GrandCanonicalRemove<false>(cp, d, &state, p));
+                break;
+            default:
+                printf("Could not find move %i\n", i);
+                break;
+        }
+    }
+
+    void add_sampler(int i){
+        switch(i){
+            case 0:
+                sampler.push_back(new Density(2, state.geo->d[2], 0.2));
+        }
+    }
 
     void run(int macroSteps, int microSteps){
+
+        //////////////////// MOVE TO SOMEWHERE ELSE /////////////////////////////////////////////////////////
+        std::for_each( moves.begin(), moves.end(), [&](Move* m){ mWeights.push_back(m->weight); } );
+
+        std::sort(moves.begin(), moves.end(), comparators::mLess);
+        std::sort(mWeights.begin(), mWeights.end());
+        for(int i = 1; i < mWeights.size(); i++){
+            mWeights[i] += mWeights[i - 1];
+        }
+        assert(mWeights.back() == 1.0);
+        ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
         printf("            +\n"                                            
                "           (|)\n"
                " _____.___.|_|.\n"                                      
@@ -68,33 +109,11 @@ class Simulator{
         std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
-
-        //////////////////// MOVE TO SOMEWHERE ELSE /////////////////////////////////////////////////////////
-        moves.push_back(new Translate<false>(1.0, 0.98));
-        moves.push_back(new GrandCanonicalAdd<false>(-5.0, 0.0, &state, 0.01));
-        moves.push_back(new GrandCanonicalRemove<false>(-5.0, 0.0, &state, 0.01));
-        std::for_each( moves.begin(), moves.end(), [&](Move* m){ mWeights.push_back(m->weight); } );
-
-        std::sort(moves.begin(), moves.end(), comparators::mLess);
-        std::sort(mWeights.begin(), mWeights.end());
-        for(int i = 1; i < mWeights.size(); i++){
-            mWeights[i] += mWeights[i - 1];
-        }
-        assert(mWeights.back() == 1.0);
-        std::vector<double>::iterator wIt;
-        ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        Sampler* sampler = new Density(2, state.geo->d[2], 0.2);
-
         for(int macro = 0; macro < macroSteps; macro++){
             auto start = std::chrono::steady_clock::now();
             for(int micro = 0; micro < microSteps; micro++){
                 
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
-
-                //std::cout << "lower_bound at position " << (wIt - mWeights.begin()) << '\n';
-                //Move should check if particle is part of molecule
-                //(*moves[0])(state.particles.random(), move_callback); // Two virtual calls
 
                 (*moves[wIt - mWeights.begin()])(state.particles.random(), move_callback);
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
@@ -124,8 +143,9 @@ class Simulator{
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
             auto end = std::chrono::steady_clock::now();
             std::cout << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / microSteps << "us\n\n";
-
-            sampler->sample(state.particles);
+            for(auto s : sampler){
+                s->sample(state.particles);
+            }
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
@@ -136,7 +156,9 @@ class Simulator{
             //}
         }
         printf("Saving analysis data...\n");
-        sampler->save("z_dens.txt");
+        for(auto s : sampler){
+            s->save("z_dens.txt");
+        }
         printf("Simulation Done!\n\n");
     }
 };
@@ -147,9 +169,12 @@ int main(){
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
     Simulator* sim = new Simulator(78.0, 298.0);
-
+    sim->add_move(0, 1.0, 1.0);
+    //sim->add_move(1, 0.0, 0.005, -5.0, 0.0);
+    //sim->add_move(2, 0.0, 0.005, -5.0, 0.0);
     sim->state.set_geometry(0);
-    sim->state.set_energy(0);
+    sim->state.set_energy(1);
+    sim->add_sampler(0);
     /*std::vector< double > b;
     std::vector< double > q;
     b.push_back(0.0);
@@ -166,7 +191,7 @@ int main(){
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();
-    sim->run(1000, 1000);
+    sim->run(100, 1000);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
@@ -179,6 +204,8 @@ PYBIND11_MODULE(mormon, m) {
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<double, double>())
         .def("run", &Simulator::run)
+        .def("add_move", &Simulator::add_move, py::arg("i"), py::arg("dp"), py::arg("p"), py::arg("cp") = 0.0, py::arg("d") = 0.0)
+        .def("add_sampler", &Simulator::add_sampler)
         .def_readwrite("state", &Simulator::state);
 
     py::class_<State>(m, "State")

@@ -22,14 +22,17 @@ class Particles{
 
     Particles(){}
 
-    std::vector< std::shared_ptr<Particle> > get_subset(std::vector< int >& ps){
-        std::vector< std::shared_ptr<Particle> > subset;
-        for(auto p : ps){
-            if(p < this->tot) subset.push_back(this->particles[p]);
+    std::shared_ptr<Particle> operator[](std::size_t index){
+        return particles[index];
+    }
+
+    std::vector<std::shared_ptr<Particle>> get_subset(std::vector<int> &ps){
+        std::vector<std::shared_ptr<Particle>> subset;
+        for (auto p : ps){
+            if (p < this->tot) subset.push_back(this->particles[p]);
         }
         return subset;
     }
-
 
     std::shared_ptr<Particle> random(){
         //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
@@ -198,6 +201,7 @@ class Particles{
             v = Random::get_vector();
             (i < pNum == 0) ? this->add(v, 2.5, 1.0, 0.0, "Na") : this->add(v, 2.5, -1.0, 0.0, "Cl") ;
         }
+        printf("\nCreated %i cations and %i antions\n", pNum, nNum);
     }
 
 

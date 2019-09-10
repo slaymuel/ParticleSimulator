@@ -53,6 +53,7 @@ class Translate : public Move{
 
     bool accept(double dE){
         bool ret = false;
+
         if(exp(-dE) > Random::get_random()){
             ret = true;
             accepted++;
@@ -63,6 +64,7 @@ class Translate : public Move{
             rejected++;
             //printf("Rejected\n");
          }
+
         return ret;
     }
 };
