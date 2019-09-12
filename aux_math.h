@@ -42,4 +42,9 @@ namespace math{
         norm = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
         return std::sqrt(norm);
     }
+
+    template <typename T> 
+    int sgn(T val) {
+        return (0 < val) - (val <= 0);
+    }
 }

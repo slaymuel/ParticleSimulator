@@ -70,7 +70,7 @@ class State{
 
 
         if(this->error > 1e-10 || this->energy > 1e30){
-            printf("\n\nEnergy drift is too large: %.12lf\n\n", this->error);
+            printf("\n\nEnergy drift is too large: %.12lf (all2all: %lf, cummulative: %lf)\n\n", this->error, this->energy, this->cummulativeEnergy);
             exit(1);
         } 
     }
@@ -156,11 +156,6 @@ class State{
 
         for(auto p : this->movedParticles){
             if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(this->particles.particles[p]->index)){
-                //If moved outside box or overlap, return inf
-                                                                // SHOULD NOT BE HERE, PLZ CHANGE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                /*for(auto e : this->energyFunc){
-                    e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
-                }*/
                 this->dE = std::numeric_limits<double>::infinity();
                 return this->dE;
             }
@@ -183,7 +178,6 @@ class State{
     //Called when a move is accepted - set movedParticles
     void move_callback(std::vector< int > ps){   
         // Can do PBC here
-        // CHECK FOR OVERLAPS SOMWHERE HERE TO AVOID UNECESSARY COMPUTATIONS (EWALD RECIPROCAL SUM ETC)
 
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
         if(this->particles.tot >= this->_old->particles.tot){
@@ -277,10 +271,14 @@ class State{
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
-                this->geo = new Cuboid<true, true, true>(200.0, 200.0, 50.0);
+                this->geo = new Cuboid<true, true, false>(200.0, 200.0, 50.0);
                 break;
             case 1:
                 this->geo = new Sphere();
+                break;
+            case 2:
+            printf("Creating Cuboid-Image box\n");
+                this->geo = new CuboidImg(100.0, 100.0, 50.0);
                 break;
         }
     }
@@ -291,13 +289,25 @@ class State{
         switch (type){
             case 1:
                 printf("Adding Ewald potential\n");
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldShort> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Ewald::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLong> >(geo->d[0], geo->d[1], geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Ewald::Long> >(geo->d[0], geo->d[1], geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
+
+                Ewald::alpha = 8.0 / this->geo->d[0];
                 break;
 
+            case 2:
+                printf("Adding Halfwald potential\n");
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<Halfwald::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                //this->energyFunc.push_back( std::make_shared< ImgEnergy<Halfwald::Long> >(geo->d[0], geo->d[1], geo->d[2]) );
+                //this->energyFunc.back()->set_geo(this->geo);
+
+                Halfwald::alpha = 8.0 / this->geo->d[0];
+                break;
             
             default:
                 printf("Adding Coulomb potential\n");
