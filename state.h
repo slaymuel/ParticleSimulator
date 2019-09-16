@@ -34,8 +34,11 @@ class State{
         #endif
         
         this->energy = 0.0;
+        double temp;
         for(auto e : this->energyFunc){
-            this->energy += e->all2all(this->particles);
+            temp = e->all2all(this->particles);
+            this->energy += temp;
+            printf("Energy: %lf\n", temp);
         }
 
         this->error = std::fabs((this->energy - this->cummulativeEnergy) / this->energy);
@@ -155,7 +158,7 @@ class State{
         double E1 = 0.0, E2 = 0.0;
 
         for(auto p : this->movedParticles){
-            if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(this->particles.particles[p]->index)){
+            if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(p)){
                 this->dE = std::numeric_limits<double>::infinity();
                 return this->dE;
             }
@@ -271,14 +274,14 @@ class State{
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
-                this->geo = new Cuboid<true, true, false>(200.0, 200.0, 50.0);
+                this->geo = new Cuboid<true, true, false>(100.0, 100.0, 145.0);
                 break;
             case 1:
                 this->geo = new Sphere();
                 break;
             case 2:
             printf("Creating Cuboid-Image box\n");
-                this->geo = new CuboidImg(100.0, 100.0, 50.0);
+                this->geo = new CuboidImg(200.0, 200.0, 145.0);
                 break;
         }
     }
@@ -292,7 +295,7 @@ class State{
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Ewald::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<Ewald::Long> >(geo->d[0], geo->d[1], geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Ewald::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
                 Ewald::alpha = 8.0 / this->geo->d[0];
@@ -303,8 +306,8 @@ class State{
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<Halfwald::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                //this->energyFunc.push_back( std::make_shared< ImgEnergy<Halfwald::Long> >(geo->d[0], geo->d[1], geo->d[2]) );
-                //this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Halfwald::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
 
                 Halfwald::alpha = 8.0 / this->geo->d[0];
                 break;

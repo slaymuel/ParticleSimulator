@@ -145,11 +145,14 @@ class CuboidImg : public Geometry{
     public:
 
     CuboidImg(double x, double y, double z){
-        this->d = {x, y, 2.0 * z};
+        this->_d = {x, y,       z};
+        this->d  = {x, y, 2.0 * z};
         this->dh = {this->d[0] / 2.0, this->d[1] / 2.0, this->d[2] / 2.0};
-        this->_dh = {this->dh[0], this->dh[1], this->dh[2] / 2.0};
-        this->_d  = {this->d[0],  this->d[1],  this->d[2] / 2.0};
+
+        this->_dh = {this->_d[0] / 2.0, this->_d[1] / 2.0, this->_d[2] / 2.0};
+
         this->volume = x * y * z;
+        printf("\tBox dimensions: %lf, %lf, %lf\n", this->_d[0], this->_d[1], this->_d[2]);
     }
 
     void resize(){
@@ -178,8 +181,8 @@ class CuboidImg : public Geometry{
 
 
         if(p->pos[0] >= this->_dh[0] || p->pos[0] <= -this->_dh[0] ||
-           p->pos[1] >= this->_dh[1] || p->pos[1] <= -this->_dh[1] ||
-           p->pos[2] >= this->_dh[2] || p->pos[2] <= -this->_dh[2]){
+           p->pos[1] >= this->_dh[1] || p->pos[1]<= -this->_dh[1] ||
+           p->pos[2] + p->r >= this->_dh[2] || p->pos[2] - p->r <= -this->_dh[2]){
                return false;
         }
         return true;

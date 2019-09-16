@@ -22,15 +22,14 @@ namespace Halfwald{
     double alpha = 0.0;
 
     class Short{
-        double alpha;
 
         public:
 
         inline double operator()(double q1, double q2, double dist){
 
             //math::sgn(p2->pos[2]) * d[2] - p2->pos[2];   //Mirror of p2
-            double energy = math::erfc_x(dist * alpha) / dist;
-            double real = q1 * q2 * energy;
+            double energy = q1 * q2 / dist;
+            double real = math::erfc_x(dist * alpha) * energy;
 
 
             return real;    //tinfoil
@@ -45,7 +44,7 @@ namespace Halfwald{
         std::vector<double> resFac, kNorm;
         std::vector< std::vector<double> > kVec;
         std::vector< std::complex<double> > rkVec;
-        double volume, alpha, selfTerm = 0.0, xb, yb, zb;
+        double volume, selfTerm = 0.0, xb, yb, zb;
 
         public:
 
@@ -100,14 +99,24 @@ namespace Halfwald{
             std::complex<double> rho;
             std::complex<double> rk;
             std::complex<double> charge;
+            Eigen::Vector3d temp;
 
             for(int k = 0; k < kVec.size(); k++){
-                rho = 0;
+                rho = 0.0;
                 for(int i = 0; i < particles.tot; i++){
                     rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
                     rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
-                    rk = rk * charge;
+                    rk *= charge;
+                    rho += rk;
+
+                    //Mirror images
+                    temp = particles[i]->pos;
+                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
+                    rk.imag(std::sin(math::dot(temp, kVec[k])));
+                    rk.real(std::cos(math::dot(temp, kVec[k])));
+                    charge = -particles[i]->q;
+                    rk *= charge;
                     rho += rk;
                 }
                 this->rkVec.push_back(rho);
@@ -116,7 +125,8 @@ namespace Halfwald{
             for(int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
-            this->selfTerm *= alpha/sqrt(constants::PI);
+
+            this->selfTerm *= alpha / sqrt(constants::PI) * 2.0; //   *2.0 due to images
             printf("\tEwald initialization Complete\n");
         }
 
@@ -124,33 +134,43 @@ namespace Halfwald{
             std::complex<double> rk_new;
             std::complex<double> rk_old;
             std::complex<double> charge;
-            //charge = 0;
-            //std::cout << "rkvec before " << std::accumulate(rkVec.begin(), rkVec.end(), charge) << "\n";
+            Eigen::Vector3d temp;
+
             for(auto o : _old){
-                #pragma omp parallel for private(rk_new, rk_old, charge)
+                //#pragma omp parallel for private(rk_new, rk_old)
                 for(int k = 0; k < kVec.size(); k++){
                     rk_old.imag(std::sin(math::dot(o->pos, this->kVec[k])));
                     rk_old.real(std::cos(math::dot(o->pos, this->kVec[k])));
                     charge = o->q;
+                    this->rkVec[k] -= rk_old * charge;
 
+                    // Remove image
+                    temp = o->pos;
+                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
+                    rk_old.imag(std::sin(math::dot(temp, this->kVec[k])));
+                    rk_old.real(std::cos(math::dot(temp, this->kVec[k])));
+                    charge = -o->q;
                     this->rkVec[k] -= rk_old * charge;
                 }
             }
 
             for(auto n : _new){
-                #pragma omp parallel for private(rk_new, rk_old, charge)
+                //#pragma omp parallel for private(rk_new, rk_old)
                 for(int k = 0; k < kVec.size(); k++){
-                    //std::cout << "element before " << this->rkVec[k] << "\n";
                     rk_new.imag(std::sin(math::dot(n->pos, this->kVec[k])));
                     rk_new.real(std::cos(math::dot(n->pos, this->kVec[k])));
                     charge = n->q;
-                    
                     this->rkVec[k] += rk_new * charge;
-                    //std::cout << "element after " << this->rkVec[k] << "\n";
+
+                    // Add image
+                    temp = n->pos;
+                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
+                    rk_new.imag(std::sin(math::dot(temp, this->kVec[k])));
+                    rk_new.real(std::cos(math::dot(temp, this->kVec[k])));
+                    charge = -n->q;
+                    this->rkVec[k] += rk_new * charge;
                 }
             }
-            //charge = 0;
-            //std::cout << "rkvec after " << std::accumulate(this->rkVec.begin(), this->rkVec.end(), charge) << "\n";
         }
 
 
@@ -162,10 +182,7 @@ namespace Halfwald{
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
             
-            //std::cout << "prefactors potential: " << 2.0 * constants::PI / (this->volume) << "\n";
-            //std::cout << "selfTerm: " << selfTerm << "\n";
-            //printf("Energy in potential: %lf\n", energy * 2.0 * constants::PI / (this->volume) );
-            return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
+            return energy * constants::PI / (this->volume) - this->selfTerm;
         } 
     };
 }
@@ -273,7 +290,7 @@ namespace Ewald{
             for(int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
-            this->selfTerm *= alpha/sqrt(constants::PI);
+            this->selfTerm *= alpha / sqrt(constants::PI);
             printf("\tEwald initialization Complete\n");
         }
 

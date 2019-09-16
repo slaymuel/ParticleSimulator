@@ -81,7 +81,8 @@ class Simulator{
     void add_sampler(int i){
         switch(i){
             case 0:
-                sampler.push_back(new Density(2, state.geo->d[2], 0.2));
+                sampler.push_back(new Density(2, this->state.geo->d[2] / 2.0, 0.05, 
+                                              this->state.geo->d[0], this->state.geo->d[1]));
         }
     }
 
@@ -113,7 +114,7 @@ class Simulator{
 
 
 
-        std::cout << "Running simulation at: " << constants::T << "K with: " << state.particles.particles.size() 
+        std::cout << "Running simulation at: " << constants::T << "K, lB: "<< constants::lB << " with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
         for(int macro = 0; macro < macroSteps; macro++){
@@ -132,6 +133,11 @@ class Simulator{
 
                     //should also be able to
                     //state.get_energy(subset_of_particles);
+                if(micro % 100 == 0 && macro > 0){
+                    for(auto s : sampler){
+                        s->sample(state.particles);
+                    }
+                }
             }
             /*                                HALF TIME                                  */
             //Check energy drift etc
@@ -150,9 +156,7 @@ class Simulator{
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
             auto end = std::chrono::steady_clock::now();
             std::cout << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / microSteps << "us\n\n";
-            for(auto s : sampler){
-                s->sample(state.particles);
-            }
+
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
@@ -177,7 +181,7 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(78.0, 298.0);
+    Simulator* sim = new Simulator(78.3, 298.0);
     sim->add_move(0, 5.0, 1.0);
     //sim->add_move(1, 0.0, 0.005, -5.0, 0.0);
     //sim->add_move(2, 0.0, 0.005, -5.0, 0.0);
@@ -199,11 +203,12 @@ int main(){
     pos.emplace_back();
     pos.back() = {0, 0, -4.5};
     sim->state.particles.load(pos, q, b, n);*/
-    sim->state.particles.create(100, 100);
+                              // +    -
+    sim->state.particles.create(373, 243, 2.0, -1.0);
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();
-    sim->run(100, 1000);
+    sim->run(100, 10000);
     sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
@@ -229,6 +234,7 @@ PYBIND11_MODULE(mormon, m) {
         .def_readwrite("particles", &State::particles);
 
     py::class_<Particles>(m, "Particles")
+        .def("load", &Particles::load)
         .def("create", &Particles::create);
 }
 #endif

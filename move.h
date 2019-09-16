@@ -48,20 +48,20 @@ class Translate : public Move{
 
         move_callback(particles);
         totalMoves++;
-        attempted++;
+        this->attempted++;
     }
 
     bool accept(double dE){
         bool ret = false;
 
-        if(exp(-dE) > Random::get_random()){
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
-            accepted++;
+            this->accepted++;
             //printf("Accepted\n");
          } 
          else{
             ret = false;
-            rejected++;
+            this->rejected++;
             //printf("Rejected\n");
          }
 

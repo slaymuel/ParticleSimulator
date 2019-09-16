@@ -2,7 +2,7 @@
 
 class Sampler{
     public:
-    int samples;
+    int samples = 0;
     virtual void sample(Particles& particles) = 0;
     virtual void save(std::string filename) = 0;
 };
@@ -12,33 +12,35 @@ class Sampler{
 class Density : public Sampler{
     private:
 
-    double binWidth, dh;
+    double binWidth, dh, xb, yb;
     std::vector<int> pDens;
     std::vector<int> nDens;
-    int d, bins, pSample = 0, nSample = 0;
+    int d, bins;
     public:
 
-    Density(int d, double dl, double binWidth){
+    Density(int d, double dl, double binWidth, double xb, double yb){
         this->binWidth = binWidth;
         this->bins = dl / binWidth + 1;
         this->pDens.resize(this->bins);
         this->nDens.resize(this->bins);
         this->d = d;
         this->dh = dl / 2.0;
+        this->xb = xb;
+        this->yb = yb;
     }
 
     void sample(Particles& particles){
         for(int i = 0; i < particles.tot; i++){
             //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
             if(particles.particles[i]->q > 0){
-                pDens[ (int) ((particles.particles[i]->pos[d] + this->dh) / this->binWidth) ]++;
-                this->pSample++;
+                pDens.at( (int) ( (particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
+
             else{
-                nDens[ (int) ((particles.particles[i]->pos[d] + this->dh) / this->binWidth) ]++;
-                this->nSample++;
+                nDens.at( (int) ( (particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
         }
+        this->samples++;
 
     }
 
@@ -47,7 +49,8 @@ class Density : public Sampler{
         if (f.is_open())
         {
             for(int i = 0; i < this->pDens.size(); i++){
-                f << std::fixed << std::setprecision(3) << i * this->binWidth << " " <<  (double) this->pDens[i] / this->pSample << "\n";
+                f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                     (double) this->pDens[i] / (this->xb * this->yb * this->binWidth * this->samples) << "\n";
             }
             f.close();
         }
@@ -57,7 +60,8 @@ class Density : public Sampler{
         if (fi.is_open())
         {
             for(int i = 0; i < this->nDens.size(); i++){
-                fi << std::fixed << std::setprecision(3) << i * this->binWidth << " " <<  (double) this->nDens[i] / this->nSample << "\n";
+                fi << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                      (double) this->nDens[i] / (this->xb * this->yb * this->binWidth * this->samples) << "\n";
             }
             fi.close();
         }

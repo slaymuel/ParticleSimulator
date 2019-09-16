@@ -190,16 +190,17 @@ class Particles{
         for(int i = 0; i < pos.size(); i++){
             this->add(pos[i], 2.5, charges[i], b[i], names[i]);
         }
+        printf("Loaded %lu particles\n", pos.size());
     }
 
 
 
-    void create(int pNum, int nNum){
+    void create(int pNum, int nNum, double p, double n){
         std::vector<double> v;
 
         for(int i = 0; i < pNum + nNum; i++){
             v = Random::get_vector();
-            (i < pNum == 0) ? this->add(v, 2.5, 1.0, 0.0, "Na") : this->add(v, 2.5, -1.0, 0.0, "Cl") ;
+            (i < pNum) ? this->add(v, 2.5, p, 0.0, "Na") : this->add(v, 2.5, n, 0.0, "Cl") ;
         }
         printf("\nCreated %i cations and %i antions\n", pNum, nNum);
     }

@@ -20,7 +20,6 @@ namespace math{
         const T a4 = -1.453152027;
         const T a5 = 1.061405429;
         return t * (a1 + t * (a2 + t * (a3 + t * (a4 + t * a5)))) *  exp(-x * x);
-        //return 1;
     }
 
 
