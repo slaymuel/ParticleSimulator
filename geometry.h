@@ -182,7 +182,7 @@ class CuboidImg : public Geometry{
 
         if(p->pos[0] >= this->_dh[0] || p->pos[0] <= -this->_dh[0] ||
            p->pos[1] >= this->_dh[1] || p->pos[1]<= -this->_dh[1] ||
-           p->pos[2] + p->r >= this->_dh[2] || p->pos[2] - p->r <= -this->_dh[2]){
+           p->pos[2] + p->rf >= this->_dh[2] || p->pos[2] - p->rf <= -this->_dh[2]){
                return false;
         }
         return true;

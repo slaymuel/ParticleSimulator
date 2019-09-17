@@ -12,14 +12,14 @@ class Particle{
     Eigen::Vector3d pos;
     Eigen::Vector3d com;
     std::string name;
-    double r;
-    double q;
-    double b;
+    double r, b, q, rf;
+
     int index;
 
     Particle& operator=(const Particle& p){
         this->pos = p.pos;
         this->r = p.r;
+        this->rf = p.rf;
         this->q = p.q;
         this->b = p.b;
         this->index = p.index;

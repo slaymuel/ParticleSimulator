@@ -17,7 +17,6 @@ class EnergyBase{
     virtual ~EnergyBase(){};
     virtual double all2all(Particles& particles) = 0;
     virtual double i2all(std::shared_ptr<Particle> p, Particles& particles) = 0;
-    virtual double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2) = 0;
     virtual double operator()(std::vector< int >&& p, Particles& particles) = 0;
     virtual double operator()(std::vector< int >& p, Particles& particles) = 0;
     virtual void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new) = 0;
@@ -80,7 +79,13 @@ class PairEnergy : public EnergyBase{
     }
 
     inline double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
-        return energy_func(p1, p2, geo->distance(p1->pos, p2->pos));
+        double dist = geo->distance(p1->pos, p2->pos);
+        if(dist <= 100){
+            return energy_func(p1, p2, dist);
+        }
+        else{
+            return 0.0;
+        }
     }
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
@@ -145,7 +150,8 @@ class ImgEnergy : public EnergyBase{
         for (int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
 
-            CC += energy_func(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
+            //CC += energy_func(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
+            CC += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
         }
 
 
@@ -155,18 +161,25 @@ class ImgEnergy : public EnergyBase{
         for (int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
 
-            CpC += energy_func(-p->q, particles[i]->q, this->geo->distance(temp, particles[i]->pos));
+            //CpC += energy_func(-p->q, particles[i]->q, this->geo->distance(temp, particles[i]->pos));
+            CpC += i2i(-p->q, particles[i]->q, this->geo->distance(temp, particles[i]->pos));
         }
         // => CC == C'C' and C'C == CC'
 
         // Self term  
-        self = energy_func(p->q, -p->q, this->geo->distance(p->pos, temp));
+        //self = energy_func(p->q, -p->q, this->geo->distance(p->pos, temp));
+        self = i2i(p->q, -p->q, this->geo->distance(p->pos, temp));
         return CC + CpC + 0.5 * self;
     }
 
 
-    inline double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
-        return energy_func(p1->q, p2->q, this->geo->distance(p1->pos, p2->pos));
+    inline double i2i(double q1, double q2, double dist){
+        //if(dist <= 100){
+            return energy_func(q1, q2, dist);
+        //}
+        //else{
+        //    return 0.0;
+        //}
     }
 
 
@@ -179,7 +192,8 @@ class ImgEnergy : public EnergyBase{
         //#pragma omp parallel for schedule(guided, 100) if(particles.tot >= 500)
         for(int i = 0; i < particles.tot; i++){
             for(int j = i + 1; j < particles.tot; j++){
-                CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
+                //CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
+                CC += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
             } 
         }
 
@@ -190,7 +204,8 @@ class ImgEnergy : public EnergyBase{
             temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
 
             for(int j = 0; j < particles.tot; j++){
-                CpC += energy_func(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
+                //CpC += energy_func(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
+                CpC += i2i(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
             } 
         }
 

@@ -12,6 +12,8 @@ class Particles{
 
     public:
     //Eigen::MatrixXd positions;
+    Particle pModel;
+    Particle nModel;
     std::vector< std::shared_ptr<Particle> > particles, cations, anions;
     std::vector<int> movedParticles;
     int pTot = 0, cTot = 0, aTot = 0, iTot = 0, tot = 0;
@@ -44,7 +46,7 @@ class Particles{
 
 
     template <typename T>
-    void add(T pos, double r, double q, double b, std::string name, bool image = false){
+    void add(T pos, double r, double rf, double q, double b, std::string name, bool image = false){
         //Resize positions
         //this->positions.conservativeResize(this->positions.rows() + 1, 3);
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
@@ -59,6 +61,7 @@ class Particles{
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[this->tot]->index = this->tot;
         this->particles[this->tot]->r = r;
+        this->particles[this->tot]->rf = rf;
         this->particles[this->tot]->q = q;
         this->particles[this->tot]->b = b;
         this->particles[this->tot]->name = name;
@@ -99,6 +102,7 @@ class Particles{
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[tot]->index = this->tot;
         this->particles[tot]->r = p->r;
+        this->particles[tot]->rf = p->rf;
         this->particles[tot]->q = p->q;
         this->particles[tot]->b = p->b;
         this->particles[tot]->name = p->name;
@@ -141,6 +145,7 @@ class Particles{
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[index]->index = index;
         this->particles[index]->r = p->r;
+        this->particles[index]->rf = p->rf;
         this->particles[index]->q = p->q;
         this->particles[index]->b = p->b;
         this->particles[index]->name = p->name;
@@ -185,22 +190,49 @@ class Particles{
 
 
 
-    void load(std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> b, std::vector<std::string> names){
+    void load(std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> b, std::vector<std::string> names, double rfp, double rfn){
         //assert correct sizes
+        bool setNModel = false, setPModel = false;
         for(int i = 0; i < pos.size(); i++){
-            this->add(pos[i], 2.5, charges[i], b[i], names[i]);
+
+            (charges[i] > 0) ? this->add(pos[i], 2.5, rfp, charges[i], b[i], names[i]) : this->add(pos[i], 2.5, rfn, charges[i], b[i], names[i]);
+
+            if(!setPModel){
+                if(charges[i] > 0){
+                    pModel.q = charges[i];
+                    pModel.r = 2.5;
+                    pModel.rf = rfp;
+                    setPModel = true;
+                }
+            }
+            if(!setNModel){
+                if(charges[i] < 0){
+                    nModel.q = charges[i];
+                    nModel.r = 2.5;
+                    nModel.rf = rfn;
+                    setNModel = true;
+                }
+            }
+
         }
         printf("Loaded %lu particles\n", pos.size());
     }
 
 
 
-    void create(int pNum, int nNum, double p, double n){
-        std::vector<double> v;
+    void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5){
+        pModel.q = p;
+        pModel.r = 2.5;
+        pModel.rf = rfp;
 
+        nModel.q = n;
+        nModel.r = 2.5;
+        nModel.rf = rfn;
+
+        std::vector<double> v;
         for(int i = 0; i < pNum + nNum; i++){
             v = Random::get_vector();
-            (i < pNum) ? this->add(v, 2.5, p, 0.0, "Na") : this->add(v, 2.5, n, 0.0, "Cl") ;
+            (i < pNum) ? this->add(v, 2.5, rfp, p, 0.0, "Na") : this->add(v, 2.5, rfn, n, 0.0, "Cl") ;
         }
         printf("\nCreated %i cations and %i antions\n", pNum, nNum);
     }
@@ -208,7 +240,7 @@ class Particles{
 
     //Write xyz file
     void to_xyz(std::string fileName){
-        std::ofstream f (fileName);
+        std::ofstream f (fileName + ".xyz");
         if (f.is_open())
         {
             f << this->tot << "\n\n";

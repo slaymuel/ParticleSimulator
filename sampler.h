@@ -45,7 +45,7 @@ class Density : public Sampler{
     }
 
     void save(std::string filename){
-        std::ofstream f ("p_" + filename);
+        std::ofstream f ("p_" + filename + ".txt");
         if (f.is_open())
         {
             for(int i = 0; i < this->pDens.size(); i++){
@@ -56,7 +56,7 @@ class Density : public Sampler{
         }
         else std::cout << "Unable to open file";
         
-        std::ofstream fi ("n_" + filename);
+        std::ofstream fi ("n_" + filename + ".txt");
         if (fi.is_open())
         {
             for(int i = 0; i < this->nDens.size(); i++){

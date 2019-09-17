@@ -33,15 +33,16 @@ class Simulator{
     /* State callback after move */
     std::function< void(std::vector< int >) > move_callback 
                 = std::bind(&State::move_callback, &state, std::placeholders::_1);
-
+    std::string name;
 
     public:
     State state;
-    Simulator(double Dielec, double T){
+    Simulator(double Dielec, double T, std::string name){
         //Set some constants
         constants::D = Dielec;
         constants::T = T; 
         constants::lB = constants::C * (1.0 / (Dielec * T));
+        this->name = name;
         Random::initialize();
 
         #ifdef _OPENMP
@@ -64,13 +65,13 @@ class Simulator{
     void add_move(int i, double dp, double p, double cp = 0.0, double d = 0.0){
         switch(i){
             case 0:
-                moves.push_back(new Translate<false>(dp, p));
+                moves.push_back(new Translate(dp, p));
                 break;
             case 1:
-                moves.push_back(new GrandCanonicalAdd<false>(cp, d, &state, p));
+                moves.push_back(new GrandCanonicalAdd(cp, d, &state, p));
                 break;
             case 2:
-                moves.push_back(new GrandCanonicalRemove<false>(cp, d, &state, p));
+                moves.push_back(new GrandCanonicalRemove(cp, d, &state, p));
                 break;
             default:
                 printf("Could not find move %i\n", i);
@@ -133,7 +134,7 @@ class Simulator{
 
                     //should also be able to
                     //state.get_energy(subset_of_particles);
-                if(micro % 100 == 0 && macro > 0){
+                if(micro % 100 == 0 && micro > 0 && macro > 10){
                     for(auto s : sampler){
                         s->sample(state.particles);
                     }
@@ -155,7 +156,7 @@ class Simulator{
             printf("Total energy is: %lf, energy drift: %.15lf\n", state.energy, state.error);
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
             auto end = std::chrono::steady_clock::now();
-            std::cout << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / microSteps << "us\n\n";
+            std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s per macrostep\n\n";
 
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
@@ -168,8 +169,9 @@ class Simulator{
         }
         printf("Saving analysis data...\n");
         for(auto s : sampler){
-            s->save("z_dens.txt");
+            s->save(this->name);
         }
+        this->state.particles.to_xyz(this->name);
         printf("Simulation Done!\n\n");
     }
 };
@@ -181,10 +183,10 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(78.3, 298.0);
-    sim->add_move(0, 5.0, 1.0);
-    //sim->add_move(1, 0.0, 0.005, -5.0, 0.0);
-    //sim->add_move(2, 0.0, 0.005, -5.0, 0.0);
+    Simulator* sim = new Simulator(78.3, 298.0, "halfwald_test");
+    sim->add_move(0, 5.0, 0.99);
+    sim->add_move(1, 0.0, 0.005, -10.7, -2.0);
+    sim->add_move(2, 0.0, 0.005, -10.7, -2.0);
     sim->state.set_geometry(2);
     sim->state.set_energy(2);
     sim->add_sampler(0);
@@ -209,7 +211,7 @@ int main(){
     //sim->state.add_images();
     sim->state.finalize();
     sim->run(100, 10000);
-    sim->state.particles.to_xyz("hej.xyz");
+    //sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
     return 0;
@@ -219,7 +221,7 @@ int main(){
 #ifdef PY11
 PYBIND11_MODULE(mormon, m) {
     py::class_<Simulator>(m, "Simulator")
-        .def(py::init<double, double>())
+        .def(py::init<double, double, std::string>())
         .def("run", &Simulator::run)
         .def("add_move", &Simulator::add_move, py::arg("i"), py::arg("dp"), py::arg("p"), py::arg("cp") = 0.0, py::arg("d") = 0.0)
         .def("add_sampler", &Simulator::add_sampler)

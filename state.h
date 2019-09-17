@@ -34,11 +34,8 @@ class State{
         #endif
         
         this->energy = 0.0;
-        double temp;
         for(auto e : this->energyFunc){
-            temp = e->all2all(this->particles);
-            this->energy += temp;
-            printf("Energy: %lf\n", temp);
+            this->energy += e->all2all(this->particles);;
         }
 
         this->error = std::fabs((this->energy - this->cummulativeEnergy) / this->energy);
@@ -139,7 +136,7 @@ class State{
                 *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
             }
         }
-        //                                                                                      REARRANGE, MOVE CONDITION OUTSIDE OF LOOP
+        //                                                                                      REARRANGE, MOVE CONDITION OUTSIDE OF LOOP, LESS GENERAL THOUGH.....
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
                 //printf("\nRevert: adding back particle %i to current\n", i);
@@ -168,12 +165,9 @@ class State{
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
             e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
             E2 += (*e)( this->movedParticles, this->particles );
-            //std::cout << "old: " << E1 << " new: " << E2 << "\n";
         }
-        //printf("Calculated current\n");
         this->dE = E2 - E1;
 
-        //printf("Energy change done\n");
         return this->dE;
     }
 
@@ -183,14 +177,14 @@ class State{
         // Can do PBC here
 
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
+
+        //If a particle is added, this->movedparticles is empty. If particle is removed this->_old->particles is empty
         if(this->particles.tot >= this->_old->particles.tot){
             std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
                                                     this->movedParticles.push_back(i); });
         }
 
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
-
-        //printf("Callback done\n");
     }
 
 
@@ -200,15 +194,12 @@ class State{
         }
     }
 
-    void add_particle(){
-        //this->particles.add(this->geo->random_pos(), p->r, p->q, p->b, p->name);
-    }
 
     void add_images(){
         for(int i = 0; i < this->particles.pTot; i++){
             this->particles.add(this->geo->mirror(this->particles.particles[i]->pos), this->particles.particles[i]->r, 
-                                                 -this->particles.particles[i]->q,    this->particles.particles[i]->b, 
-                                                  this->particles.particles[i]->name + "I", true);
+                                                  this->particles.particles[i]->r, -this->particles.particles[i]->q, 
+                                                  this->particles.particles[i]->b, this->particles.particles[i]->name + "I", true);
         }
     }
 
@@ -298,7 +289,7 @@ class State{
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<Ewald::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                Ewald::alpha = 8.0 / this->geo->d[0];
+                Ewald::alpha = 6.0 / this->geo->d[0];
                 break;
 
             case 2:
@@ -312,6 +303,17 @@ class State{
                 Halfwald::alpha = 8.0 / this->geo->d[0];
                 break;
             
+            case 3:
+                printf("Adding HalfwaldIPBC potential\n");
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<HalfwaldIPBC::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<HalfwaldIPBC::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                HalfwaldIPBC::alpha = 6.0 / this->geo->d[0];
+                break;
+
             default:
                 printf("Adding Coulomb potential\n");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );

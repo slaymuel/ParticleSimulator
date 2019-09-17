@@ -26,7 +26,7 @@ class Move{
 
 
 
-template <bool HW>
+
 class Translate : public Move{
     public:
 
@@ -42,9 +42,6 @@ class Translate : public Move{
         p->translate(this->stepSize);
         //PBC
 
-        if(HW){
-            //Move image particle
-        }
 
         move_callback(particles);
         totalMoves++;
@@ -151,7 +148,7 @@ class GrandCanonical : public Move{
     }
 };
 
-template <bool HW>
+
 class GrandCanonicalAdd : public GrandCanonical{
 
     public:
@@ -161,16 +158,19 @@ class GrandCanonicalAdd : public GrandCanonical{
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
-        //printf("Adding\n");
-        this->q = (Random::get_random() > 0.5) ? 1.0 : -1.0;
-        s->particles.add(s->geo->random_pos(), 2.5, this->q, 0, (this->q > 0) ? "Na" : "Cl"); // add particle
+        double rand = Random::get_random() > 0.5;
+
+        if(rand > 0.5){
+            s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, 0, "Na");
+            this->q = s->particles.pModel.q;
+        }
+        else{
+            s->particles.add(s->geo->random_pos(), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, 0, "Cl");
+            this->q = s->particles.nModel.q;
+        }
+
         std::vector< int > particles{s->particles.tot - 1};
 
-        //printf("Move: Added particle %i\n", s->particles.tot - 1);
-
-        if(HW){
-            //p->add() // add image
-        }
 
         move_callback(particles);
         totalMoves++;
@@ -191,7 +191,7 @@ class GrandCanonicalAdd : public GrandCanonical{
     }
 };
 
-template <bool HW>
+
 class GrandCanonicalRemove : public GrandCanonical{
     public:
     GrandCanonicalRemove(double chemPot, double donnan, State* state, double w) : GrandCanonical(chemPot, donnan, state, w){
@@ -203,13 +203,8 @@ class GrandCanonicalRemove : public GrandCanonical{
             std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
             std::vector< int > particles = {p->index};
             this->q = p->q;
-            //printf("\nremoving particle %i from current\n\n", p->index);
-            //printf("Removing\n");
-            s->particles.remove(p->index); // remove particle
 
-            if(HW){
-                // remove image
-            }
+            s->particles.remove(p->index); // remove particle
 
             move_callback(particles);
             totalMoves++;
