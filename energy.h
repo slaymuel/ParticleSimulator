@@ -37,7 +37,7 @@ class PairEnergy : public EnergyBase{
         double e = 0.0;
 
 
-        #pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
+        //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
         for(int i = 0; i < particles.tot; i++){
             for(int j = i + 1; j < particles.tot; j++){
                 e += i2i(particles.particles[i], particles.particles[j]);
@@ -50,7 +50,7 @@ class PairEnergy : public EnergyBase{
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double e = 0.0;
 
-        #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+        //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
         for (int i = 0; i < particles.tot; i++){
             if (p->index == particles.particles[i]->index) continue;
             e += i2i(p, particles.particles[i]);

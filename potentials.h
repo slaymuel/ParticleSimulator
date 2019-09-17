@@ -525,7 +525,7 @@ namespace Ewald{
             //charge = 0;
             //std::cout << "rkvec before " << std::accumulate(rkVec.begin(), rkVec.end(), charge) << "\n";
             for(auto o : _old){
-                #pragma omp parallel for private(rk_new, rk_old, charge)
+                //#pragma omp parallel for private(rk_new, rk_old, charge)
                 for(int k = 0; k < kVec.size(); k++){
                     rk_old.imag(std::sin(math::dot(o->pos, this->kVec[k])));
                     rk_old.real(std::cos(math::dot(o->pos, this->kVec[k])));
@@ -536,7 +536,7 @@ namespace Ewald{
             }
 
             for(auto n : _new){
-                #pragma omp parallel for private(rk_new, rk_old, charge)
+                //#pragma omp parallel for private(rk_new, rk_old, charge)
                 for(int k = 0; k < kVec.size(); k++){
                     //std::cout << "element before " << this->rkVec[k] << "\n";
                     rk_new.imag(std::sin(math::dot(n->pos, this->kVec[k])));
@@ -555,7 +555,7 @@ namespace Ewald{
         inline double operator()(){
             double energy = 0.0;
 
-            #pragma omp parallel for reduction(+:energy)
+            //#pragma omp parallel for reduction(+:energy)
             for(int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
