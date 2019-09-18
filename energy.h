@@ -17,8 +17,8 @@ class EnergyBase{
     virtual ~EnergyBase(){};
     virtual double all2all(Particles& particles) = 0;
     virtual double i2all(std::shared_ptr<Particle> p, Particles& particles) = 0;
-    virtual double operator()(std::vector< int >&& p, Particles& particles) = 0;
-    virtual double operator()(std::vector< int >& p, Particles& particles) = 0;
+    virtual double operator()(std::vector< unsigned int >&& p, Particles& particles) = 0;
+    virtual double operator()(std::vector< unsigned int >& p, Particles& particles) = 0;
     virtual void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new) = 0;
     virtual void initialize(Particles& particles) = 0;
 };
@@ -59,7 +59,7 @@ class PairEnergy : public EnergyBase{
         return e;
     }
 
-    double operator()(std::vector< int >&& p, Particles& particles){
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
 
         double e = 0.0;
         for(auto s : p){
@@ -69,7 +69,7 @@ class PairEnergy : public EnergyBase{
         return e * constants::lB;
     }
 
-    double operator()(std::vector< int >& p, Particles& particles){
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
 
         double e = 0.0;
         for(auto s : p){
@@ -114,11 +114,11 @@ class ExtEnergy : public EnergyBase{
         return energy_func() * constants::lB;
     }
 
-    double operator()(std::vector< int >&& p, Particles& particles){
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
         return energy_func() * constants::lB;
     }
 
-    double operator()(std::vector< int >& p, Particles& particles){
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
         return energy_func() * constants::lB;
     }
 
@@ -213,7 +213,7 @@ class ImgEnergy : public EnergyBase{
     }
 
 
-    double operator()(std::vector< int >&& p, Particles& particles){
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
         double e = 0.0;
         for(auto s : p){
             e += i2all(particles[s], particles);
@@ -222,7 +222,7 @@ class ImgEnergy : public EnergyBase{
     }
 
 
-    double operator()(std::vector< int >& p, Particles& particles){
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
         double e = 0.0;
         for(auto s : p){
             e += i2all(particles[s], particles);

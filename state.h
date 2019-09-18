@@ -21,7 +21,7 @@ class State{
 
     double energy = 0.0, cummulativeEnergy = 0.0, dE = 0.0, error = 0.0;
     Particles particles;
-    std::vector< int > movedParticles;    //Particles that has moved from previous state
+    std::vector< unsigned int > movedParticles;    //Particles that has moved from previous state
     Geometry *geo;
     std::vector< std::shared_ptr<EnergyBase> > energyFunc;
     
@@ -173,7 +173,7 @@ class State{
 
 
     //Called when a move is accepted - set movedParticles
-    void move_callback(std::vector< int > ps){   
+    void move_callback(std::vector< unsigned int > ps){   
         // Can do PBC here
 
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));

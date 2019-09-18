@@ -4,7 +4,7 @@
 #include <math.h>
 #include "state.h"
 
-using CallBack = std::function<void(std::vector< int >)>;
+using CallBack = std::function<void(std::vector< unsigned int >)>;
 
 class Move{
     public:
@@ -37,7 +37,7 @@ class Translate : public Move{
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        std::vector< int > particles = {p->index};
+        std::vector< unsigned int > particles = {p->index};
         //printf("Translating\n");
         p->translate(this->stepSize);
         //PBC
@@ -78,7 +78,7 @@ class Rotate : public Move{
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        std::vector< int > particles = {p->index};
+        std::vector< unsigned int > particles = {p->index};
 
         p->rotate(this->stepSize);
         //PBC
@@ -169,7 +169,7 @@ class GrandCanonicalAdd : public GrandCanonical{
             this->q = s->particles.nModel.q;
         }
 
-        std::vector< int > particles{s->particles.tot - 1};
+        std::vector< unsigned int > particles{s->particles.tot - 1};
 
 
         move_callback(particles);
@@ -201,7 +201,7 @@ class GrandCanonicalRemove : public GrandCanonical{
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         if(s->particles.tot > 0){
             std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-            std::vector< int > particles = {p->index};
+            std::vector< unsigned int > particles = {p->index};
             this->q = p->q;
 
             s->particles.remove(p->index); // remove particle

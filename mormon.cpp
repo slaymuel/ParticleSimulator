@@ -31,7 +31,7 @@ class Simulator{
     std::vector<Move*> moves;
     std::vector<Sampler*> sampler;
     /* State callback after move */
-    std::function< void(std::vector< int >) > move_callback 
+    std::function< void(std::vector< unsigned int >) > move_callback 
                 = std::bind(&State::move_callback, &state, std::placeholders::_1);
     std::string name;
 
@@ -237,6 +237,6 @@ PYBIND11_MODULE(mormon, m) {
 
     py::class_<Particles>(m, "Particles")
         .def("load", &Particles::load)
-        .def("create", &Particles::create);
+        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5);
 }
 #endif

@@ -14,7 +14,7 @@ class Particle{
     std::string name;
     double r, b, q, rf;
 
-    int index;
+    unsigned int index;
 
     Particle& operator=(const Particle& p){
         this->pos = p.pos;

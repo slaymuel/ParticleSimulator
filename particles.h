@@ -16,7 +16,7 @@ class Particles{
     Particle nModel;
     std::vector< std::shared_ptr<Particle> > particles, cations, anions;
     std::vector<int> movedParticles;
-    int pTot = 0, cTot = 0, aTot = 0, iTot = 0, tot = 0;
+    unsigned int pTot = 0, cTot = 0, aTot = 0, iTot = 0, tot = 0;
 
     //Eigen::MatrixXd get_subset(int sr, int fr){
     //    return this->positions.block(sr, 0, fr, 3);
@@ -28,7 +28,7 @@ class Particles{
         return particles[index];
     }
 
-    std::vector<std::shared_ptr<Particle>> get_subset(std::vector<int> &ps){
+    std::vector<std::shared_ptr<Particle>> get_subset(std::vector<unsigned int> &ps){
         std::vector<std::shared_ptr<Particle>> subset;
         for (auto p : ps){
             if (p < this->tot) subset.push_back(this->particles[p]);
@@ -176,7 +176,7 @@ class Particles{
         }
 
 
-        for(int i = index; i < this->tot - 1; i++){
+        for(unsigned int i = index; i < this->tot - 1; i++){
             //printf("Remove: Moving particle %i to %i\n", i + 1, i);
             *(this->particles[i]) = *(this->particles[i + 1]);
             this->particles[i]->index = i;
@@ -193,7 +193,7 @@ class Particles{
     void load(std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> b, std::vector<std::string> names, double rfp, double rfn){
         //assert correct sizes
         bool setNModel = false, setPModel = false;
-        for(int i = 0; i < pos.size(); i++){
+        for(unsigned int i = 0; i < pos.size(); i++){
 
             (charges[i] > 0) ? this->add(pos[i], 2.5, rfp, charges[i], b[i], names[i]) : this->add(pos[i], 2.5, rfn, charges[i], b[i], names[i]);
 
@@ -244,7 +244,7 @@ class Particles{
         if (f.is_open())
         {
             f << this->tot << "\n\n";
-            for(int i = 0; i < this->tot; i++){
+            for(unsigned int i = 0; i < this->tot; i++){
 
                 f << std::fixed << std::setprecision(3) << this->particles[i]->name << " " <<  this->particles[i]->pos[0] << " " << this->particles[i]->pos[1] << " " << this->particles[i]->pos[2] << "\n";
             }

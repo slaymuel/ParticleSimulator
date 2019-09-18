@@ -92,7 +92,7 @@ namespace Halfwald{
             printf("\tFound: %lu k-vectors\n", kVec.size());
 
             //Calculate norms
-            for(int i = 0; i < kVec.size(); i++){
+            for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
             }
 
@@ -101,9 +101,9 @@ namespace Halfwald{
             std::complex<double> charge;
             Eigen::Vector3d temp;
 
-            for(int k = 0; k < kVec.size(); k++){
+            for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0.0;
-                for(int i = 0; i < particles.tot; i++){
+                for(unsigned int i = 0; i < particles.tot; i++){
                     rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
                     rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
@@ -122,7 +122,7 @@ namespace Halfwald{
                 this->rkVec.push_back(rho);
             }
 
-            for(int i = 0; i < particles.tot; i++){
+            for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
 
@@ -144,7 +144,7 @@ namespace Halfwald{
             else{
                 for(auto o : _old){
                     //#pragma omp parallel for private(rk_new, rk_old)
-                    for(int k = 0; k < kVec.size(); k++){
+                    for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = math::dot(o->pos, this->kVec[k]);
                         rk_old.imag(std::sin(dot));
                         rk_old.real(std::cos(dot));
@@ -170,7 +170,7 @@ namespace Halfwald{
             else{
                 for(auto n : _new){
                     //#pragma omp parallel for private(rk_new, rk_old)
-                    for(int k = 0; k < kVec.size(); k++){
+                    for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = math::dot(n->pos, this->kVec[k]);
                         rk_new.imag(std::sin(dot));
                         rk_new.real(std::cos(dot));
@@ -195,7 +195,7 @@ namespace Halfwald{
             double energy = 0.0;
 
             //#pragma omp parallel for reduction(+:energy)
-            for(int k = 0; k < this->kVec.size(); k++){
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
             
@@ -288,7 +288,7 @@ namespace HalfwaldIPBC{
             printf("\tFound: %lu k-vectors\n", kVec.size());
 
             //Calculate norms
-            for(int i = 0; i < kVec.size(); i++){
+            for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
             }
 
@@ -297,9 +297,9 @@ namespace HalfwaldIPBC{
             std::complex<double> charge;
             Eigen::Vector3d temp;
 
-            for(int k = 0; k < kVec.size(); k++){
+            for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0.0;
-                for(int i = 0; i < particles.tot; i++){
+                for(unsigned int i = 0; i < particles.tot; i++){
                     
                     double cosXY = std::cos(particles[i]->pos[0] * kVec[k][0]) * std::cos(particles[i]->pos[1] * kVec[k][1]);
                     rk.imag(-cosXY * std::sin(particles[i]->pos[2] * kVec[k][2]));
@@ -321,7 +321,7 @@ namespace HalfwaldIPBC{
                 this->rkVec.push_back(rho);
             }
 
-            for(int i = 0; i < particles.tot; i++){
+            for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
 
@@ -343,7 +343,7 @@ namespace HalfwaldIPBC{
             else{
                 for(auto o : _old){
                     //#pragma omp parallel for private(rk_new, rk_old)
-                    for(int k = 0; k < kVec.size(); k++){
+                    for(unsigned int k = 0; k < kVec.size(); k++){
                         double cosXY = std::cos(o->pos[0] * kVec[k][0]) * std::cos(o->pos[1] * kVec[k][1]);
                         rk_old.imag(-cosXY * std::sin(o->pos[2] * kVec[k][2]));
                         rk_old.real(cosXY * std::cos(o->pos[2] * kVec[k][2]));
@@ -369,7 +369,7 @@ namespace HalfwaldIPBC{
             else{
                 for(auto n : _new){
                     //#pragma omp parallel for private(rk_new, rk_old)
-                    for(int k = 0; k < kVec.size(); k++){
+                    for(unsigned int k = 0; k < kVec.size(); k++){
                         double cosXY = std::cos(n->pos[0] * kVec[k][0]) * std::cos(n->pos[1] * kVec[k][1]);
                         rk_new.imag(-cosXY * std::sin(n->pos[2] * kVec[k][2]));
                         rk_new.real(cosXY * std::cos(n->pos[2] * kVec[k][2]));
@@ -394,7 +394,7 @@ namespace HalfwaldIPBC{
             double energy = 0.0;
 
             //#pragma omp parallel for reduction(+:energy)
-            for(int k = 0; k < this->kVec.size(); k++){
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
             
@@ -491,7 +491,7 @@ namespace Ewald{
             printf("\tFound: %lu k-vectors\n", kVec.size());
 
             //Calculate norms
-            for(int i = 0; i < kVec.size(); i++){
+            for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
             }
 
@@ -499,9 +499,9 @@ namespace Ewald{
             std::complex<double> rk;
             std::complex<double> charge;
 
-            for(int k = 0; k < kVec.size(); k++){
+            for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0;
-                for(int i = 0; i < particles.tot; i++){
+                for(unsigned int i = 0; i < particles.tot; i++){
                     rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
                     rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
@@ -511,7 +511,7 @@ namespace Ewald{
                 this->rkVec.push_back(rho);
             }
 
-            for(int i = 0; i < particles.tot; i++){
+            for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
             this->selfTerm *= alpha / sqrt(constants::PI);
@@ -526,7 +526,7 @@ namespace Ewald{
             //std::cout << "rkvec before " << std::accumulate(rkVec.begin(), rkVec.end(), charge) << "\n";
             for(auto o : _old){
                 //#pragma omp parallel for private(rk_new, rk_old, charge)
-                for(int k = 0; k < kVec.size(); k++){
+                for(unsigned int k = 0; k < kVec.size(); k++){
                     rk_old.imag(std::sin(math::dot(o->pos, this->kVec[k])));
                     rk_old.real(std::cos(math::dot(o->pos, this->kVec[k])));
                     charge = o->q;
@@ -537,7 +537,7 @@ namespace Ewald{
 
             for(auto n : _new){
                 //#pragma omp parallel for private(rk_new, rk_old, charge)
-                for(int k = 0; k < kVec.size(); k++){
+                for(unsigned int k = 0; k < kVec.size(); k++){
                     //std::cout << "element before " << this->rkVec[k] << "\n";
                     rk_new.imag(std::sin(math::dot(n->pos, this->kVec[k])));
                     rk_new.real(std::cos(math::dot(n->pos, this->kVec[k])));
@@ -556,7 +556,7 @@ namespace Ewald{
             double energy = 0.0;
 
             //#pragma omp parallel for reduction(+:energy)
-            for(int k = 0; k < this->kVec.size(); k++){
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
             
