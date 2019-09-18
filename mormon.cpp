@@ -172,6 +172,7 @@ class Simulator{
             s->save(this->name);
         }
         this->state.particles.to_xyz(this->name);
+        this->state.particles.to_cpt(this->name);
         printf("Simulation Done!\n\n");
     }
 };
@@ -187,8 +188,8 @@ int main(){
     sim->add_move(0, 5.0, 0.99);
     sim->add_move(1, 0.0, 0.005, -10.7, -2.0);
     sim->add_move(2, 0.0, 0.005, -10.7, -2.0);
-    sim->state.set_geometry(2);
-    sim->state.set_energy(2);
+    sim->state.set_geometry(2, std::vector<double>{200, 200, 145});
+    sim->state.set_energy(3, std::vector<double>{100.0, 6, 8.0 / sim->state.geo->d[0]});
     sim->add_sampler(0);
     /*std::vector< double > b;
     std::vector< double > q;

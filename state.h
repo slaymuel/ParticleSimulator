@@ -260,58 +260,69 @@ class State{
         return count;
     }
 
-    void set_geometry(int type){
+    void set_geometry(int type, std::vector<double> args){
 
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
-                this->geo = new Cuboid<true, true, false>(100.0, 100.0, 145.0);
+                assert(args.size() == 3);
+                this->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
                 break;
             case 1:
                 this->geo = new Sphere();
                 break;
             case 2:
-            printf("Creating Cuboid-Image box\n");
-                this->geo = new CuboidImg(200.0, 200.0, 145.0);
+                printf("Creating Cuboid-Image box\n");
+                assert(args.size() == 3);
+                this->geo = new CuboidImg(args[0], args[1], args[2]);
                 break;
         }
     }
     
 
 
-    void set_energy(int type){
+    void set_energy(int type, std::vector<double> args = std::vector<double>()){
         switch (type){
             case 1:
                 printf("Adding Ewald potential\n");
-                this->energyFunc.push_back( std::make_shared< PairEnergy<Ewald::Short> >() );
+                assert(args.size() == 3);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<Ewald::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
-                this->energyFunc.back()->set_geo(this->geo);
-
-                Ewald::alpha = 6.0 / this->geo->d[0];
+                EwaldLike::kMax = args[1];
+                EwaldLike::alpha = args[2];
                 break;
 
             case 2:
                 printf("Adding Halfwald potential\n");
-                this->energyFunc.push_back( std::make_shared< ImgEnergy<Halfwald::Short> >() );
+                assert(args.size() == 3);
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<Halfwald::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
-                this->energyFunc.back()->set_geo(this->geo);
-
-                Halfwald::alpha = 8.0 / this->geo->d[0];
+                EwaldLike::kMax = args[1];
+                EwaldLike::alpha = args[2];
                 break;
             
             case 3:
                 printf("Adding HalfwaldIPBC potential\n");
-                this->energyFunc.push_back( std::make_shared< ImgEnergy<HalfwaldIPBC::Short> >() );
+                assert(args.size() == 3);
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHWIPBC> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<HalfwaldIPBC::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
-                this->energyFunc.back()->set_geo(this->geo);
-
-                HalfwaldIPBC::alpha = 6.0 / this->geo->d[0];
+                EwaldLike::kMax = args[1];
+                EwaldLike::alpha = args[2];
                 break;
 
             default:

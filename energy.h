@@ -6,13 +6,23 @@
 
 
 class EnergyBase{
+
     protected:
+
     Geometry *geo;
+    double cutoff;
 
     public:
+
     void set_geo(Geometry* geo){
         this->geo = geo;
     }
+
+    void set_cutoff(double cutoff){
+        this->cutoff = cutoff;
+        printf("\tEnergy cutoff set to %lf\n", this->cutoff);
+    }
+
 
     virtual ~EnergyBase(){};
     virtual double all2all(Particles& particles) = 0;
@@ -40,7 +50,7 @@ class PairEnergy : public EnergyBase{
         //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
         for(int i = 0; i < particles.tot; i++){
             for(int j = i + 1; j < particles.tot; j++){
-                e += i2i(particles.particles[i], particles.particles[j]);
+                e += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
             } 
         }
 
@@ -53,7 +63,7 @@ class PairEnergy : public EnergyBase{
         //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
         for (int i = 0; i < particles.tot; i++){
             if (p->index == particles.particles[i]->index) continue;
-            e += i2i(p, particles.particles[i]);
+            e += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
         }
 
         return e;
@@ -78,10 +88,9 @@ class PairEnergy : public EnergyBase{
         return e * constants::lB;
     }
 
-    inline double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
-        double dist = geo->distance(p1->pos, p2->pos);
-        if(dist <= 100){
-            return energy_func(p1, p2, dist);
+    inline double i2i(double& q1, double& q2, double&& dist){
+        if(dist <= this->cutoff){
+            return energy_func(q1, q2, dist);
         }
         else{
             return 0.0;
@@ -173,13 +182,13 @@ class ImgEnergy : public EnergyBase{
     }
 
 
-    inline double i2i(double q1, double q2, double dist){
-        //if(dist <= 100){
+    inline double i2i(const double q1, const double q2, const double&& dist){
+        if(dist <= this->cutoff){
             return energy_func(q1, q2, dist);
-        //}
-        //else{
-        //    return 0.0;
-        //}
+        }
+        else{
+            return 0.0;
+        }
     }
 
 

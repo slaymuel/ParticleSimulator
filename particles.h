@@ -190,32 +190,36 @@ class Particles{
 
 
 
-    void load(std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> b, std::vector<std::string> names, double rfp, double rfn){
+    void load(std::vector< std::vector<double> > com, std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){
         //assert correct sizes
         bool setNModel = false, setPModel = false;
         for(unsigned int i = 0; i < pos.size(); i++){
 
-            (charges[i] > 0) ? this->add(pos[i], 2.5, rfp, charges[i], b[i], names[i]) : this->add(pos[i], 2.5, rfn, charges[i], b[i], names[i]);
-
+            this->add(pos[i], r[i], rf[i], charges[i], b[i], names[i]);
+            
             if(!setPModel){
                 if(charges[i] > 0){
                     pModel.q = charges[i];
-                    pModel.r = 2.5;
-                    pModel.rf = rfp;
+                    pModel.r = r[i];
+                    pModel.rf = rf[i];
                     setPModel = true;
                 }
             }
             if(!setNModel){
                 if(charges[i] < 0){
                     nModel.q = charges[i];
-                    nModel.r = 2.5;
-                    nModel.rf = rfn;
+                    nModel.r = r[i];
+                    nModel.rf = rf[i];
                     setNModel = true;
                 }
             }
 
         }
-        printf("Loaded %lu particles\n", pos.size());
+        if(!setPModel || !setNModel){
+            printf("Cation or anion model not set!\n");
+            exit(1);
+        }
+        printf("Loaded %u particles\n", this->tot);
     }
 
 
@@ -255,7 +259,19 @@ class Particles{
     }
 
     //write checkpoint file
-    void to_cpt(){
+    void to_cpt(std::string fileName){
+        std::ofstream f (fileName + ".cp");
+        if (f.is_open())
+        {
+            for(unsigned int i = 0; i < this->tot; i++){
 
+                f << std::fixed << std::setprecision(15) << " " <<  this->particles[i]->pos[0] << " " << this->particles[i]->pos[1] << " " << this->particles[i]->pos[2] << " " << 
+                                                                    this->particles[i]->pos[0] << " " << this->particles[i]->pos[1] << " " << this->particles[i]->pos[2] << " " << 
+                                                                    this->particles[i]->q << " " << this->particles[i]->r << " " << this->particles[i]->rf << " " << 
+                                                                    this->particles[i]->b << " " << this->particles[i]->name << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
     }
 };
