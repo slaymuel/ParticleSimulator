@@ -158,7 +158,7 @@ class GrandCanonicalAdd : public GrandCanonical{
 
     void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
-        double rand = Random::get_random() > 0.5;
+        double rand = Random::get_random();
 
         if(rand > 0.5){
             s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, 0, "Na");

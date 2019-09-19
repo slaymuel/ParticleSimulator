@@ -162,8 +162,15 @@ class State{
         }
 
         for(auto e : this->energyFunc){
+            //auto start = std::chrono::steady_clock::now();
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
+            //auto end = std::chrono::steady_clock::now();
+            //std::cout << "Energy: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us\n\n";
+
+            //start = std::chrono::steady_clock::now();
             e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
+            //end = std::chrono::steady_clock::now();
+            //std::cout << "Update: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us " <<  "\n\n";
             E2 += (*e)( this->movedParticles, this->particles );
         }
         this->dE = E2 - E1;

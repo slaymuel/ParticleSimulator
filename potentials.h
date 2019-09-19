@@ -473,7 +473,6 @@ namespace EwaldLike{
         inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
-            std::complex<double> charge;
             Eigen::Vector3d temp;
 
             if(_old.empty()){
@@ -483,22 +482,23 @@ namespace EwaldLike{
             }
             else{
                 for(auto o : _old){
-                    //#pragma omp parallel for private(rk_new, rk_old)
+                    temp = o->pos;
+                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kMax > 5)
                     for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = math::dot(o->pos, this->kVec[k]);
                         rk_old.imag(std::sin(dot));
                         rk_old.real(std::cos(dot));
-                        charge = o->q;
-                        this->rkVec[k] -= rk_old * charge;
+
+                        this->rkVec[k] -= rk_old * o->q;
 
                         // Remove image
-                        temp = o->pos;
-                        temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
                         dot = math::dot(temp, this->kVec[k]);
                         rk_old.imag(std::sin(dot));
                         rk_old.real(std::cos(dot));
-                        charge = -o->q;
-                        this->rkVec[k] -= rk_old * charge;
+
+                        this->rkVec[k] -= rk_old * (-o->q);
                     }
                 }
             }
@@ -509,22 +509,23 @@ namespace EwaldLike{
             }
             else{
                 for(auto n : _new){
-                    //#pragma omp parallel for private(rk_new, rk_old)
+                    temp = n->pos;
+                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kMax > 5)
                     for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = math::dot(n->pos, this->kVec[k]);
                         rk_new.imag(std::sin(dot));
                         rk_new.real(std::cos(dot));
-                        charge = n->q;
-                        this->rkVec[k] += rk_new * charge;
+
+                        this->rkVec[k] += rk_new * n->q;
 
                         // Add image
-                        temp = n->pos;
-                        temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
                         dot = math::dot(temp, this->kVec[k]);
                         rk_new.imag(std::sin(dot));
                         rk_new.real(std::cos(dot));
-                        charge = -n->q;
-                        this->rkVec[k] += rk_new * charge;
+
+                        this->rkVec[k] += rk_new * (-n->q);
                     }
                 }
             }

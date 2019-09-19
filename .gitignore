@@ -6,7 +6,7 @@
 *.pdb
 *.txt
 *.json
-
+*.cp
 ### C++ ###
 # Prerequisites
 *.d

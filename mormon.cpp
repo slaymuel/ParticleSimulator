@@ -46,9 +46,9 @@ class Simulator{
         Random::initialize();
 
         #ifdef _OPENMP
-            printf("\nOpenMP is ENABLED with %i cores.\n\n", omp_get_num_procs());
+        printf("\nOpenMP is ENABLED with %i threads.\n\n", omp_get_num_procs());
         #else
-            printf("\nOpenMP is DISABLED\n");
+        printf("\nOpenMP is DISABLED\n");
         #endif
 
         #ifdef DEBUG
@@ -184,12 +184,12 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(78.3, 298.0, "halfwald_test");
-    sim->add_move(0, 5.0, 0.99);
-    sim->add_move(1, 0.0, 0.005, -10.7, -2.0);
-    sim->add_move(2, 0.0, 0.005, -10.7, -2.0);
-    sim->state.set_geometry(2, std::vector<double>{200, 200, 145});
-    sim->state.set_energy(3, std::vector<double>{100.0, 6, 8.0 / sim->state.geo->d[0]});
+    Simulator* sim = new Simulator(2.0, 900.0, "halfwald_test");
+    sim->add_move(0, 0.5, 1.0);
+    //sim->add_move(1, 0.0, 0.005, -16.0, 0.0);
+    //sim->add_move(2, 0.0, 0.005, -16.0, 0.0);
+    sim->state.set_geometry(2, std::vector<double>{172, 172, 45});
+    sim->state.set_energy(2, std::vector<double>{45.0, 6, 8.0 / sim->state.geo->d[0]});
     sim->add_sampler(0);
     /*std::vector< double > b;
     std::vector< double > q;
@@ -207,7 +207,7 @@ int main(){
     pos.back() = {0, 0, -4.5};
     sim->state.particles.load(pos, q, b, n);*/
                               // +    -
-    sim->state.particles.create(373, 243, 2.0, -1.0);
+    sim->state.particles.create(1600, 1600, 1.0, -1.0);
     sim->state.equilibrate();
     //sim->state.add_images();
     sim->state.finalize();
