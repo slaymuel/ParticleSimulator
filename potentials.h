@@ -405,7 +405,7 @@ namespace EwaldLike{
 
         void initialize(Particles &particles){
             double k2 = 0;
-            int zMax = kMax;//(int) (this->zb / this->xb * kMax);
+            int zMax = (int) (this->zb / this->xb * kMax);
             printf("Setting up ewald\n");
             printf("\tWavevectors in x, y, z: %i, %i, %i\n", kMax, kMax, zMax);
 
