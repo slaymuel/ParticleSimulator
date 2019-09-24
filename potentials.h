@@ -227,11 +227,17 @@ namespace EwaldLike{
             std::vector<double> vec(3);
             //printf("Calculating k-vectors");
             for(int kx = 0; kx <= kMax; kx++){
-                for(int ky = -kMax; ky <= kMax; ky++){
-                    for(int kz = -zMax; kz <= zMax; kz++){
+                for(int ky = 0; ky <= kMax; ky++){
+                    for(int kz = 0; kz <= zMax; kz++){
 
                         factor = 1.0;
                         if(kx > 0){
+                            factor *= 2.0;
+                        }
+                        if(ky > 0){
+                            factor *= 2.0;
+                        }
+                        if(kz > 0){
                             factor *= 2.0;
                         }
 
@@ -288,7 +294,7 @@ namespace EwaldLike{
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
 
-            this->selfTerm *= alpha / sqrt(constants::PI) * 2.0; //   *2.0 due to images
+            this->selfTerm *= alpha / sqrt(constants::PI); //   *2.0 due to images
             printf("\tEwald initialization Complete\n");
         }
 
@@ -300,7 +306,7 @@ namespace EwaldLike{
 
             if(_old.empty()){
                 for(auto n : _new){
-                    this->selfTerm += n->q * n->q * alpha / sqrt(constants::PI) * 2.0;
+                    this->selfTerm += n->q * n->q * alpha / sqrt(constants::PI);
                 }
             }
             else{
@@ -326,7 +332,7 @@ namespace EwaldLike{
             }
             if(_new.empty()){
                 for(auto o : _old){
-                    this->selfTerm -= o->q * o->q * alpha / sqrt(constants::PI) * 2.0;
+                    this->selfTerm -= o->q * o->q * alpha / sqrt(constants::PI);
                 }
             }
             else{
@@ -399,7 +405,7 @@ namespace EwaldLike{
 
         void initialize(Particles &particles){
             double k2 = 0;
-            int zMax = (int) (this->zb / this->xb * kMax);
+            int zMax = kMax;//(int) (this->zb / this->xb * kMax);
             printf("Setting up ewald\n");
             printf("\tWavevectors in x, y, z: %i, %i, %i\n", kMax, kMax, zMax);
 
@@ -466,7 +472,8 @@ namespace EwaldLike{
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
 
-            this->selfTerm *= alpha / sqrt(constants::PI) * 2.0; //   *2.0 due to images
+            this->selfTerm *= alpha / std::sqrt(constants::PI); //   *2.0 due to images
+            printf("\tSelfterm is: %lf\n", this->selfTerm);
             printf("\tEwald initialization Complete\n");
         }
 
@@ -477,7 +484,7 @@ namespace EwaldLike{
 
             if(_old.empty()){
                 for(auto n : _new){
-                    this->selfTerm += n->q * n->q * alpha / sqrt(constants::PI) * 2.0;
+                    this->selfTerm += n->q * n->q * alpha / std::sqrt(constants::PI);
                 }
             }
             else{
@@ -504,7 +511,7 @@ namespace EwaldLike{
             }
             if(_new.empty()){
                 for(auto o : _old){
-                    this->selfTerm -= o->q * o->q * alpha / sqrt(constants::PI) * 2.0;
+                    this->selfTerm -= o->q * o->q * alpha / std::sqrt(constants::PI);
                 }
             }
             else{
@@ -539,7 +546,6 @@ namespace EwaldLike{
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
-            
             return energy * constants::PI / (this->volume) - this->selfTerm;
         } 
     };

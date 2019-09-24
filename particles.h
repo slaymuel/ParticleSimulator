@@ -238,7 +238,7 @@ class Particles{
             v = Random::get_vector();
             (i < pNum) ? this->add(v, 2.5, rfp, p, 0.0, "Na") : this->add(v, 2.5, rfn, n, 0.0, "Cl") ;
         }
-        printf("\nCreated %i cations and %i antions\n", pNum, nNum);
+        printf("\nCreated %i cations and %i anions\n", pNum, nNum);
     }
 
 

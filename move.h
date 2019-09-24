@@ -20,7 +20,7 @@ class Move{
         rejected = 0;
         attempted = 0;
     }
-    virtual void operator()(std::shared_ptr<void> argument, CallBack& move_callback) = 0;
+    virtual void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
     virtual bool accept(double dE) = 0;
 };
 
@@ -35,8 +35,8 @@ class Translate : public Move{
     }
 
 
-    void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
-        std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
         //printf("Translating\n");
         p->translate(this->stepSize);
@@ -76,8 +76,8 @@ class Rotate : public Move{
     }
 
 
-    void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
-        std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
 
         p->rotate(this->stepSize);
@@ -107,44 +107,57 @@ class GrandCanonical : public Move{
     protected:
     State* s;
     double q;
-    double cp = 10.0, d = 0.0;
-    
+    double cp = 0.0, d = 0.0;
+    double nVolume;
+    double pVolume;
+    int pAtt = 0, nAtt = 0, pAcc = 0, nAcc = 0;
+
     public:
 
-    GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state) ,cp(chemPot), d(donnan){}
-    virtual void operator()(std::shared_ptr<void> argument, CallBack& move_callback){};
+    GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state) ,cp(chemPot), d(donnan){
+        this->pVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->dh[2] - 2.0 * state->particles.pModel.rf);
+        this->nVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->dh[2] - 2.0 * state->particles.nModel.rf);
+        printf("\t\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
+        printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
+    }
+
+    virtual void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){};
     virtual bool accept(double dE){return false;};
 
     template<bool ADD>
     bool accept_imp(double dE){
-        //delete anion
 
         double prob;
-        
+
         if(ADD){
             if(this->q > 0){
-                prob = s->geo->volume / s->particles.cTot * std::exp(cp - d * q - dE);;
+                prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE);;
                 //prob = std::exp(-dE);
                 //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
             }
             else{
-                prob = s->geo->volume / s->particles.aTot * std::exp(cp - d * q - dE);
+                prob = this->nVolume / s->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
                 //prob = std::exp(-dE);
                 //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
             }            
         }
         else{
             if(this->q > 0){
-                prob = s->particles.cTot / s->geo->volume * std::exp(d * this->q - cp - dE);
+                prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
                 //particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
             }
             else{
-                prob =  s->particles.aTot / s->geo->volume * std::exp(d * this->q - cp - dE);
+                prob = s->particles.aTot / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
                 //particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
             }
         }
         //printf("%lf\n", dE);
-        return prob > Random::get_random();
+        if(prob >= Random::get_random()){
+            return true;
+        }
+        else{
+            return false;
+        }
     }
 };
 
@@ -156,38 +169,38 @@ class GrandCanonicalAdd : public GrandCanonical{
         this->id = "GCAdd";
     }
 
-    void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
         double rand = Random::get_random();
-
-        if(rand > 0.5){
+        if(rand < 0.5){//if(rand < s->particles.cTot / s->particles.tot){
             s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, 0, "Na");
             this->q = s->particles.pModel.q;
+            this->pAtt++;
         }
         else{
             s->particles.add(s->geo->random_pos(), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, 0, "Cl");
             this->q = s->particles.nModel.q;
+            this->nAtt++;
         }
 
         std::vector< unsigned int > particles{s->particles.tot - 1};
 
-
         move_callback(particles);
         totalMoves++;
         attempted++;
+        //printf("Add: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
     }
 
 
     bool accept(double dE){
         if(accept_imp<true>(dE)){
-            accepted++;
+            this->accepted++;
             return true;
         }
         else{
-            rejected++;
+            this->rejected++;
             return false;
         }
-        
     }
 };
 
@@ -198,9 +211,27 @@ class GrandCanonicalRemove : public GrandCanonical{
         this->id = "GCRem";
     }
 
-    void operator()(std::shared_ptr<void> argument, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
         if(s->particles.tot > 0){
-            std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+            
+            //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+            //std::vector< unsigned int > particles = {p->index};
+            double rand = Random::get_random();
+            int rand2 = 0;
+            if(rand < 0.5){
+                do{
+                    rand2 = Random::get_random(s->particles.tot);
+                } while(s->particles[rand2]->q != s->particles.pModel.q);
+                pAtt++;
+            }
+            else{
+                do{
+                    rand2 = Random::get_random(s->particles.tot);
+                } while(s->particles[rand2]->q != s->particles.nModel.q);
+                nAtt++;
+            }
+
+            p = s->particles[rand2];
             std::vector< unsigned int > particles = {p->index};
             this->q = p->q;
 
@@ -214,15 +245,16 @@ class GrandCanonicalRemove : public GrandCanonical{
             printf("All particles have been removed!\n");
             exit(1);
         }
+        //printf("Remove: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
     }
 
     bool accept(double dE){
         if(accept_imp<false>(dE)){
-            accepted++;
+            this->accepted++;
             return true;
         }
         else{
-            rejected++;
+            this->rejected++;
             return false;
         }
     }

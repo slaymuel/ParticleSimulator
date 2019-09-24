@@ -17,25 +17,25 @@ class Random{
         real_dist = std::make_unique< std::uniform_real_distribution<double> >(0.0, 1.0);
     }
 
-    static double get_random(){
+    inline static double get_random(){
         return (*real_dist)(rand_gen);
     }
 
-    static int get_random(int i){
+    inline static int get_random(int i){
         return i * (*real_dist)(rand_gen);
     }
 
-    static Eigen::Vector3d get_random_vector(){
+    inline static Eigen::Vector3d get_random_vector(){
         Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
         return a.normalized();
     }
 
     struct get_vector{
-        operator Eigen::Vector3d(){
+        inline operator Eigen::Vector3d(){
             Eigen::Vector3d v((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
             return v;
         }
-        operator std::vector<double>(){
+        inline operator std::vector<double>(){
             std::vector<double> v = { (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen) };
             return v;
         }

@@ -63,14 +63,18 @@ class Simulator{
 
 
     void add_move(int i, double dp, double p, double cp = 0.0, double d = 0.0){
+        printf("\nAdding move: ");
         switch(i){
             case 0:
+                printf("Translation Move\n");
                 moves.push_back(new Translate(dp, p));
                 break;
             case 1:
+                printf("GC Add Move\n");
                 moves.push_back(new GrandCanonicalAdd(cp, d, &state, p));
                 break;
             case 2:
+                printf("GC Remove\n");
                 moves.push_back(new GrandCanonicalRemove(cp, d, &state, p));
                 break;
             default:
@@ -123,7 +127,6 @@ class Simulator{
             for(int micro = 0; micro < microSteps; micro++){
                 
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
-
                 (*moves[wIt - mWeights.begin()])(state.particles.random(), move_callback);
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
                     state.save();
@@ -166,6 +169,9 @@ class Simulator{
             //    s.sample(??????);
             //    s.sample(s.arguments);
             //}
+            for(auto s : sampler){
+                s->save(this->name);
+            }
         }
         printf("Saving analysis data...\n");
         for(auto s : sampler){
@@ -184,13 +190,19 @@ int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
 
-    Simulator* sim = new Simulator(2.0, 900.0, "halfwald_test");
-    sim->add_move(0, 0.5, 1.0);
-    //sim->add_move(1, 0.0, 0.005, -16.0, 0.0);
-    //sim->add_move(2, 0.0, 0.005, -16.0, 0.0);
-    sim->state.set_geometry(2, std::vector<double>{172, 172, 45});
-    sim->state.set_energy(2, std::vector<double>{45.0, 6, 8.0 / sim->state.geo->d[0]});
+    Simulator* sim = new Simulator(78.3, 298.0, "hw_gc_-2d");
+
+    sim->state.set_geometry(2, std::vector<double>{200, 200, 145});
+    sim->state.set_energy(2, std::vector<double>{100.0, 7, 7.0 / sim->state.geo->d[0]});
+    sim->state.particles.create(383, 247, 2.0, -1.0, 0.5, 2.5);
+
+    //After set_geometry and particles.create
+    sim->add_move(0, 8.0, 0.99);
+    sim->add_move(1, 0.0, 0.005, -10.7, 0.0);
+    sim->add_move(2, 0.0, 0.005, -10.7, 0.0);
+
     sim->add_sampler(0);
+
     /*std::vector< double > b;
     std::vector< double > q;
     std::vector< std::string > n;
@@ -206,12 +218,13 @@ int main(){
     pos.emplace_back();
     pos.back() = {0, 0, -4.5};
     sim->state.particles.load(pos, q, b, n);*/
-                              // +    -
-    sim->state.particles.create(1600, 1600, 1.0, -1.0);
+
+
     sim->state.equilibrate();
-    //sim->state.add_images();
+
+    //After equilibrate
     sim->state.finalize();
-    sim->run(100, 10000);
+    sim->run(1000, 10000);
     //sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 

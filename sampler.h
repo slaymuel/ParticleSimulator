@@ -23,7 +23,7 @@ class Density : public Sampler{
         this->bins = dl / binWidth + 1;
         this->pDens.resize(this->bins);
         this->nDens.resize(this->bins);
-        this->d = d;
+        this->d = d;    //Which dimension to sample
         this->dh = dl / 2.0;
         this->xb = xb;
         this->yb = yb;
@@ -40,6 +40,7 @@ class Density : public Sampler{
                 nDens.at( (int) ( (particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
         }
+
         this->samples++;
 
     }

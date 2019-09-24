@@ -98,6 +98,7 @@ class State{
             if(this->particles.tot > this->_old->particles.tot){
                 //printf("\nSave: adding particle %i to old\n\n", i);
                 this->_old->particles.add(this->particles.particles[i]);
+                //this->_old->particles.add(this->particles.particles[i], i);
             }
             else if(this->particles.tot == this->_old->particles.tot){
                 *(this->_old->particles.particles[i]) = *(this->particles.particles[i]);
@@ -212,14 +213,18 @@ class State{
 
 
     void equilibrate(){
-        printf("Equilibrating:\n");
+        printf("\nEquilibrating:\n");
         Eigen::Vector3d v;
-
-        for(int i = 0; i < this->particles.pTot; i++){
-            this->particles.particles[i]->pos = this->geo->random_pos();
-        }
         
-        int i = 0, overlaps = 1;
+        // Initial Check
+        int i = 0, overlaps = this->get_overlaps();
+        if(overlaps > 0){
+            for(int i = 0; i < this->particles.pTot; i++){
+                this->particles.particles[i]->pos = this->geo->random_pos();
+            }
+        }
+
+        printf("\tInitial overlaps: %i\n", overlaps);
         Eigen::Vector3d oldPos;
         std::shared_ptr<Particle> p;
 
@@ -227,8 +232,8 @@ class State{
         while(overlaps > 0){
             p = this->particles.random();
             oldPos = p->pos;
-            p->translate(10.0);
-            if(this->overlap(p->index) || !this->geo->is_inside(p)){
+            p->translate(5.0);
+            if(!this->geo->is_inside(p) || this->overlap(p->index)){
                 p->pos = oldPos;
             }
 
@@ -243,7 +248,7 @@ class State{
                 i = 0;
             }
         }
-        printf("\nEquilibration done\n\n");
+        printf("\n\tEquilibration done\n\n");
     }
 
 
@@ -291,7 +296,7 @@ class State{
     void set_energy(int type, std::vector<double> args = std::vector<double>()){
         switch (type){
             case 1:
-                printf("Adding Ewald potential\n");
+                printf("\nAdding Ewald potential\n");
                 assert(args.size() == 3);
                 this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -305,7 +310,7 @@ class State{
                 break;
 
             case 2:
-                printf("Adding Halfwald potential\n");
+                printf("\nAdding Halfwald potential\n");
                 assert(args.size() == 3);
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -319,7 +324,7 @@ class State{
                 break;
             
             case 3:
-                printf("Adding HalfwaldIPBC potential\n");
+                printf("\nAdding HalfwaldIPBC potential\n");
                 assert(args.size() == 3);
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -333,11 +338,10 @@ class State{
                 break;
 
             default:
-                printf("Adding Coulomb potential\n");
+                printf("\nAdding Coulomb potential\n");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );
                 this->energyFunc.back()->set_geo(this->geo);
-                break;
-            
+                break;   
         }
         
     }

@@ -16,7 +16,7 @@ class Particle{
 
     unsigned int index;
 
-    Particle& operator=(const Particle& p){
+    /*Particle& operator=(const Particle& p){
         this->pos = p.pos;
         this->r = p.r;
         this->rf = p.rf;
@@ -25,7 +25,7 @@ class Particle{
         this->index = p.index;
 
         return *this;
-    }
+    }*/
 
     void translate(double step){
         Eigen::Vector3d v = Random::get_vector();

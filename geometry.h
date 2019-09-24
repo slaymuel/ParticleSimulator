@@ -152,7 +152,8 @@ class CuboidImg : public Geometry{
         this->_dh = {this->_d[0] / 2.0, this->_d[1] / 2.0, this->_d[2] / 2.0};
 
         this->volume = x * y * z;
-        printf("\tBox dimensions: %lf, %lf, %lf\n", this->_d[0], this->_d[1], this->_d[2]);
+        printf("\tBox dimensions: %.3lf, %.3lf, %.3lf\n", this->_d[0], this->_d[1], this->_d[2]);
+        printf("\tVolume %.3lf\n", this->volume);
     }
 
     void resize(){
@@ -235,7 +236,7 @@ class CuboidImg : public Geometry{
     Eigen::Vector3d random_pos(){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << (dh[0] - 2.5) * (v[0] * 2.0 - 1), (dh[1] - 2.5) * (v[1] * 2.0 - 1), (_dh[2] - 2.5) * (v[2] * 2.0 - 1);
+        v << dh[0] * (v[0] * 2.0 - 1), dh[1] * (v[1] * 2.0 - 1), (_dh[2] - 2.5) * (v[2] * 2.0 - 1);
         return v;
     }
 };
