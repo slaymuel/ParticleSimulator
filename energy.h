@@ -48,8 +48,8 @@ class PairEnergy : public EnergyBase{
 
 
         //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
-        for(int i = 0; i < particles.tot; i++){
-            for(int j = i + 1; j < particles.tot; j++){
+        for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int j = i + 1; j < particles.tot; j++){
                 e += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
             } 
         }
@@ -61,7 +61,7 @@ class PairEnergy : public EnergyBase{
         double e = 0.0;
 
         //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
-        for (int i = 0; i < particles.tot; i++){
+        for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles.particles[i]->index) continue;
             e += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
         }
@@ -157,7 +157,7 @@ class ImgEnergy : public EnergyBase{
 
         // CC
         #pragma omp parallel for reduction(+:CC) schedule(guided, 100) if(particles.tot >= 500) 
-        for (int i = 0; i < particles.tot; i++){
+        for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
 
             CC += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
@@ -168,7 +168,7 @@ class ImgEnergy : public EnergyBase{
         temp = p->pos;
         temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
         #pragma omp parallel for reduction(+:CpC) schedule(guided, 100) if(particles.tot >= 500) 
-        for (int i = 0; i < particles.tot; i++){
+        for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
 
             CpC += i2i(-p->q, particles[i]->q, this->geo->distance(temp, particles[i]->pos));
@@ -199,8 +199,8 @@ class ImgEnergy : public EnergyBase{
 
         // CC
         #pragma omp parallel for schedule(guided, 100) reduction(+:CC) if(particles.tot >= 500)
-        for(int i = 0; i < particles.tot; i++){
-            for(int j = i + 1; j < particles.tot; j++){
+        for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int j = i + 1; j < particles.tot; j++){
                 //CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
                 CC += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
             } 
@@ -208,11 +208,11 @@ class ImgEnergy : public EnergyBase{
 
         //C'C
         #pragma omp parallel for schedule(dynamic, 100) reduction(+:CpC) private(temp)
-        for(int i = 0; i < particles.tot; i++){
+        for(unsigned int i = 0; i < particles.tot; i++){
             temp = particles[i]->pos;
             temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
 
-            for(int j = 0; j < particles.tot; j++){
+            for(unsigned int j = 0; j < particles.tot; j++){
                 //CpC += energy_func(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
                 CpC += i2i(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
             } 
@@ -241,12 +241,13 @@ class ImgEnergy : public EnergyBase{
 
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){
-        //energy_func.update(_old, _new);
+        UNUSED(_old);
+        UNUSED(_new);
     }
 
 
     void initialize(Particles& particles){
-        //energy_func.initialize(particles);
+        UNUSED(particles);
     }
 
 

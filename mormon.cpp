@@ -1,3 +1,5 @@
+#define UNUSED(x) (void)(x)
+
 #include <random>
 #include "random.h"
 #include <assert.h>
@@ -143,7 +145,7 @@ class Simulator{
                     }
                 }
             }
-            /*                                HALF TIME                                  */
+            /*                                "HALF TIME"                                  */
             //Check energy drift etc
             state.control();
 

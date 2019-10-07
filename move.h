@@ -121,8 +121,8 @@ class GrandCanonical : public Move{
         printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
     }
 
-    virtual void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){};
-    virtual bool accept(double dE){return false;};
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
+    bool accept(double dE) = 0;
 
     template<bool ADD>
     bool accept_imp(double dE){
@@ -170,6 +170,7 @@ class GrandCanonicalAdd : public GrandCanonical{
     }
 
     void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+        UNUSED(p);
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
         double rand = Random::get_random();
         if(rand < 0.5){//if(rand < s->particles.cTot / s->particles.tot){

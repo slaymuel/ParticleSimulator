@@ -30,7 +30,7 @@ class Density : public Sampler{
     }
 
     void sample(Particles& particles){
-        for(int i = 0; i < particles.tot; i++){
+        for(unsigned int i = 0; i < particles.tot; i++){
             //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
             if(particles.particles[i]->q > 0){
                 pDens.at( (int) ( (particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
@@ -49,7 +49,7 @@ class Density : public Sampler{
         std::ofstream f ("p_" + filename + ".txt");
         if (f.is_open())
         {
-            for(int i = 0; i < this->pDens.size(); i++){
+            for(unsigned int i = 0; i < this->pDens.size(); i++){
                 f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
                      (double) this->pDens[i] / (this->xb * this->yb * this->binWidth * this->samples) << "\n";
             }
@@ -60,7 +60,7 @@ class Density : public Sampler{
         std::ofstream fi ("n_" + filename + ".txt");
         if (fi.is_open())
         {
-            for(int i = 0; i < this->nDens.size(); i++){
+            for(unsigned int i = 0; i < this->nDens.size(); i++){
                 fi << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
                       (double) this->nDens[i] / (this->xb * this->yb * this->binWidth * this->samples) << "\n";
             }

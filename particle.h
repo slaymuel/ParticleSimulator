@@ -29,12 +29,16 @@ class Particle{
 
     void translate(double step){
         Eigen::Vector3d v = Random::get_vector();
-        this->pos[0] += step * (v[0] * 2.0 - 1);
-        this->pos[1] += step * (v[1] * 2.0 - 1);
-        this->pos[2] += step * (v[2] * 2.0 - 1);
+        this->pos[0] += step * v[0];
+        this->pos[1] += step * v[1];
+        this->pos[2] += step * v[2];
     };
 
     void rotate(double step){
         printf("Rotating particle %i\n", this->index);
+        Eigen::Vector3d v = Random::get_vector();
+        v *= step;
+        this->pos += v;
+        this->pos = this->pos.normalized() * this->b;
     };
 };

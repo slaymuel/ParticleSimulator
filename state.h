@@ -47,7 +47,7 @@ class State{
             exit(1);
         }
 
-        for(int i = 0; i < this->particles.tot; i++){
+        for(unsigned int i = 0; i < this->particles.tot; i++){
             if(this->particles.particles[i]->pos != this->_old->particles.particles[i]->pos){
                 printf("current positions is not equal to old positions for particle %i.\n", i);
                 std::cout << this->particles.particles[i]->pos << std::endl;
@@ -204,7 +204,7 @@ class State{
 
 
     void add_images(){
-        for(int i = 0; i < this->particles.pTot; i++){
+        for(unsigned int i = 0; i < this->particles.pTot; i++){
             this->particles.add(this->geo->mirror(this->particles.particles[i]->pos), this->particles.particles[i]->r, 
                                                   this->particles.particles[i]->r, -this->particles.particles[i]->q, 
                                                   this->particles.particles[i]->b, this->particles.particles[i]->name + "I", true);
@@ -219,7 +219,7 @@ class State{
         // Initial Check
         int i = 0, overlaps = this->get_overlaps();
         if(overlaps > 0){
-            for(int i = 0; i < this->particles.pTot; i++){
+            for(unsigned int i = 0; i < this->particles.pTot; i++){
                 this->particles.particles[i]->pos = this->geo->random_pos();
             }
         }
@@ -311,16 +311,16 @@ class State{
 
             case 2:
                 printf("\nAdding Halfwald potential\n");
-                assert(args.size() == 3);
+                assert(args.size() == 5);
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
 
-                EwaldLike::kMax = args[1];
-                EwaldLike::alpha = args[2];
+                EwaldLike::alpha = args[4];
                 break;
             
             case 3:
@@ -335,6 +335,20 @@ class State{
 
                 EwaldLike::kMax = args[1];
                 EwaldLike::alpha = args[2];
+                break;
+
+            case 4:
+                printf("\nAdding Optimized Halfwald potential\n");
+                assert(args.size() == 5);
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHWOpt> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+
+                EwaldLike::alpha = args[4];
                 break;
 
             default:

@@ -129,7 +129,7 @@ class Cuboid : public Geometry{
     Eigen::Vector3d random_pos(){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << (dh[0] - 2.5) * (v[0] * 2.0 - 1), (dh[1] - 2.5) * (v[1] * 2.0 - 1), (dh[2] - 2.5) * (v[2] * 2.0 - 1);
+        v << (dh[0] - 2.5) * v[0], (dh[1] - 2.5) * v[1], (dh[2] - 2.5) * v[2];
         return v;
     }
 };
@@ -236,7 +236,7 @@ class CuboidImg : public Geometry{
     Eigen::Vector3d random_pos(){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << dh[0] * (v[0] * 2.0 - 1), dh[1] * (v[1] * 2.0 - 1), (_dh[2] - 2.5) * (v[2] * 2.0 - 1);
+        v << dh[0] * v[0], dh[1] * v[1], (_dh[2] - 2.5) * v[2];
         return v;
     }
 };

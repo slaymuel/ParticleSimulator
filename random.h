@@ -25,18 +25,18 @@ class Random{
         return i * (*real_dist)(rand_gen);
     }
 
-    inline static Eigen::Vector3d get_random_vector(){
-        Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
-        return a.normalized();
-    }
+    //inline static Eigen::Vector3d get_random_vector(){
+    //    Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
+    //    return a;
+    //}
 
     struct get_vector{
         inline operator Eigen::Vector3d(){
-            Eigen::Vector3d v((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
+            Eigen::Vector3d v((double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ) );
             return v;
         }
         inline operator std::vector<double>(){
-            std::vector<double> v = { (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen) };
+            std::vector<double> v = { (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ) };
             return v;
         }
     };
