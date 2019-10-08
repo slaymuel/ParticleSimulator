@@ -508,7 +508,7 @@ namespace EwaldLike{
                     temp = o->pos;
                     temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
 
-                    #pragma omp parallel for private(rk_new, rk_old) if(kMax > 5)
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
                     for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
                         rk_old.imag(std::sin(dot));
@@ -535,7 +535,7 @@ namespace EwaldLike{
                     temp = n->pos;
                     temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
 
-                    #pragma omp parallel for private(rk_new, rk_old) if(kMax > 5)
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
                     for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
                         rk_new.imag(std::sin(dot));

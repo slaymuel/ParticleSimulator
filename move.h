@@ -213,39 +213,39 @@ class GrandCanonicalRemove : public GrandCanonical{
     }
 
     void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
-        if(s->particles.tot > 0){
+
             
-            //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-            //std::vector< unsigned int > particles = {p->index};
-            double rand = Random::get_random();
-            int rand2 = 0;
-            if(rand < 0.5){
+        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+        //std::vector< unsigned int > particles = {p->index};
+        double rand = Random::get_random();
+        int rand2 = 0;
+        if(rand < 0.5){
+            if(s->particles.cTot > 0){
                 do{
                     rand2 = Random::get_random(s->particles.tot);
                 } while(s->particles[rand2]->q != s->particles.pModel.q);
                 pAtt++;
             }
-            else{
+        }
+        else{
+            if(s->particles.aTot > 0){
                 do{
                     rand2 = Random::get_random(s->particles.tot);
                 } while(s->particles[rand2]->q != s->particles.nModel.q);
                 nAtt++;
             }
-
-            p = s->particles[rand2];
-            std::vector< unsigned int > particles = {p->index};
-            this->q = p->q;
-
-            s->particles.remove(p->index); // remove particle
-
-            move_callback(particles);
-            totalMoves++;
-            attempted++;
         }
-        else{
-            printf("All particles have been removed!\n");
-            exit(1);
-        }
+
+        p = s->particles[rand2];
+        std::vector< unsigned int > particles = {p->index};
+        this->q = p->q;
+
+        s->particles.remove(p->index); // remove particle
+
+        move_callback(particles);
+        totalMoves++;
+        attempted++;
+
         //printf("Remove: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
     }
 
