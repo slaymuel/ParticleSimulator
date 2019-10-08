@@ -325,16 +325,16 @@ class State{
             
             case 3:
                 printf("\nAdding HalfwaldIPBC potential\n");
-                assert(args.size() == 3);
+                assert(args.size() == 5);
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHWIPBC> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
 
-                EwaldLike::kMax = args[1];
-                EwaldLike::alpha = args[2];
+                EwaldLike::alpha = args[4];
                 break;
 
             case 4:

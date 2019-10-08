@@ -213,7 +213,7 @@ namespace EwaldLike{
     class LongHWIPBC{
         private:
         std::vector<double> resFac, kNorm;
-        std::vector< std::vector<double> > kVec;
+        std::vector< Eigen::Vector3d > kVec;
         std::vector< std::complex<double> > rkVec;
         double volume, selfTerm = 0.0, xb, yb, zb;
 
@@ -235,11 +235,11 @@ namespace EwaldLike{
 
             //get k-vectors
             double factor = 1;
-            std::vector<double> vec(3);
+            Eigen::Vector3d vec;
             //printf("Calculating k-vectors");
-            for(int kx = 0; kx <= kMax; kx++){
-                for(int ky = 0; ky <= kMax; ky++){
-                    for(int kz = 0; kz <= zMax; kz++){
+            for(int kx = 0; kx <= kM[0]; kx++){
+                for(int ky = 0; ky <= kM[1]; ky++){
+                    for(int kz = 0; kz <= kM[2]; kz++){
 
                         factor = 1.0;
                         if(kx > 0){

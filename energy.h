@@ -156,7 +156,7 @@ class ImgEnergy : public EnergyBase{
         Eigen::Vector3d temp;
 
         // CC
-        #pragma omp parallel for reduction(+:CC) schedule(guided, 100) if(particles.tot >= 500) 
+        #pragma omp parallel for reduction(+:CC) schedule(guided, 500) if(particles.tot >= 3000) 
         for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
 
@@ -167,7 +167,7 @@ class ImgEnergy : public EnergyBase{
         //  C'C
         temp = p->pos;
         temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
-        #pragma omp parallel for reduction(+:CpC) schedule(guided, 100) if(particles.tot >= 500) 
+        #pragma omp parallel for reduction(+:CpC) schedule(guided, 500) if(particles.tot >= 3000) 
         for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
 
@@ -198,7 +198,7 @@ class ImgEnergy : public EnergyBase{
         Eigen::Vector3d temp2;
 
         // CC
-        #pragma omp parallel for schedule(guided, 100) reduction(+:CC) if(particles.tot >= 500)
+        #pragma omp parallel for schedule(guided, 200) reduction(+:CC) if(particles.tot >= 1000)
         for(unsigned int i = 0; i < particles.tot; i++){
             for(unsigned int j = i + 1; j < particles.tot; j++){
                 //CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
@@ -207,7 +207,7 @@ class ImgEnergy : public EnergyBase{
         }
 
         //C'C
-        #pragma omp parallel for schedule(dynamic, 100) reduction(+:CpC) private(temp)
+        #pragma omp parallel for schedule(dynamic, 200) reduction(+:CpC) private(temp) if(particles.tot >= 1000)
         for(unsigned int i = 0; i < particles.tot; i++){
             temp = particles[i]->pos;
             temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
