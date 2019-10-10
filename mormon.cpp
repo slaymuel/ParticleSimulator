@@ -5,7 +5,11 @@
 #include <assert.h>
 #include "constants.h"
 #include <iostream>
+
+#ifdef _OPENMP
 #include <omp.h>
+#endif
+
 #include "aux_math.h"
 #include "state.h"
 #include "particle.h"
