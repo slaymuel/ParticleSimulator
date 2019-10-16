@@ -151,7 +151,7 @@ class State{
     }
 
 
-    //Get energy different between this and old state
+    //Get energy different between *this and old state
     double get_energy_change(){
         double E1 = 0.0, E2 = 0.0;
 

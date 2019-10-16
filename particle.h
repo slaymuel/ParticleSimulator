@@ -35,7 +35,6 @@ class Particle{
     };
 
     void rotate(double step){
-        printf("Rotating particle %i\n", this->index);
         Eigen::Vector3d v = Random::get_vector();
         v *= step;
         this->pos += v;

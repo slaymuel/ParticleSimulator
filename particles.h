@@ -224,19 +224,20 @@ class Particles{
 
 
 
-    void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5){
+    void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5, double rp = 2.5, double rn = 2.5){
+
         pModel.q = p;
-        pModel.r = 2.5;
+        pModel.r = rp;
         pModel.rf = rfp;
 
         nModel.q = n;
-        nModel.r = 2.5;
+        nModel.r = rn;
         nModel.rf = rfn;
 
         std::vector<double> v;
         for(int i = 0; i < pNum + nNum; i++){
             v = Random::get_vector();
-            (i < pNum) ? this->add(v, 2.5, rfp, p, 0.0, "Na") : this->add(v, 2.5, rfn, n, 0.0, "Cl") ;
+            (i < pNum) ? this->add(v, rp, rfp, p, 0.0, "Na") : this->add(v, rn, rfn, n, 0.0, "Cl") ;
         }
         printf("\nCreated %i cations and %i anions\n", pNum, nNum);
     }

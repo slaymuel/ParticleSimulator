@@ -257,6 +257,6 @@ PYBIND11_MODULE(mormon, m) {
 
     py::class_<Particles>(m, "Particles")
         .def("load", &Particles::load)
-        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5);
+        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5);
 }
 #endif
