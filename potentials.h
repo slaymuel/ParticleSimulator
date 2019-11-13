@@ -17,6 +17,77 @@ class Coulomb{
 
 
 
+class Spline{
+    std::vector<double> knots;
+
+    public:
+    Spline(std::vector<double> k) : knots(k) {}
+
+    inline double spline(double t, int i, int k){
+        double value = 0.0;
+
+        if(k == 0){ //End condition
+            if(knots[i] <= t && t < knots[i + 1]){
+                return 1.0;
+            }
+            else{
+                return 0.0;
+            }
+        }
+        else{
+            if(knots[i + k] - knots[i] != 0.0 && knots[i + k + 1] -  knots[i + 1] != 0.0){
+                value += (t - knots[i]) / (knots[i + k] - knots[i]) * this->spline(t, i, k - 1) + (knots[i + k + 1] - t) / (knots[i + k + 1] -  knots[i + 1]) * this->spline(t, i + 1, k - 1);
+            }
+        }
+
+        return value;
+    }
+};
+
+
+
+
+class BSpline2D{
+
+
+    std::vector<double> aKnots;
+    std::vector<double> bKnots;
+    std::vector<double> controlPoints;
+    Spline *aSpline;
+    Spline *bSpline;
+    int degree;
+
+    public:
+    void load(std::vector<double> aKnots, std::vector<double> bKnots, std::vector<double >controlPoints){
+        aSpline = new Spline(aKnots);
+        bSpline = new Spline(bKnots);
+        this->controlPoints = controlPoints;
+        degree = 3;
+        printf("\tSpline loaded into potential, elements: %lu, %lu, %lu\n", aKnots.size(), bKnots.size(), controlPoints.size());
+    }
+
+
+    inline double operator()(const double& q1, const double& q2, Eigen::Vector3d& disp){
+        return q1 * q2 * get_energy(disp);
+    }
+
+
+    inline double get_energy(Eigen::Vector3d& disp){
+        double energy = 0.0;
+        int max = std::sqrt(controlPoints.size());
+        double p = std::sqrt(disp[0] * disp[0] + disp[1] * disp[1]);
+
+        for(int i = 0; i < max; i++){
+            for(int j = 0; j < max; j++){
+                energy += controlPoints[i * max + j] * aSpline->spline(p, i, degree) * bSpline->spline(disp[2], j, degree);
+            }
+        }
+
+        return energy;
+    }
+
+};
+
 
 
 
@@ -60,7 +131,7 @@ namespace EwaldLike{
             double energy = q1 * q2 / dist;
             double real = math::erfc_x(dist * alpha) * energy;
 
-
+            //printf("Real %.15lf\n", real);
             return real;    //tinfoil
         }
     };
@@ -71,7 +142,7 @@ namespace EwaldLike{
     class Long{
         private:
         std::vector<double> resFac, kNorm;
-        std::vector< std::vector<double> > kVec;
+        std::vector< Eigen::Vector3d > kVec;
         std::vector< std::complex<double> > rkVec;
         double volume, selfTerm = 0.0, xb, yb, zb;
 
@@ -87,18 +158,18 @@ namespace EwaldLike{
 
         void initialize(Particles &particles){
             double k2 = 0;
-            int zMax = (int) (this->zb / this->xb * kMax);
+
 
             printf("Setting up ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kMax, kMax, zMax);
+            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
             //get k-vectors
             double factor = 1;
-            std::vector<double> vec(3);
+            Eigen::Vector3d vec;
             //printf("Calculating k-vectors");
-            for(int kx = 0; kx <= kMax; kx++){
-                for(int ky = -kMax; ky <= kMax; ky++){
-                    for(int kz = -zMax; kz <= zMax; kz++){
+            for(int kx = 0; kx <= kM[0]; kx++){
+                for(int ky = -kM[1]; ky <= kM[1]; ky++){
+                    for(int kz = -kM[2]; kz <= kM[2]; kz++){
 
                         factor = 1.0;
                         if(kx > 0){
@@ -151,34 +222,43 @@ namespace EwaldLike{
         inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
-            std::complex<double> charge;
-            //charge = 0;
-            //std::cout << "rkvec before " << std::accumulate(rkVec.begin(), rkVec.end(), charge) << "\n";
-            for(auto o : _old){
-                //#pragma omp parallel for private(rk_new, rk_old, charge)
-                for(unsigned int k = 0; k < kVec.size(); k++){
-                    rk_old.imag(std::sin(math::dot(o->pos, this->kVec[k])));
-                    rk_old.real(std::cos(math::dot(o->pos, this->kVec[k])));
-                    charge = o->q;
 
-                    this->rkVec[k] -= rk_old * charge;
+            if(_old.empty()){
+                for(auto n : _new){
+                    this->selfTerm += n->q * n->q * alpha / std::sqrt(constants::PI);
                 }
             }
+            else{
+                for(auto o : _old){
 
-            for(auto n : _new){
-                //#pragma omp parallel for private(rk_new, rk_old, charge)
-                for(unsigned int k = 0; k < kVec.size(); k++){
-                    //std::cout << "element before " << this->rkVec[k] << "\n";
-                    rk_new.imag(std::sin(math::dot(n->pos, this->kVec[k])));
-                    rk_new.real(std::cos(math::dot(n->pos, this->kVec[k])));
-                    charge = n->q;
-                    
-                    this->rkVec[k] += rk_new * charge;
-                    //std::cout << "element after " << this->rkVec[k] << "\n";
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        rk_old.imag(std::sin(dot));
+                        rk_old.real(std::cos(dot));
+
+                        this->rkVec[k] -= rk_old * o->q;
+                    }
                 }
             }
-            //charge = 0;
-            //std::cout << "rkvec after " << std::accumulate(this->rkVec.begin(), this->rkVec.end(), charge) << "\n";
+            if(_new.empty()){
+                for(auto o : _old){
+                    this->selfTerm -= o->q * o->q * alpha / std::sqrt(constants::PI);
+                }
+            }
+            else{
+                for(auto n : _new){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        rk_new.imag(std::sin(dot));
+                        rk_new.real(std::cos(dot));
+
+                        this->rkVec[k] += rk_new * n->q;
+                    }
+                }
+            }
         }
 
 
@@ -189,10 +269,7 @@ namespace EwaldLike{
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
-            
-            //std::cout << "prefactors potential: " << 2.0 * constants::PI / (this->volume) << "\n";
-            //std::cout << "selfTerm: " << selfTerm << "\n";
-            //printf("Energy in potential: %lf\n", energy * 2.0 * constants::PI / (this->volume) );
+            printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
             return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
         } 
     };
@@ -420,7 +497,7 @@ namespace EwaldLike{
 
         void initialize(Particles &particles){
             double k2 = 0;
-            int zMax = kMax;//(int) (this->xb / this->zb * kMax);//kMax;//(int) (this->zb / this->xb * kMax);
+
             printf("Setting up ewald\n");
             printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
@@ -578,17 +655,15 @@ namespace EwaldLike{
 
 
 
-
-    class LongHWOpt{
-
+    class LongEllipsoidal{
         private:
         std::vector<double> resFac, kNorm;
-        std::vector< std::vector<double> > kVec;
-        std::vector< double > rkVec;
+        std::vector< Eigen::Vector3d > kVec;
+        std::vector< std::complex<double> > rkVec;
         double volume, selfTerm = 0.0, xb, yb, zb;
-        std::complex<double> _oldR, _newR;
 
         public:
+
         void set_box(double x, double y, double z){
             this->xb = x;
             this->yb = y;
@@ -597,39 +672,46 @@ namespace EwaldLike{
         }
 
 
+
+
         void initialize(Particles &particles){
             double k2 = 0;
-            int zMax = kMax;//(int) (this->xb / this->zb * kMax);//kMax;//(int) (this->zb / this->xb * kMax);
+            double gz = 2.00000000000000;//this->xb / this->zb;
+            //double cR = alpha * 5.0;
+            //double cL = 5.0 / 10.0;
+            //double c0 = cR / (cL * 2.0 * constants::PI);
+            double c0 = (alpha * this->xb) / (2.0 * constants::PI);
+
             printf("Setting up ewald\n");
             printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
             //get k-vectors
             double factor = 1;
-            std::vector<double> vec(3);
+            Eigen::Vector3d vec;
+            Eigen::Vector3d vec2;
             //printf("Calculating k-vectors");
-            for(int kx = 0; kx <= kM[0]; kx++){
-                for(int ky = 0; ky <= kM[1]; ky++){
-                    for(int kz = 0; kz <= kM[2]; kz++){
+            for(int kx = -kM[0]; kx <= kM[0]; kx++){
+                for(int ky = -kM[1]; ky <= kM[1]; ky++){
+                    for(int kz = -kM[2]; kz <= kM[2]; kz++){
 
                         factor = 1.0;
-                        if(kx > 0){
-                            factor *= 2.0;
-                        }
-                        if(ky > 0){
-                            factor *= 2.0;
-                        }
-                        if(kz > 0){
-                            factor *= 2.0;
-                        }
+                        //if(kx > 0){
+                        //    factor *= 2.0;
+                        //}
 
                         vec[0] = (2.0 * constants::PI * kx / this->xb);
                         vec[1] = (2.0 * constants::PI * ky / this->yb);
                         vec[2] = (2.0 * constants::PI * kz / this->zb);
                         k2 = math::dot(vec, vec);
 
+                        vec2[0] = (kx);
+                        vec2[1] = (ky);
+                        vec2[2] = (kz);
+                        double l2 = math::dot(vec2, vec2);
+
                         if(fabs(k2) > 1e-8){// && fabs(k2) < kMax) {
                             this->kVec.push_back(vec);
-                            this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                            this->resFac.push_back(factor * std::exp(-l2 / (4.0 * c0 * c0)) / k2);
                         }
                     }
                 }
@@ -642,31 +724,18 @@ namespace EwaldLike{
                 this->kNorm.push_back(math::norm(kVec[i]));
             }
 
-            double rho;
-            double rk;
-            double charge;
-            Eigen::Vector3d temp;
+            std::complex<double> rho;
+            std::complex<double> rk;
+            std::complex<double> charge;
 
             for(unsigned int k = 0; k < kVec.size(); k++){
-                rho = 0.0;
+                rho = 0;
                 for(unsigned int i = 0; i < particles.tot; i++){
-                    //rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
-                    rk = std::cos(particles[i]->pos[0] * kVec[k][0]) * std::cos(particles[i]->pos[1] * kVec[k][1]) * std::cos(particles[i]->pos[2] * kVec[k][2]);
-                    //rk = std::cos(math::dot(particles[i]->pos, kVec[k]));
+                    rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
+                    rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
-                    rk *= charge;
+                    rk = rk * charge;
                     rho += rk;
-
-                    //Mirror images
-                    temp = particles[i]->pos;
-                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
-                    //rk.imag(std::sin(math::dot(temp, kVec[k])));
-                    rk = std::cos(temp[0] * kVec[k][0]) * std::cos(temp[1] * kVec[k][1]) * std::cos(temp[2] * kVec[k][2]);
-                    //rk = std::cos(math::dot(temp, kVec[k]));
-                    charge = -particles[i]->q;
-                    rk *= charge;
-                    rho += rk;
-
                 }
                 this->rkVec.push_back(rho);
             }
@@ -674,16 +743,15 @@ namespace EwaldLike{
             for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
+            //this->selfTerm *= alpha / sqrt(constants::PI);
 
-            this->selfTerm *= alpha / std::sqrt(constants::PI); //   *2.0 due to images
-            printf("\tSelfterm is: %lf\n", this->selfTerm);
+            this->selfTerm *= (alpha * gz * (constants::PI - 2.0 * std::atan(1.0 / sqrt(gz * gz - 1.0)))) / (2.0 * sqrt(constants::PI) * sqrt(gz * gz - 1.0));
             printf("\tEwald initialization Complete\n");
         }
 
         inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
-            double rk_new;
-            double rk_old;
-            Eigen::Vector3d temp;
+            std::complex<double> rk_new;
+            std::complex<double> rk_old;
 
             if(_old.empty()){
                 for(auto n : _new){
@@ -692,23 +760,14 @@ namespace EwaldLike{
             }
             else{
                 for(auto o : _old){
-                    temp = o->pos;
-                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
 
-                    #pragma omp parallel for private(rk_new, rk_old) if(kMax > 5)
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
                     for(unsigned int k = 0; k < kVec.size(); k++){
-                        //double dot = math::dot(o->pos, this->kVec[k]);
-                        //rk_old.imag(std::sin(dot));
-                        rk_old = std::cos(o->pos[0] * this->kVec[k][0]) * std::cos(o->pos[1] * this->kVec[k][1]) * std::cos(o->pos[2] * this->kVec[k][2]);
+                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        rk_old.imag(std::sin(dot));
+                        rk_old.real(std::cos(dot));
 
                         this->rkVec[k] -= rk_old * o->q;
-
-                        // Remove image
-                        //dot = math::dot(temp, this->kVec[k]);
-                        //rk_old.imag(std::sin(dot));
-                        rk_old = std::cos(temp[0] * this->kVec[k][0]) * std::cos(temp[1] * this->kVec[k][1]) * std::cos(temp[2] * this->kVec[k][2]);
-
-                        this->rkVec[k] -= rk_old * (-o->q);
                     }
                 }
             }
@@ -719,23 +778,14 @@ namespace EwaldLike{
             }
             else{
                 for(auto n : _new){
-                    temp = n->pos;
-                    temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
 
-                    #pragma omp parallel for private(rk_new, rk_old) if(kMax > 5)
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
                     for(unsigned int k = 0; k < kVec.size(); k++){
-                        //double dot = math::dot(n->pos, this->kVec[k]);
-                        //rk_new.imag(std::sin(dot));
-                        rk_new = std::cos(n->pos[0] * this->kVec[k][0]) * std::cos(n->pos[1] * this->kVec[k][1]) * std::cos(n->pos[2] * this->kVec[k][2]);
+                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        rk_new.imag(std::sin(dot));
+                        rk_new.real(std::cos(dot));
 
                         this->rkVec[k] += rk_new * n->q;
-
-                        // Add image
-                        //dot = math::dot(temp, this->kVec[k]);
-                        //rk_new.imag(std::sin(dot));
-                        rk_new = std::cos(temp[0] * this->kVec[k][0]) * std::cos(temp[1] * this->kVec[k][1]) * std::cos(temp[2] * this->kVec[k][2]);
-
-                        this->rkVec[k] += rk_new * (-n->q);
                     }
                 }
             }
@@ -747,10 +797,10 @@ namespace EwaldLike{
 
             //#pragma omp parallel for reduction(+:energy)
             for(unsigned int k = 0; k < this->kVec.size(); k++){
-                    energy += this->rkVec[k] * this->resFac[k];
-                    //energy += this->resFac[k] * (std::norm(this->rkVec[k] - _newR + _oldR) - std::norm(this->rkVec[k] - _newR) - std::norm(_oldR));
+                    energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
-            return energy * constants::PI / (this->volume) - this->selfTerm;
+            printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
+            return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
         } 
     };
 }

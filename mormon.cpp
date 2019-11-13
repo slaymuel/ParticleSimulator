@@ -83,6 +83,10 @@ class Simulator{
                 printf("GC Remove\n");
                 moves.push_back(new GrandCanonicalRemove(cp, d, &state, p));
                 break;
+            case 3:
+                printf("Rotation Move\n");
+                moves.push_back(new Rotate(dp, p));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -92,7 +96,7 @@ class Simulator{
     void add_sampler(int i){
         switch(i){
             case 0:
-                sampler.push_back(new Density(2, this->state.geo->d[2] / 2.0, 0.05, 
+                sampler.push_back(new Density(2, this->state.geo->_d[2], 0.05, 
                                               this->state.geo->d[0], this->state.geo->d[1]));
         }
     }
@@ -134,6 +138,7 @@ class Simulator{
                 
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
                 (*moves[wIt - mWeights.begin()])(state.particles.random(), move_callback);
+
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
                     state.save();
                 }
@@ -200,16 +205,9 @@ int main(){
 
     sim->state.set_geometry(2, std::vector<double>{200, 200, 145});
     sim->state.set_energy(2, std::vector<double>{100.0, 7, 7.0 / sim->state.geo->d[0]});
-    sim->state.particles.create(383, 247, 2.0, -1.0, 0.5, 2.5);
+    //sim->state.particles.create(383, 247, 2.0, -1.0, 0.5, 2.5);
 
-    //After set_geometry and particles.create
-    sim->add_move(0, 8.0, 0.99);
-    sim->add_move(1, 0.0, 0.005, -10.7, 0.0);
-    sim->add_move(2, 0.0, 0.005, -10.7, 0.0);
-
-    sim->add_sampler(0);
-
-    /*std::vector< double > b;
+    std::vector< double > b;
     std::vector< double > q;
     std::vector< std::string > n;
     n.push_back("Na");
@@ -223,14 +221,21 @@ int main(){
     pos.back() = {0, 0, 4.5};
     pos.emplace_back();
     pos.back() = {0, 0, -4.5};
-    sim->state.particles.load(pos, q, b, n);*/
+    sim->state.particles.load(pos, q, b, n);
+
+    //After set_geometry and particles.create
+    sim->add_move(0, 0.0, 1.00);
+    //sim->add_move(1, 0.0, 0.005, -10.7, 0.0);
+    //sim->add_move(2, 0.0, 0.005, -10.7, 0.0);
+
+    sim->add_sampler(0);
 
 
     sim->state.equilibrate();
 
     //After equilibrate
     sim->state.finalize();
-    sim->run(1000, 10000);
+    sim->run(1, 0);
     //sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
@@ -240,6 +245,7 @@ int main(){
 
 #ifdef PY11
 PYBIND11_MODULE(mormon, m) {
+    
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<double, double, std::string>())
         .def("run", &Simulator::run)
@@ -247,16 +253,19 @@ PYBIND11_MODULE(mormon, m) {
         .def("add_sampler", &Simulator::add_sampler)
         .def_readwrite("state", &Simulator::state);
 
+
     py::class_<State>(m, "State")
-        .def("load_state", &State::load_state)
         .def("set_geometry", &State::set_geometry)
         .def("set_energy", &State::set_energy)
         .def("equilibrate", &State::equilibrate)
         .def("finalize", &State::finalize)
-        .def_readwrite("particles", &State::particles);
+        .def("load_spline", &State::load_spline)
+        .def_readwrite("particles", &State::particles)
+        .def_readonly("energy", &State::energy);
+
 
     py::class_<Particles>(m, "Particles")
         .def("load", &Particles::load)
-        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5);
+        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 2.5, py::arg("bn") = 2.5);
 }
 #endif

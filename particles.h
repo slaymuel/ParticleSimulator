@@ -46,7 +46,7 @@ class Particles{
 
 
     template <typename T>
-    void add(T pos, double r, double rf, double q, double b, std::string name, bool image = false){
+    void add(T com, T pos, double r, double rf, double q, double b, std::string name, bool image = false){
         //Resize positions
         //this->positions.conservativeResize(this->positions.rows() + 1, 3);
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
@@ -56,8 +56,58 @@ class Particles{
             //printf("Allocating\n");
             this->particles.push_back(std::make_shared<Particle>());
         }
+
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
-        this->particles[this->tot]->pos  << pos[0], pos[1], pos[2];
+        this->particles[this->tot]->com << com[0], com[1], com[2];
+        this->particles[this->tot]->pos << pos[0], pos[1], pos[2];
+        this->particles[this->tot]->qDisp = this->particles[this->tot]->pos - this->particles[this->tot]->com;
+
+        //std::cout << this->particles[tot]->pos << " " << std::endl;
+        this->particles[this->tot]->index = this->tot;
+        this->particles[this->tot]->r = r;
+        this->particles[this->tot]->rf = rf;
+        this->particles[this->tot]->q = q;
+        this->particles[this->tot]->b = b;
+        this->particles[this->tot]->name = name;
+
+
+        if(!image){
+            
+            if(q > 0){
+                this->cTot++;
+            }
+            else {
+                this->aTot++;
+            }
+
+            this->pTot++;
+        }
+        else{
+            this->iTot++;
+        }
+
+        this->tot++;
+        assert(tot <= this->particles.size() && "tot is larger than particle vector size\n");
+        assert(tot == this->pTot + this->iTot && "pTot + iTot != tot!\n");
+    }
+
+    template <typename T>
+    void add(T com, double r, double rf, double q, double b, std::string name, bool image = false){
+        //Resize positions
+        //this->positions.conservativeResize(this->positions.rows() + 1, 3);
+        //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
+
+        //Create particle
+        if(this->tot == this->particles.size()){
+            //printf("Allocating\n");
+            this->particles.push_back(std::make_shared<Particle>());
+        }
+
+        //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
+        this->particles[this->tot]->com << com[0], com[1], com[2];
+        this->particles[this->tot]->qDisp = Random::get_vector();
+        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.normalized() * b;
+        this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[this->tot]->index = this->tot;
         this->particles[this->tot]->r = r;
@@ -89,17 +139,16 @@ class Particles{
 
 
     void add(const std::shared_ptr<Particle>& p){
-        //Resize positions
-        //this->positions.conservativeResize(this->positions.rows() + 1, 3);
-        //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
-        //Create particle
+
         if(this->tot == this->particles.size()){
             //printf("Allocating\n");
             this->particles.push_back(std::make_shared<Particle>());
         }
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
-        this->particles[tot]->pos  << p->pos[0], p->pos[1], p->pos[2];
-        //std::cout << this->particles[tot]->pos << " " << std::endl;
+        this->particles[tot]->com << p->com[0], p->com[1], p->com[2];
+        this->particles[tot]->pos << p->pos[0], p->pos[1], p->pos[2];
+        this->particles[tot]->qDisp << p->qDisp;
+
         this->particles[tot]->index = this->tot;
         this->particles[tot]->r = p->r;
         this->particles[tot]->rf = p->rf;
@@ -120,11 +169,6 @@ class Particles{
 
 
     void add(const std::shared_ptr<Particle>& p, int index){
-        
-        //Resize positions
-        //this->positions.conservativeResize(this->positions.rows() + 1, 3);
-        //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
-        //Create particle
 
         if(this->tot == this->particles.size()){
             //printf("Allocating\n");
@@ -137,12 +181,13 @@ class Particles{
             this->particles[i]->index = i;
         }
 
-
         this->tot++;
 
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
+        this->particles[index]->com << p->com[0], p->com[1], p->com[2];
         this->particles[index]->pos << p->pos[0], p->pos[1], p->pos[2];
-        //std::cout << this->particles[tot]->pos << " " << std::endl;
+        this->particles[index]->qDisp << p->qDisp;
+
         this->particles[index]->index = index;
         this->particles[index]->r = p->r;
         this->particles[index]->rf = p->rf;
@@ -195,19 +240,22 @@ class Particles{
         bool setNModel = false, setPModel = false;
         for(unsigned int i = 0; i < pos.size(); i++){
 
-            this->add(pos[i], r[i], rf[i], charges[i], b[i], names[i]);
+            this->add(com[i], pos[i], r[i], rf[i], charges[i], b[i], names[i]);
             
             if(!setPModel){
                 if(charges[i] > 0){
                     pModel.q = charges[i];
+                    pModel.b = b[i];
                     pModel.r = r[i];
                     pModel.rf = rf[i];
                     setPModel = true;
                 }
             }
+
             if(!setNModel){
                 if(charges[i] < 0){
                     nModel.q = charges[i];
+                    nModel.b = b[i];
                     nModel.r = r[i];
                     nModel.rf = rf[i];
                     setNModel = true;
@@ -224,20 +272,22 @@ class Particles{
 
 
 
-    void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5, double rp = 2.5, double rn = 2.5){
+    void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5, double rp = 2.5, double rn = 2.5, double bp = 0.0, double bn = 0.0){
 
         pModel.q = p;
         pModel.r = rp;
         pModel.rf = rfp;
+        pModel.b = bp;
 
         nModel.q = n;
         nModel.r = rn;
         nModel.rf = rfn;
+        nModel.b = bn;
 
-        std::vector<double> v;
+        Eigen::Vector3d com;
         for(int i = 0; i < pNum + nNum; i++){
-            v = Random::get_vector();
-            (i < pNum) ? this->add(v, rp, rfp, p, 0.0, "Na") : this->add(v, rn, rfn, n, 0.0, "Cl") ;
+            com = Random::get_vector();
+            (i < pNum) ? this->add(com, rp, rfp, p, bp, "Na") : this->add(com, rn, rfn, n, bn, "Cl");
         }
         printf("\nCreated %i cations and %i anions\n", pNum, nNum);
     }
@@ -256,7 +306,20 @@ class Particles{
             f << "10 10 10" << "\n";
             f.close();
         }
-        else std::cout << "Unable to open file";
+        else std::cout << "Unable to open file\n";
+
+        std::ofstream fq (fileName + "_com.xyz");
+        if (fq.is_open())
+        {
+            fq << this->tot << "\n\n";
+            for(unsigned int i = 0; i < this->tot; i++){
+
+                fq << std::fixed << std::setprecision(3) << this->particles[i]->name << " " <<  this->particles[i]->com[0] << " " << this->particles[i]->com[1] << " " << this->particles[i]->com[2] << "\n";
+            }
+            fq << "10 10 10" << "\n";
+            fq.close();
+        }
+        else std::cout << "Unable to open file\n";
     }
 
     //write checkpoint file
@@ -266,7 +329,7 @@ class Particles{
         {
             for(unsigned int i = 0; i < this->tot; i++){
 
-                f << std::fixed << std::setprecision(15) << " " <<  this->particles[i]->pos[0] << " " << this->particles[i]->pos[1] << " " << this->particles[i]->pos[2] << " " << 
+                f << std::fixed << std::setprecision(15) << " " <<  this->particles[i]->com[0] << " " << this->particles[i]->com[1] << " " << this->particles[i]->com[2] << " " << 
                                                                     this->particles[i]->pos[0] << " " << this->particles[i]->pos[1] << " " << this->particles[i]->pos[2] << " " << 
                                                                     this->particles[i]->q << " " << this->particles[i]->r << " " << this->particles[i]->rf << " " << 
                                                                     this->particles[i]->b << " " << this->particles[i]->name << "\n";

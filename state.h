@@ -7,11 +7,13 @@
 #include "geometry.h"
 #include "energy.h"
 #include "potentials.h"
+#include "Spline.h"
 
 class State{
     private:
 
     std::shared_ptr<State> _old;
+    SplineData spline;
 
     public:
 
@@ -183,7 +185,7 @@ class State{
     //Called when a move is accepted - set movedParticles
     void move_callback(std::vector< unsigned int > ps){   
         // Can do PBC here
-
+        geo->pbc(particles[ps[0]]);
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
 
         //If a particle is added, this->movedparticles is empty. If particle is removed this->_old->particles is empty
@@ -195,14 +197,15 @@ class State{
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
     }
 
-
+    /*
     void load_state(std::vector<double> pos){
         for(auto p : pos){
             std::cout << p << std::endl;
         }
     }
+    */
 
-
+    /*
     void add_images(){
         for(unsigned int i = 0; i < this->particles.pTot; i++){
             this->particles.add(this->geo->mirror(this->particles.particles[i]->pos), this->particles.particles[i]->r, 
@@ -210,7 +213,7 @@ class State{
                                                   this->particles.particles[i]->b, this->particles.particles[i]->name + "I", true);
         }
     }
-
+    */
 
     void equilibrate(){
         printf("\nEquilibrating:\n");
@@ -225,15 +228,18 @@ class State{
         }
 
         printf("\tInitial overlaps: %i\n", overlaps);
+        Eigen::Vector3d oldCom;
         Eigen::Vector3d oldPos;
         std::shared_ptr<Particle> p;
 
         //Move particles to prevent overlap
         while(overlaps > 0){
             p = this->particles.random();
+            oldCom = p->com;
             oldPos = p->pos;
             p->translate(5.0);
             if(!this->geo->is_inside(p) || this->overlap(p->index)){
+                p->com = oldCom;
                 p->pos = oldPos;
             }
 
@@ -257,7 +263,7 @@ class State{
         for(auto p : this->particles.particles){
             if(p->index == i) continue;
 
-            if(this->geo->distance(p->pos, this->particles.particles[i]->pos) <= p->r + this->particles.particles[i]->r){
+            if(this->geo->distance(p->com, this->particles.particles[i]->com) <= p->r + this->particles.particles[i]->r){
                 return true;
             }
         }
@@ -278,7 +284,7 @@ class State{
             default:
                 printf("Creating Cuboid box\n");
                 assert(args.size() == 3);
-                this->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
+                this->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
                 break;
             case 1:
                 this->geo = new Sphere();
@@ -297,7 +303,7 @@ class State{
         switch (type){
             case 1:
                 printf("\nAdding Ewald potential\n");
-                assert(args.size() == 3);
+                assert(args.size() == 5);
                 this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
@@ -305,8 +311,8 @@ class State{
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::kMax = args[1];
-                EwaldLike::alpha = args[2];
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                EwaldLike::alpha = args[4];
                 break;
 
             case 2:
@@ -318,8 +324,8 @@ class State{
 
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
 
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
                 break;
             
@@ -332,22 +338,21 @@ class State{
 
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHWIPBC> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
 
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
                 break;
 
             case 4:
-                printf("\nAdding Optimized Halfwald potential\n");
+                printf("\nAdding Ellipsoidal Ewald\n");
                 assert(args.size() == 5);
-                this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< Ellipsoid<BSpline2D> >(spline.aKnots, spline.bKnots, spline.controlPoints) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
-
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHWOpt> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongEllipsoidal> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
 
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
                 break;
 
@@ -358,5 +363,9 @@ class State{
                 break;   
         }
         
+    }
+
+    void load_spline(std::vector<double> aKnots, std::vector<double> bKnots, std::vector<double >controlPoints){
+        spline.load(aKnots, bKnots, controlPoints);
     }
 };

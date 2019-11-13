@@ -20,7 +20,7 @@ class Density : public Sampler{
 
     Density(int d, double dl, double binWidth, double xb, double yb){
         this->binWidth = binWidth;
-        this->bins = dl / binWidth + 1;
+        this->bins = dl / binWidth;
         this->pDens.resize(this->bins);
         this->nDens.resize(this->bins);
         this->d = d;    //Which dimension to sample

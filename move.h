@@ -31,6 +31,7 @@ class Translate : public Move{
     public:
 
     Translate(double step, double w) : Move(step, w){
+        printf("\tStepsize: %lf\n", step);
         this->id = "Trans";
     }
 
@@ -54,12 +55,10 @@ class Translate : public Move{
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
             this->accepted++;
-            //printf("Accepted\n");
          } 
          else{
             ret = false;
             this->rejected++;
-            //printf("Rejected\n");
          }
 
         return ret;
@@ -72,6 +71,7 @@ class Rotate : public Move{
     public:
 
     Rotate(double step, double w) : Move(step, w){
+        printf("\tStepsize: %lf\n", step);
         this->id = "Rot";
     }
 
@@ -90,14 +90,16 @@ class Rotate : public Move{
 
     bool accept(double dE){
         bool ret = false;
-        if(exp(-dE) > Random::get_random()){
+
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
-            accepted++;
+            this->accepted++;
          } 
          else{
-             ret = false;
-             rejected++;
+            ret = false;
+            this->rejected++;
          }
+
         return ret;
     }
 };
@@ -115,8 +117,8 @@ class GrandCanonical : public Move{
     public:
 
     GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state) ,cp(chemPot), d(donnan){
-        this->pVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->dh[2] - 2.0 * state->particles.pModel.rf);
-        this->nVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->dh[2] - 2.0 * state->particles.nModel.rf);
+        this->pVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
+        this->nVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         printf("\t\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
         printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
     }
@@ -174,12 +176,12 @@ class GrandCanonicalAdd : public GrandCanonical{
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
         double rand = Random::get_random();
         if(rand < 0.5){//if(rand < s->particles.cTot / s->particles.tot){
-            s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, 0, "Na");
+            s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, s->particles.pModel.b, "Na");
             this->q = s->particles.pModel.q;
             this->pAtt++;
         }
         else{
-            s->particles.add(s->geo->random_pos(), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, 0, "Cl");
+            s->particles.add(s->geo->random_pos(), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, s->particles.nModel.b, "Cl");
             this->q = s->particles.nModel.q;
             this->nAtt++;
         }
