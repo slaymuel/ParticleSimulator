@@ -169,12 +169,12 @@ class State{
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
             //auto end = std::chrono::steady_clock::now();
             //std::cout << "Energy: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us\n\n";
-
             //start = std::chrono::steady_clock::now();
             e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
             //end = std::chrono::steady_clock::now();
             //std::cout << "Update: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us " <<  "\n\n";
             E2 += (*e)( this->movedParticles, this->particles );
+            //std::cout << this->_old->particles[this->_old->movedParticles[0]]->q << " " << this->particles[this->_old->movedParticles[0]]->q  << std::endl;
         }
         this->dE = E2 - E1;
 
@@ -184,7 +184,7 @@ class State{
 
     //Called when a move is accepted - set movedParticles
     void move_callback(std::vector< unsigned int > ps){   
-        // Can do PBC here
+        // FIX FOR MORE THAN ONE MOVED PARTICLE
         geo->pbc(particles[ps[0]]);
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
 
@@ -197,23 +197,6 @@ class State{
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
     }
 
-    /*
-    void load_state(std::vector<double> pos){
-        for(auto p : pos){
-            std::cout << p << std::endl;
-        }
-    }
-    */
-
-    /*
-    void add_images(){
-        for(unsigned int i = 0; i < this->particles.pTot; i++){
-            this->particles.add(this->geo->mirror(this->particles.particles[i]->pos), this->particles.particles[i]->r, 
-                                                  this->particles.particles[i]->r, -this->particles.particles[i]->q, 
-                                                  this->particles.particles[i]->b, this->particles.particles[i]->name + "I", true);
-        }
-    }
-    */
 
     void equilibrate(){
         printf("\nEquilibrating:\n");

@@ -87,6 +87,10 @@ class Simulator{
                 printf("Rotation Move\n");
                 moves.push_back(new Rotate(dp, p));
                 break;
+            case 4:
+                printf("Swap Move\n");
+                moves.push_back(new Swap(&state, p));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -266,6 +270,6 @@ PYBIND11_MODULE(mormon, m) {
 
     py::class_<Particles>(m, "Particles")
         .def("load", &Particles::load)
-        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 2.5, py::arg("bn") = 2.5);
+        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
 }
 #endif

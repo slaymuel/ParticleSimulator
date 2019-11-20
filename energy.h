@@ -51,9 +51,9 @@ class PairEnergy : public EnergyBase{
         for(unsigned int i = 0; i < particles.tot; i++){
             for(unsigned int j = i + 1; j < particles.tot; j++){
                 e += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
-            } 
+            }  
         }
-        printf("Real energy: %.15lf\n", e);
+        //printf("Real energy: %.15lf\n", e);
         return e * constants::lB;
     }
 
@@ -73,7 +73,14 @@ class PairEnergy : public EnergyBase{
 
         double e = 0.0;
         for(auto s : p){
+            //do instead i2all(s, particles);
             e += i2all(particles.particles[s], particles);
+        }
+
+        for(int i = 0; i < p.size(); i++){
+           for(int j = i + 1; j < p.size(); j++){
+               e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
+           }
         }
 
         return e * constants::lB;
@@ -83,8 +90,16 @@ class PairEnergy : public EnergyBase{
 
         double e = 0.0;
         for(auto s : p){
+            //do instead i2all(s, particles);
             e += i2all(particles.particles[s], particles);
         }
+
+        for(int i = 0; i < p.size(); i++){
+           for(int j = i + 1; j < p.size(); j++){
+               e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
+           }
+        }
+
         return e * constants::lB;
     }
 
@@ -318,6 +333,13 @@ class ImgEnergy : public EnergyBase{
         for(auto s : p){
             e += i2all(particles[s], particles);
         }
+
+        for(int i = 0; i < p.size(); i++){
+           for(int j = i + 1; j < p.size(); j++){
+               e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
+           }
+        }
+
         return e * constants::lB;
     }
 
@@ -327,6 +349,13 @@ class ImgEnergy : public EnergyBase{
         for(auto s : p){
             e += i2all(particles[s], particles);
         }
+
+        for(int i = 0; i < p.size(); i++){
+           for(int j = i + 1; j < p.size(); j++){
+               e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
+           }
+        }
+
         return e * constants::lB;
     }
 

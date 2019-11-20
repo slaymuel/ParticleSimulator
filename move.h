@@ -3,6 +3,7 @@
 #include "particles.h"
 #include <math.h>
 #include "state.h"
+#include <algorithm>
 
 using CallBack = std::function<void(std::vector< unsigned int >)>;
 
@@ -103,6 +104,59 @@ class Rotate : public Move{
         return ret;
     }
 };
+
+
+
+class Swap : public Move{
+    private:
+    State* s;
+
+    public:
+    Swap(State* state, double w) : Move(0.0, w), s(state){
+        //printf("\t\tSwap Move\n");
+        this->id = "Swap";
+    }
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+
+            
+        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+        //std::vector< unsigned int > particles = {p->index};
+        int rand = Random::get_random(s->particles.tot), rand2;
+
+        do{
+            rand2 = Random::get_random(s->particles.tot);
+        } while(this->s->particles[rand]->q == this->s->particles[rand2]->q);
+        //printf("Before: q1: %lf q2: %lf\n", s->particles.particles[rand]->q, s->particles.particles[rand2]->q);
+        std::swap(this->s->particles.particles[rand]->q, this->s->particles.particles[rand2]->q);
+        std::swap(this->s->particles.particles[rand]->name, this->s->particles.particles[rand2]->name);
+        //printf("After: q1: %lf q2: %lf\n", s->particles.particles[rand]->q, s->particles.particles[rand2]->q);
+        std::vector< unsigned int > particles = {static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)};
+
+
+        move_callback(particles);
+        totalMoves++;
+        attempted++;
+
+        //printf("Remove: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
+    }
+
+    bool accept(double dE){
+        bool ret = false;
+
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
+            ret = true;
+            this->accepted++;
+         } 
+         else{
+            ret = false;
+            this->rejected++;
+         }
+
+        return ret;
+    }
+};
+
+
 
 class GrandCanonical : public Move{
 
