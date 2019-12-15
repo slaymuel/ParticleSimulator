@@ -194,7 +194,7 @@ class Cuboid : public Geometry{
 
 
 
-
+template<bool X = true, bool Y = true, bool Z = true>
 class CuboidImg : public Geometry{
     private:
     std::vector<double> _dh;
@@ -221,7 +221,7 @@ class CuboidImg : public Geometry{
 
     bool is_inside(std::shared_ptr<Particle>& p){
         if(p->com[0] >= this->_dh[0] || p->com[0] <= -this->_dh[0] ||
-           p->com[1] >= this->_dh[1] || p->com[1]<= -this->_dh[1] ||
+           p->com[1] >= this->_dh[1] || p->com[1] <= -this->_dh[1] ||
            p->com[2] + p->rf >= this->_dh[2] || p->com[2] - p->rf <= -this->_dh[2]){
                return false;
         }
@@ -264,35 +264,36 @@ class CuboidImg : public Geometry{
     double distance(Eigen::Vector3d& a, Eigen::Vector3d& b){
         Eigen::Vector3d disp = a - b;
 
+        if(X){
+            if(disp[0] > this->dh[0]){
+                disp[0] -= this->d[0];
+            }
 
-        if(disp[0] > this->dh[0]){
-            disp[0] -= this->d[0];
+            else if(disp[0] < -this->dh[0]){
+                disp[0] += this->d[0];
+            }
         }
 
-        else if(disp[0] < -this->dh[0]){
-            disp[0] += this->d[0];
+        if(Y){
+            if(disp[1] > this->dh[1]){
+                disp[1] -= this->d[1];
+            }
+
+            else if(disp[1] < -this->dh[1]){
+                disp[1] += this->d[1];
+            }
         }
 
 
+        if(Z){
+            if(disp[2] > this->dh[2]){
+                disp[2] -= this->d[2];
+            }
 
-        if(disp[1] > this->dh[1]){
-            disp[1] -= this->d[1];
+            else if(disp[2] < -this->dh[2]){
+                disp[2] += this->d[2];
+            }
         }
-
-        else if(disp[1] < -this->dh[1]){
-            disp[1] += this->d[1];
-        }
-
-
-
-        if(disp[2] > this->dh[2]){
-            disp[2] -= this->d[2];
-        }
-
-        else if(disp[2] < -this->dh[2]){
-            disp[2] += this->d[2];
-        }
-
 
         return disp.norm();
     }
@@ -307,7 +308,7 @@ class CuboidImg : public Geometry{
     Eigen::Vector3d random_pos(){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << dh[0] * v[0], dh[1] * v[1], (_dh[2] - 2.5) * v[2];
+        v << _dh[0] * v[0], _dh[1] * v[1], (_dh[2] - 2.5) * v[2];
         return v;
     }
 };

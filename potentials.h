@@ -17,6 +17,9 @@ class Coulomb{
 
 
 
+
+
+
 class Spline{
     std::vector<double> knots;
 
@@ -804,3 +807,127 @@ namespace EwaldLike{
         } 
     };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+class Levin{
+
+    private:
+    double sumC, xb, yb, zb, volume, dipoleM;
+    std::vector<double> f1, f2, f3, f4, kNorms;
+    std::vector<int> kM;
+    std::vector< Eigen::Vector2d> kVec;
+
+    public:
+
+    void set_km(std::vector<int> v){
+        kM = v;
+    }
+
+    void set_box(double x, double y, double z){
+        this->xb = x;
+        this->yb = y;
+        this->zb = z;
+        this->volume = x * y * z;
+    }
+
+    void initialize(Particles &particles){
+        Eigen::Vector2d vec;
+
+        for(int x = -kM[0]; x <= kM[0]; x++){
+            for(int y = -kM[1]; y <= kM[1]; y++){
+                if(x != 0 || y != 0){
+                    vec[0] = (double) x;//(double) x * 2.0 * PI / Base::xL; // 
+                    vec[1] = (double) y;//(double) y * 2.0 * PI / Base::xL; // 
+                    kVec.push_back(vec);
+                    kNorms.push_back(2.0 * PI * sqrt((double)(x * x)/(Base::xL * Base::xL) + (double)(y * y)/(Base::yL * Base::yL)));
+
+                }
+            }
+        }
+        printf("\tFound %lu k-vectors.\n", kVec.size());
+
+        double factor = 0;
+        for(int i = 0; i < kVec.size(); i++){
+            for(int j = 0; j < particles.tot; j++){
+                factor = 2.0 * constants::PI / Base::xL * (kVec[i][0] * particles[j]->pos[0] + kVec[i][1] * particles[j]->pos[1]);
+                double fac = kNorms[i] * (particles[j]->pos[2] + this->zb / 2.0);
+                f1[i] += particles[j]->q * std::cos(factor) * std::exp(-fac);
+                f2[i] += particles[j]->q * std::sin(factor) * std::exp(-fac);
+                f3[i] += particles[j]->q * std::cos(factor) * std::exp( fac);
+                f4[i] += particles[j]->q * std::sin(factor) * std::exp( fac);
+            }  
+        }
+
+        printf("Calculated f-functions\n");
+        for(int i = 0; i < kVec.size(); i++){
+            eFactors[i] = exp(-2.0 * kNorms[i] * Base::zLBox);
+        }
+
+        for(int i = 0; i < particles.tot; i++){
+            sumC += particles[i]->q;
+        }
+
+        for(int i = 0; i < particles.numOfParticles; i++){
+            dipoleM += particles[i].q * ( particles[i].pos[2] + this->zb / 2.0 );
+        }
+    }
+
+    inline double operator()(){
+        double polarization = 0.0, gamma = 0.0, dipoleM = 0.0;;
+
+        for(int i = 0; i < kVec.size(); i++){    
+            polarization += -1.0 / (kNorms[i] * (1.0 - eFactors[i])) * 
+                    (f1[i] * f1[i] + f2[i] * f2[i] + eFactors[i] * (f3[i] * f3[i] + f4[i] * f4[i]) - 
+                    2.0 * eFactors[i] * (f3[i] * f1[i] + f2[i] * f4[i]));
+        }
+
+        gamma = -2.0 * (dipoleM * dipoleM / this->zb - sumC * dipoleM);
+
+        return constants::PI / (Base::xL * Base::xL) * (polarization + gamma);
+    }
+
+    void update_f(Particle &_old, Particle &_new){
+        for(int i = 0; i < kVec.size(); i++){
+            double oldFactor = 2.0 * constants::PI / this->xb * (kVec[i][0] * _old.pos[0] + kVectors[i][1] * _old.pos[1]);
+            double newFactor = 2.0 * constants::PI / this->xb * (kVec[i][0] * _new.pos[0] + kVectors[i][1] * _new.pos[1]);
+            f1[i] -= _old.q * std::cos(oldFactor) * std::exp(-kNorms[i] * (_old.pos[2] + this->zb/ 2.0));
+            f1[i] += _new.q * std::cos(newFactor) * std::exp(-kNorms[i] * (_new.pos[2] + this->zb / 2.0));
+
+            f2[i] -= _old.q * std::sin(oldFactor) * std::exp(-kNorms[i] * (_old.pos[2] + this->zb / 2.0));
+            f2[i] += _new.q * std::sin(newFactor) * std::exp(-kNorms[i] * (_new.pos[2] + this->zb / 2.0) );
+
+            f3[i] -= _old.q * std::cos(oldFactor) * std::exp(kNorms[i] * (_old.pos[2] + this->zb / 2.0) );
+            f3[i] += _new.q * std::cos(newFactor) * std::exp(kNorms[i] * (_new.pos[2] + this->zb / 2.0) );
+
+            f4[i] -= _old.q * std::sin(oldFactor) * std::exp(kNorms[i] * (_old.pos[2] + this->zb / 2.0) );
+            f4[i] += _new.q * std::sin(newFactor) * std::exp(kNorms[i] * (_new.pos[2] + this->zb / 2.0));
+
+            sumC += _new.q;
+            sumC -= _old.q;
+
+            dipoleM += 
+        }
+    }
+};
+
+*/

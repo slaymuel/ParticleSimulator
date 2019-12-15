@@ -177,7 +177,7 @@ class State{
             //std::cout << this->_old->particles[this->_old->movedParticles[0]]->q << " " << this->particles[this->_old->movedParticles[0]]->q  << std::endl;
         }
         this->dE = E2 - E1;
-
+        //printf("dE = %lf\n", this->dE);
         return this->dE;
     }
 
@@ -269,13 +269,21 @@ class State{
                 assert(args.size() == 3);
                 this->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
                 break;
+
             case 1:
                 this->geo = new Sphere();
                 break;
+
             case 2:
                 printf("Creating Cuboid-Image box\n");
                 assert(args.size() == 3);
-                this->geo = new CuboidImg(args[0], args[1], args[2]);
+                this->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
+                break;
+
+            case 3:
+                printf("Creating Cuboid-Image box with no distance PBC in z\n");
+                assert(args.size() == 3);
+                this->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
                 break;
         }
     }
@@ -339,10 +347,24 @@ class State{
                 EwaldLike::alpha = args[4];
                 break;
 
+            case 5:
+                printf("\nAdding Minimum Image Halfwald\n");
+                assert(args.size() == 1);
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Coulomb> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                // Set box size due to reflections
+                printf("\tResetting box size in z to %lf\n", (4.0 * args[0] + 2.0) * this->geo->_d[2]);
+                this->geo->d[2] = (4.0 * args[0] + 2.0) * this->geo->_d[2];
+                this->geo->dh[2] = 0.5 * this->geo->d[2]; 
+                break;
+
             default:
                 printf("\nAdding Coulomb potential\n");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );
                 this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
                 break;   
         }
         

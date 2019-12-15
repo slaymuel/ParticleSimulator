@@ -295,7 +295,9 @@ class GrandCanonicalRemove : public GrandCanonical{
         p = s->particles[rand2];
         std::vector< unsigned int > particles = {p->index};
         this->q = p->q;
-
+        /*if(s->particles.cTot == 1 && p->q > 0.0){
+            printf("Trying to remove the last cation\n");
+        }*/
         s->particles.remove(p->index); // remove particle
 
         move_callback(particles);
