@@ -185,7 +185,9 @@ class State{
     //Called when a move is accepted - set movedParticles
     void move_callback(std::vector< unsigned int > ps){   
         // FIX FOR MORE THAN ONE MOVED PARTICLE
+
         geo->pbc(particles[ps[0]]);
+
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
 
         //If a particle is added, this->movedparticles is empty. If particle is removed this->_old->particles is empty
@@ -281,11 +283,18 @@ class State{
                 break;
 
             case 3:
-                printf("Creating Cuboid-Image box with no distance PBC in z\n");
+                printf("Creating Cuboid-Image box with no PBC in z\n");
                 assert(args.size() == 3);
                 this->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
                 break;
+
+            case 4:
+                printf("Creating Cuboid box with no PBC\n");
+                assert(args.size() == 3);
+                this->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
+                break;
         }
+
     }
     
 
@@ -294,8 +303,9 @@ class State{
         switch (type){
             case 1:
                 printf("\nAdding Ewald potential\n");
-                assert(args.size() == 5);
+                assert(args.size() == 7);
                 this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                //this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::Short> >(1) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
@@ -304,6 +314,11 @@ class State{
 
                 EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
+
+                EwaldLike::kMax = args[5];
+                EwaldLike::spherical = bool(args[6]);
+                printf("\tSpherical cutoff: %s", EwaldLike::spherical ? "true\n" : "false\n");
+                printf("\tReciprocal cutoff: %lf\n", EwaldLike::kMax);
                 break;
 
             case 2:
@@ -359,6 +374,30 @@ class State{
                 this->geo->d[2] = (4.0 * args[0] + 2.0) * this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 break;
+
+
+            case 6:
+                printf("\nAdding Truncated Ewald potential\n");
+                assert(args.size() == 8);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::ShortTruncated> >() );
+                //this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::ShortTruncated> >(1) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongTruncated> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                EwaldLike::alpha = args[4];
+                //printf("Sigma: %lf\n", args[4]);
+                EwaldLike::R = args[5];
+                EwaldLike::kMax = args[6];
+                EwaldLike::spherical = bool(args[7]);
+                printf("\tSpherical cutoff: %s", EwaldLike::spherical ? "true\n" : "false\n");
+                printf("\tReciprocal cutoff: %lf\n", EwaldLike::kMax);
+                EwaldLike::eta = EwaldLike::R * 1.0 / (std::sqrt(2.0) * EwaldLike::alpha);
+                break;
+
 
             default:
                 printf("\nAdding Coulomb potential\n");

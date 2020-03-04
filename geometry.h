@@ -51,7 +51,6 @@ class Cuboid : public Geometry{
             if(p->com[0] >= this->dh[0] || p->com[0] <= -this->dh[0]){
                 return false;
             }
-
         }
         else{
             if(p->com[0] + p->rf >= this->dh[0] || p->com[0] - p->rf <= -this->dh[0]){

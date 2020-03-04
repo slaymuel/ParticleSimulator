@@ -1,9 +1,14 @@
-#include "particles.h"
+#include "state.h"
 
 class Sampler{
+
     public:
     int samples = 0;
-    virtual void sample(Particles& particles) = 0;
+    int interval;
+
+    Sampler(int interval) : interval(interval){}
+
+    virtual void sample(State& state) = 0;
     virtual void save(std::string filename) = 0;
 };
 
@@ -16,9 +21,10 @@ class Density : public Sampler{
     std::vector<int> pDens;
     std::vector<int> nDens;
     int d, bins;
+
     public:
 
-    Density(int d, double dl, double binWidth, double xb, double yb){
+    Density(int d, double dl, double binWidth, double xb, double yb, int interval) : Sampler(interval){
         this->binWidth = binWidth;
         this->bins = dl / binWidth;
         this->pDens.resize(this->bins, 0);
@@ -29,15 +35,15 @@ class Density : public Sampler{
         this->yb = yb;
     }
 
-    void sample(Particles& particles){
-        for(unsigned int i = 0; i < particles.tot; i++){
+    void sample(State& state){
+        for(unsigned int i = 0; i < state.particles.tot; i++){
             //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
-            if(particles.particles[i]->q > 0){
-                pDens.at( (int) ( (particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
+            if(state.particles.particles[i]->q > 0){
+                pDens.at( (int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
 
             else{
-                nDens.at( (int) ( (particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
+                nDens.at( (int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
         }
 
@@ -70,3 +76,75 @@ class Density : public Sampler{
     }
 };
 
+
+class WidomHS : public Sampler{
+    double cp = 0.0;
+
+    public:
+
+    WidomHS(int interval) : Sampler(interval){}
+
+    void sample(State& state){
+        Eigen::Vector3d com = state.geo->random_pos();
+        com[2] = (Random::get_random() * 0.2 - 0.2) * state.geo->dh[2];
+        state.particles.add(com, com, state.particles.pModel.r, state.particles.pModel.rf, state.particles.pModel.q, state.particles.pModel.b, "WIDOM_PARTICLE");
+        if(!state.overlap(state.particles.tot - 1)){
+            cp += 1.0;
+        }
+        state.particles.remove(state.particles.tot - 1);
+        this->samples++;
+    }
+
+    void save(std::string filename){
+        std::ofstream f ("cp_HS_" + filename + ".txt");
+        if (f.is_open()){
+            f << std::fixed << std::setprecision(10) << "Hard-sphere chemical potential: " << -std::log(cp / this->samples)  << "\n";
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+    }
+};
+
+/*
+class Potential : public Sampler{
+    private:
+
+    double binWidth, dl;
+    std::vector< std::vector<double> > potential;
+    int bins;
+
+    public:
+
+    Potential(double dl, double binWidth){
+        this->binWidth = binWidth;
+        this->bins = dl / binWidth;
+        this->potential.resize(this->bins, std::vector<double>(2));
+        this->dl = dl;
+
+        for(auto p : this->potential){
+            p[0] = 0.0;
+            p[1] = 0.0;
+        }
+    }
+
+    void sample(Particles& particles){
+        particles.add(T com, T pos, double r, 2.5, 1.0, 0.0, std::string name, bool image = false);
+        this->potential[(int)particles.particles.back()->pos[2] + 0.5 * this->dl][0] += get_energy();
+        this->potential[(int)particles.particles.back()->pos[2] + 0.5 * this->dl][1] += 1;
+        particles.remove(particles.particles.back()->index);
+    }
+
+    void save(std::string filename){
+        std::ofstream f ("potential_" + filename + ".txt");
+        if (f.is_open())
+        {
+            for(unsigned int i = 0; i < this->potential.size(); i++){
+                f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                     (double) this->potential[i][0] / this->potential[i][1] << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+    }
+};
+*/

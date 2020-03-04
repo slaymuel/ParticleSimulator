@@ -1,6 +1,8 @@
 #include "particle.h"
 #include <vector>
 #include "geometry.h"
+#include "Faddeeva.h"
+
 /*
 #pragma omp declare reduction(vec_double_plus : std::vector<std::complex<double>> : \
                               std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<std::complex<double>>())) \
@@ -111,11 +113,11 @@ class BSpline2D{
 
 namespace EwaldLike{
     double alpha = 0.0;
-    int kMax = 0.0;
+    double kMax = 0.0;
     std::vector<int> kM;
-
-
-
+    double R;
+    double eta;
+    bool spherical;
 
     void set_km(std::vector<int> v){
         kM = v;
@@ -138,6 +140,278 @@ namespace EwaldLike{
             return real;    //tinfoil
         }
     };
+
+
+
+
+
+    class ShortTruncated{
+        private:
+
+        public:
+        inline double operator()(const double& q1, const double& q2, const double& dist){
+            double energy = 0.0;
+            double q = dist / R;
+
+            if(dist >= R){
+                return 0.0;
+            }
+            else if(dist < 1e-6){
+                printf("Distance is 0\n");
+                exit(0);
+            }
+            else{
+                //energy = math::erfc_x(R * std::sqrt(2.0) * q / (2.0 * alpha)) - math::erfc_x(R * std::sqrt(2) / (2.0 * alpha)) - (1.0 - q) * R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (alpha * std::sqrt(constants::PI));
+                //energy /= 1 - math::erfc_x(R * std::sqrt(2.0) / (2.0 * alpha)) - R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (alpha * std::sqrt(constants::PI));
+                //energy = alpha * std::sqrt(constants::PI) * (math::erf_x(std::sqrt(2.0) * R / (2.0 * alpha)) - math::erf_x(std::sqrt(2.0) * dist / (2.0 * alpha))) * std::exp(R*R / (2.0 * alpha*alpha)) + std::sqrt(2.0)*(dist - R);
+                //energy /= dist * (math::erf_x(std::sqrt(2.0) * R / (2.0 * alpha)) * std::exp(R*R / (2.0 * alpha * alpha)) * alpha * std::sqrt(constants::PI) - R*std::sqrt(2.0));
+                energy = math::erfc_x(eta * q) - math::erfc_x(eta) - (1.0 - q) * 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
+                energy /= 1.0 - math::erfc_x(eta) - 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
+
+                //printf("Real %.15lf\n", energy);
+                return energy * q1 * q2 / dist;
+            }
+        }
+    };
+
+
+
+
+
+
+
+
+
+    class LongTruncated{
+        private:
+        std::vector<double> resFac, kNorm;
+        std::vector< Eigen::Vector3d > kVec;
+        std::vector< std::complex<double> > rkVec;
+        double volume, selfTerm = 0.0, xb, yb, zb;
+
+        public:
+
+        void set_box(double x, double y, double z){
+            this->xb = x;
+            this->yb = y;
+            this->zb = z;
+            this->volume = x * y * z;
+        }
+
+
+        void initialize(Particles &particles){
+            double k2 = 0;
+
+
+            printf("Setting up truncated ewald\n");
+            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+
+            //get k-vectors
+            double factor = 1;
+            Eigen::Vector3d vec;
+            //printf("Calculating k-vectors");
+            for(int kx = -kM[0]; kx <= kM[0]; kx++){
+                for(int ky = -kM[1]; ky <= kM[1]; ky++){
+                    for(int kz = -kM[2]; kz <= kM[2]; kz++){
+                        //if(kx^2 + ky^2+ kz^2 > Kmax^2)
+                        //continue;
+
+                        /*factor = 1.0;
+                        if(kx > 0){
+                            factor *= 2.0;
+                        }*/
+
+                        vec[0] = (2.0 * constants::PI * kx / this->xb);
+                        vec[1] = (2.0 * constants::PI * ky / this->yb);
+                        vec[2] = (2.0 * constants::PI * kz / this->zb);
+                        k2 = math::dot(vec, vec);
+
+                        if(fabs(k2) > 1e-12) {
+                            if(spherical){
+                                if(kx * kx + ky * ky + kz * kz < kMax * kMax){
+                                    this->kVec.push_back(vec);
+                                    this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                                }
+                            }
+                            else{
+                                this->kVec.push_back(vec);
+                                this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                            }
+                        }
+                    }
+                }
+            }
+
+            printf("\tFound: %lu k-vectors\n", kVec.size());
+            printf("\tAlpha is set to: %lf\n", alpha);
+            //Calculate norms
+            for(unsigned int i = 0; i < kVec.size(); i++){
+                this->kNorm.push_back(math::norm(kVec[i]));
+            }
+
+            std::complex<double> rho;
+            std::complex<double> rk;
+            std::complex<double> charge;
+
+            for(unsigned int k = 0; k < kVec.size(); k++){
+                rho = 0;
+                for(unsigned int i = 0; i < particles.tot; i++){
+                    rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
+                    rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
+                    charge = particles[i]->q;
+                    rk = rk * charge;
+                    rho += rk;
+                }
+                this->rkVec.push_back(rho);
+            }
+
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->selfTerm += particles[i]->q * particles[i]->q;
+            }
+            //this->selfTerm *= std::sqrt(2.0) * (1.0 -  std::exp(-R*R / (2.0 * alpha * alpha)));
+            this->selfTerm *= 1.0 / (std::sqrt(2.0) * alpha) / sqrt(constants::PI) * (1.0 - std::exp(-eta * eta));
+            this->selfTerm /= 1.0 - math::erfc_x(eta) - 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
+            //this->selfTerm /= (1.0 - math::erfc_x(R / (std::sqrt(2.0) * alpha)) - std::sqrt(2.0) * R * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha)) * (std::sqrt(constants::PI) * alpha) * 2.0;
+            //this->selfTerm *= alpha / sqrt(constants::PI);
+            printf("\tEwald initialization Complete\n");
+        }
+
+
+        inline std::complex<double> Ak(unsigned int i){
+            std::complex<double> energy1;
+            std::complex<double> energy2;
+            std::complex<double> energy3;
+            std::complex<double> energy4;
+
+            std::complex<double> c1;
+            std::complex<double> c2;
+            std::complex<double> c3;
+
+            double eta = R / (std::sqrt(2.0) * alpha);
+
+
+            std::complex<double> zf;
+            std::complex<double> zcf;
+            zf.real(-kNorm[i] * R / (2.0 * eta));
+            zf.imag(eta);
+            zcf.real(kNorm[i] * R / (2.0 * eta));
+            zcf.imag(eta);
+
+            c1.real(R / (std::sqrt(2.0) * alpha));
+            c1.imag(kNorm[i] * alpha / std::sqrt(2.0));
+
+            c2.real(R / (std::sqrt(2.0)* alpha));
+            c2.imag(-kNorm[i] * alpha / std::sqrt(2.0));
+
+            std::complex<double> e1;
+            std::complex<double> e2;
+            e1.real(std::cos(kNorm[i] * R));
+            e1.imag(std::sin(kNorm[i] * R));
+            e2.real(std::cos(kNorm[i] * R));
+            e2.imag(-std::sin(kNorm[i] * R));
+
+            //std::cout << Faddeeva::w(zcf) << " " << Faddeeva::w(zf) << " " << (Faddeeva::w(zcf) * e1  + Faddeeva::w(zf) * e2) / 2.0 << std::endl;
+            //energy1 = (Faddeeva::erf(c1) + Faddeeva::erf(c2)) * std::exp(-kNorm[i] * kNorm[i] * alpha * alpha / 2.0) / 2.0 - std::sqrt(2.0) * std::sin(R * kNorm[i]) * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha * kNorm[i]);
+            //energy2 = (1.0 - ( (Faddeeva::w(zcf) * e1  + Faddeeva::w(zf) * e2) / 2.0 + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * std::exp(kNorm[i]*kNorm[i] * R*R / (4.0 * eta*eta) - eta*eta)) * std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta));
+            //energy3 = std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta)) - ( (Faddeeva::w(zcf) * e1  + Faddeeva::w(zf) * e2) / 2.0 + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * std::exp(-eta*eta);
+            c3 = Faddeeva::w(zf) * e2;
+            energy4 = std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta)) - ( c3.real() + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * std::exp(-eta*eta);
+
+            double den = 1.0 - math::erfc_x(R / (std::sqrt(2.0) * alpha)) - R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha);
+            //energy1 /= den;
+            //energy2 /= den;
+            //energy3 /= den;    
+            energy4 /= den;       
+
+            //if((std::fabs(energy1.real() - energy2.real()) > 1E-14) || (std::fabs(energy1.real() - energy3.real()) > 1E-14 )){
+            //    printf("Energy difference\n");
+                //exit(0);
+            //}
+
+            //printf("Ak1 real: %.15lf, complex1: %.15lf\n", energy1.real(), energy1.imag());
+            //printf("Ak2 real: %.15lf, complex2: %.15lf\n", energy2.real(), energy2.imag());
+            //printf("Ak3 real: %.15lf, complex3: %.15lf\n", energy3.real(), energy3.imag());
+            //printf("Ak4 real: %.15lf, complex4: %.15lf\n", energy4.real(), energy4.imag());
+            return energy4;
+        }
+
+
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            std::complex<double> rk_new;
+            std::complex<double> rk_old;
+
+            if(_old.empty()){
+                for(auto n : _new){
+                    this->selfTerm += n->q * n->q * alpha / std::sqrt(constants::PI);
+                }
+            }
+            else{
+                for(auto o : _old){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        rk_old.imag(std::sin(dot));
+                        rk_old.real(std::cos(dot));
+
+                        this->rkVec[k] -= rk_old * o->q;
+                    }
+                }
+            }
+            if(_new.empty()){
+                for(auto o : _old){
+                    this->selfTerm -= o->q * o->q * alpha / std::sqrt(constants::PI);
+                }
+            }
+            else{
+                for(auto n : _new){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        rk_new.imag(std::sin(dot));
+                        rk_new.real(std::cos(dot));
+
+                        this->rkVec[k] += rk_new * n->q;
+                    }
+                }
+            }
+        }
+
+
+        inline double operator()(){
+            double energy = 0.0;
+
+            //#pragma omp parallel for reduction(+:energy)
+            std::complex<double> _Ak;
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                    _Ak = Ak(k);
+                    energy += std::norm(this->rkVec[k]) * _Ak.real() * 1.0 / (kNorm[k] * kNorm[k]);//this->resFac[k];
+                    if(std::fabs(_Ak.imag()) > 1E-12){
+                        printf("Imaginary is too large! \n");
+                        printf("%lf\n", std::fabs(_Ak.imag()));
+                        exit(0);
+                    }
+            }
+            //printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / this->volume, this->selfTerm);
+            return energy * 2.0 * constants::PI / this->volume - this->selfTerm;
+        } 
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -184,9 +458,18 @@ namespace EwaldLike{
                         vec[2] = (2.0 * constants::PI * kz / this->zb);
                         k2 = math::dot(vec, vec);
 
-                        if(fabs(k2) > 1e-8){// && fabs(k2) < kMax) {
-                            this->kVec.push_back(vec);
-                            this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                        if(fabs(k2) > 1e-12) {
+                            if(spherical){
+                                if(kx * kx + ky * ky + kz * kz < kMax * kMax){
+                                    this->kVec.push_back(vec);
+                                    this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                                }
+                            }
+
+                            else{
+                                this->kVec.push_back(vec);
+                                this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                            }
                         }
                     }
                 }
@@ -309,9 +592,9 @@ namespace EwaldLike{
 
         void initialize(Particles &particles){
             double k2 = 0;
-            int zMax = (int) (this->zb / this->xb * kMax);
+            //int zMax = (int) (this->zb / this->xb * kMax);
             printf("Setting up ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kMax, kMax, zMax);
+            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
             //get k-vectors
             double factor = 1;

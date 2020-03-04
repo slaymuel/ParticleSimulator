@@ -97,11 +97,13 @@ class Simulator{
         }
     }
 
-    void add_sampler(int i){
+    void add_sampler(int i, int interval){
         switch(i){
             case 0:
                 sampler.push_back(new Density(2, this->state.geo->_d[2], 0.05, 
-                                              this->state.geo->d[0], this->state.geo->d[1]));
+                                              this->state.geo->d[0], this->state.geo->d[1], interval));
+            case 1:
+                sampler.push_back(new WidomHS(interval));
         }
     }
 
@@ -132,8 +134,8 @@ class Simulator{
                "---------------\n\n");
 
 
-
-        std::cout << "Running simulation at: " << constants::T << "K, lB: "<< constants::lB << " with: " << state.particles.particles.size() 
+        printf("Bjerrum length is: %.15lf\n", constants::lB);
+        std::cout << "Running simulation at: " << constants::T << "K, "<< " with: " << state.particles.particles.size() 
                                                                 << " particles" << std::endl;
 
         for(int macro = 0; macro < macroSteps; macro++){
@@ -152,9 +154,16 @@ class Simulator{
 
                     //should also be able to
                     //state.get_energy(subset_of_particles);
-                if(micro % 100 == 0 && micro > 0 && macro > 10){
+                /*if(micro % 100 == 0 && micro > 0 && macro > 10){
                     for(auto s : sampler){
-                        s->sample(state.particles);
+                        s->sample(state);
+                    }
+                }*/
+                if(macro > 10){
+                    for(auto s : sampler){
+                        if(micro % s->interval == 0){
+                            s->sample(state);    
+                        }
                     }
                 }
             }
@@ -167,7 +176,7 @@ class Simulator{
 
             printf("Acceptance ratios: ");
             for(auto move : moves){
-                printf("%s %.1lf%% %i ", move->id.c_str(), (double)move->accepted / move->attempted * 100.0, move->attempted);
+                printf("%s %.1lf%% %i(%i) ", move->id.c_str(), (double)move->accepted / move->attempted * 100.0, move->attempted, move->accepted);
             }
             printf("\n");
             
