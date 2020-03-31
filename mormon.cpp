@@ -65,7 +65,14 @@ class Simulator{
         printf("\n");
     }
     
+    void set_temperature(double T){
+        constants::T = T; 
+        constants::lB = constants::C * (1.0 / (constants::D * T));
+    }
     
+    void set_cp(double cp){
+        constants::cp = cp;
+    }
 
 
     void add_move(int i, double dp, double p, double cp = 0.0, double d = 0.0){
@@ -91,6 +98,10 @@ class Simulator{
                 printf("Swap Move\n");
                 moves.push_back(new Swap(&state, p));
                 break;
+            case 5:
+                printf("Single Swap Move\n");
+                moves.push_back(new SingleSwap(&state, p));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -100,25 +111,41 @@ class Simulator{
     void add_sampler(int i, int interval){
         switch(i){
             case 0:
-                sampler.push_back(new Density(2, this->state.geo->_d[2], 0.05, 
+                printf("Adding density sampler\n");
+                sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], 0.05, 
                                               this->state.geo->d[0], this->state.geo->d[1], interval));
+                break;
             case 1:
-                sampler.push_back(new WidomHS(interval));
+                printf("Adding Widom HS-CP sampler\n");
+                sampler.push_back(new Samplers::WidomHS(interval));
+                break;
+
+            case 2:
+                printf("Adding energy sampler\n");
+                sampler.push_back(new Samplers::Energy(interval));
+                break;
+
+            default:
+                break;
         }
     }
 
-    void run(int macroSteps, int microSteps){
+    void finalize(){
+        std::for_each( this->moves.begin(), this->moves.end(), [&](Move* m){ this->mWeights.push_back(m->weight); } );
+        std::sort(this->moves.begin(), this->moves.end(), comparators::mLess);
+        std::sort(this->mWeights.begin(), this->mWeights.end());
 
-        //////////////////// MOVE TO SOMEWHERE ELSE /////////////////////////////////////////////////////////
-        std::for_each( moves.begin(), moves.end(), [&](Move* m){ mWeights.push_back(m->weight); } );
-
-        std::sort(moves.begin(), moves.end(), comparators::mLess);
-        std::sort(mWeights.begin(), mWeights.end());
-        for(int i = 1; i < mWeights.size(); i++){
-            mWeights[i] += mWeights[i - 1];
+        for(int i = 1; i < this->mWeights.size(); i++){
+            this->mWeights[i] += this->mWeights[i - 1];
         }
-        assert(mWeights.back() == 1.0);
-        ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        this->state.finalize();
+    }
+
+    void run(int macroSteps, int microSteps, int eqSteps){
+
+        //Make sure move list is not corrupted
+        assert(this->mWeights.back() == 1.0);
 
 
         printf("            +\n"                                            
@@ -159,7 +186,7 @@ class Simulator{
                         s->sample(state);
                     }
                 }*/
-                if(macro > 10){
+                if(macro >= eqSteps){
                     for(auto s : sampler){
                         if(micro % s->interval == 0){
                             s->sample(state);    
@@ -264,6 +291,9 @@ PYBIND11_MODULE(mormon, m) {
         .def("run", &Simulator::run)
         .def("add_move", &Simulator::add_move, py::arg("i"), py::arg("dp"), py::arg("p"), py::arg("cp") = 0.0, py::arg("d") = 0.0)
         .def("add_sampler", &Simulator::add_sampler)
+        .def("set_temperature", &Simulator::set_temperature)
+        .def("set_cp", &Simulator::set_cp)
+        .def("finalize", &Simulator::finalize)
         .def_readwrite("state", &Simulator::state);
 
 
@@ -271,10 +301,11 @@ PYBIND11_MODULE(mormon, m) {
         .def("set_geometry", &State::set_geometry)
         .def("set_energy", &State::set_energy)
         .def("equilibrate", &State::equilibrate)
-        .def("finalize", &State::finalize)
         .def("load_spline", &State::load_spline)
+        .def("reset_energy", &State::reset_energy)
         .def_readwrite("particles", &State::particles)
-        .def_readonly("energy", &State::energy);
+        .def_readonly("energy", &State::energy)
+        .def_readonly("cummulativeEnergy", &State::cummulativeEnergy);
 
 
     py::class_<Particles>(m, "Particles")

@@ -70,11 +70,12 @@ class State{
         }
         #endif
 
-
-        if(this->error > 1e-10 || this->energy > 1e30){
-            printf("\n\nEnergy drift is too large: %.12lf (all2all: %lf, cummulative: %lf)\n\n", this->error, this->energy, this->cummulativeEnergy);
-            exit(1);
-        } 
+        if(this->energy != 0 && this->cummulativeEnergy != 0){
+            if(this->error > 1e-10 || this->energy > 1e30){
+                printf("\n\nEnergy drift is too large: %.12lf (all2all: %lf, cummulative: %lf)\n\n", this->error, this->energy, this->cummulativeEnergy);
+                exit(1);
+            } 
+        }
     }
 
     void finalize(){
@@ -92,6 +93,16 @@ class State{
         this->cummulativeEnergy = this->energy;
     }
 
+    void reset_energy(){
+        this->energy = 0.0;
+
+        for(auto e : this->energyFunc){
+            this->energy += e->all2all(this->particles);
+        }
+
+        this->cummulativeEnergy = this->energy;
+    }
+
     void save(){
         //printf("Save:\n");
         //printf("current moved %lu\n", this->movedParticles.size());
@@ -104,6 +115,9 @@ class State{
             }
             else if(this->particles.tot == this->_old->particles.tot){
                 *(this->_old->particles.particles[i]) = *(this->particles.particles[i]);
+                //For SingleSwap move
+                this->_old->particles.cTot = this->particles.cTot;
+                this->_old->particles.aTot = this->particles.aTot;
             }
         }
 
@@ -137,6 +151,9 @@ class State{
             else if(this->particles.tot == this->_old->particles.tot){
                 //printf("\nAssuming normal move\n");
                 *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
+                //For SingleSwap move
+                this->particles.cTot = this->_old->particles.cTot;
+                this->particles.aTot = this->_old->particles.aTot;
             }
         }
         //                                                                                      REARRANGE, MOVE CONDITION OUTSIDE OF LOOP, LESS GENERAL THOUGH.....
@@ -182,7 +199,7 @@ class State{
     }
 
 
-    //Called when a move is accepted - set movedParticles
+    //Called after move - set movedParticles
     void move_callback(std::vector< unsigned int > ps){   
         // FIX FOR MORE THAN ONE MOVED PARTICLE
 
@@ -200,7 +217,7 @@ class State{
     }
 
 
-    void equilibrate(){
+    void equilibrate(double step){
         printf("\nEquilibrating:\n");
         Eigen::Vector3d v;
         
@@ -222,7 +239,7 @@ class State{
             p = this->particles.random();
             oldCom = p->com;
             oldPos = p->pos;
-            p->translate(5.0);
+            p->translate(step);
             if(!this->geo->is_inside(p) || this->overlap(p->index)){
                 p->com = oldCom;
                 p->pos = oldPos;
@@ -364,8 +381,8 @@ class State{
 
             case 5:
                 printf("\nAdding Minimum Image Halfwald\n");
-                assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<Coulomb> >() );
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Coulomb> >(args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
@@ -379,8 +396,8 @@ class State{
             case 6:
                 printf("\nAdding Truncated Ewald potential\n");
                 assert(args.size() == 8);
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::ShortTruncated> >() );
-                //this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::ShortTruncated> >(1) );
+                //this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::ShortTruncated> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::ShortTruncated> >(1) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
@@ -398,6 +415,19 @@ class State{
                 EwaldLike::eta = EwaldLike::R * 1.0 / (std::sqrt(2.0) * EwaldLike::alpha);
                 break;
 
+            case 7:
+                printf("\nAdding Halfwald with real replicates\n");
+                assert(args.size() == 6);
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<EwaldLike::Short> >(args[1]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                EwaldLike::alpha = args[5];
+                break;
 
             default:
                 printf("\nAdding Coulomb potential\n");

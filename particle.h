@@ -28,6 +28,7 @@ class Particle{
         return *this;
     }*/
 
+
     void translate(double step){
         Eigen::Vector3d v = Random::get_vector();
         this->com[0] += step * v[0];
@@ -37,9 +38,18 @@ class Particle{
         this->pos = this->qDisp + this->com;
     };
 
+
+    void translate(std::vector<double> v){
+        this->com[0] +=  v[0];
+        this->com[1] +=  v[1];
+        this->com[2] +=  v[2];
+        this->pos = this->qDisp + this->com;
+    }
+
+
     void rotate(double step){
         Eigen::Vector3d v = Random::get_vector();
-        v *= step;
+        //v *= step;
         this->qDisp += v * step;
         this->qDisp = this->qDisp.normalized() * this->b;
         this->pos = this->com + this->qDisp;

@@ -13,6 +13,8 @@ class Sampler{
 };
 
 
+namespace Samplers{
+
 
 class Density : public Sampler{
     private:
@@ -46,9 +48,7 @@ class Density : public Sampler{
                 nDens.at( (int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
         }
-
         this->samples++;
-
     }
 
     void save(std::string filename){
@@ -77,6 +77,32 @@ class Density : public Sampler{
 };
 
 
+class Energy : public Sampler{
+
+    std::vector<double> energies;
+
+    public:
+    Energy(int interval) : Sampler(interval){
+        energies.reserve(50000);
+    }
+
+    void sample(State &state){
+        energies.push_back(state.cummulativeEnergy);
+    }
+
+    void save(std::string filename){
+        std::ofstream f ("energies_" + filename + ".txt");
+        if (f.is_open()){
+            for(auto e : energies){
+                f << std::fixed << std::setprecision(15) << e << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+    }
+};
+
+
 class WidomHS : public Sampler{
     double cp = 0.0;
 
@@ -86,24 +112,31 @@ class WidomHS : public Sampler{
 
     void sample(State& state){
         Eigen::Vector3d com = state.geo->random_pos();
-        com[2] = (Random::get_random() * 0.2 - 0.2) * state.geo->dh[2];
-        state.particles.add(com, com, state.particles.pModel.r, state.particles.pModel.rf, state.particles.pModel.q, state.particles.pModel.b, "WIDOM_PARTICLE");
+        com[2] = (Random::get_random() * 0.2 - 0.1) * state.geo->dh[2];
+        //std::cout << com[0] << " " << com[1] << " " << com[2] << std::endl;
+        state.particles.add(com, com, 2.5, state.particles.pModel.rf, state.particles.pModel.q, state.particles.pModel.b, "WIDOM_PARTICLE");
         if(!state.overlap(state.particles.tot - 1)){
-            cp += 1.0;
+            this->cp += 1.0;
         }
         state.particles.remove(state.particles.tot - 1);
         this->samples++;
+        printf("HS-CP: %lf\n", -std::log(this->cp / this->samples));
+        printf("samples: %d\n", this->samples);
+        printf("cp: %lf\n\n", this->cp);
     }
 
     void save(std::string filename){
         std::ofstream f ("cp_HS_" + filename + ".txt");
         if (f.is_open()){
-            f << std::fixed << std::setprecision(10) << "Hard-sphere chemical potential: " << -std::log(cp / this->samples)  << "\n";
+            f << std::fixed << std::setprecision(10) << "Hard-sphere chemical potential: " << -std::log(this->cp / this->samples)  << "\n";
             f.close();
         }
         else std::cout << "Unable to open file";
     }
 };
+
+
+}
 
 /*
 class Potential : public Sampler{

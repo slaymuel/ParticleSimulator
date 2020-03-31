@@ -247,92 +247,6 @@ class PairEnergyWithRep : public EnergyBase{
 
 
 
-
-template <typename E>
-class Ellipsoid : public EnergyBase{
-
-    private:
-
-    E energy_func;  //energy functor
-
-    public:
-
-    Ellipsoid(std::vector<double> a, std::vector<double> b, std::vector<double >c){
-        energy_func.load(a, b, c);
-    }
-
-    double all2all(Particles& particles){
-        double e = 0.0;
-
-
-        //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
-        for(unsigned int i = 0; i < particles.tot; i++){
-            for(unsigned int j = i + 1; j < particles.tot; j++){
-                Eigen::Vector3d disp = particles[i]->pos - particles[j]->pos;
-                e += i2i(particles[i]->q, particles[j]->q, disp);
-            } 
-        }
-        printf("Real energy: %.15lf\n", e);
-        return e * constants::lB;
-    }
-
-    inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
-        double e = 0.0;
-
-        //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
-        for (unsigned int i = 0; i < particles.tot; i++){
-            if (p->index == particles[i]->index) continue;
-            Eigen::Vector3d disp = p->pos - particles[i]->pos;
-            e += i2i(p->q, particles[i]->q, disp);
-        }
-
-        return e;
-    }
-
-    double operator()(std::vector< unsigned int >&& p, Particles& particles){
-
-        double e = 0.0;
-        for(auto s : p){
-            e += i2all(particles.particles[s], particles);
-        }
-
-        return e * constants::lB;
-    }
-
-    double operator()(std::vector< unsigned int >& p, Particles& particles){
-
-        double e = 0.0;
-        for(auto s : p){
-            e += i2all(particles.particles[s], particles);
-        }
-        return e * constants::lB;
-    }
-
-    inline double i2i(double q1, double q2, Eigen::Vector3d disp){
-        double a = 50.0, b = 50.0, c = 25.0;
-        if(disp[0] * disp[0] / (a * a) + disp[1] * disp[1] / (b * b) + disp[2] * disp[2] / (c * c) <= 1.0){
-            return energy_func(q1, q2, disp);
-        }
-        else{
-            return 0.0;
-        }
-    }
-
-    void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
-    void initialize(Particles& particles){}
-};
-
-
-
-
-
-
-
-
-
-
-
-
 template <typename E>
 class ExtEnergy : public EnergyBase{
 
@@ -508,22 +422,24 @@ class MIHalfwald : public EnergyBase{
     private:
 
     E energy_func;  //energy functor
+    int kMax;
 
     public:
 
+    MIHalfwald(int kMax) : kMax(kMax){}
 
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double CC = 0.0, CpC = 0.0, self = 0.0;
         Eigen::Vector3d temp;
 
         // CC
-        for(int k = -this->cutoff; k <= this->cutoff; k++){
+        for(int k = -this->kMax; k <= this->kMax; k++){
             //#pragma omp parallel for reduction(+:CC) schedule(guided, 500) if(particles.tot >= 3000) 
             for (unsigned int i = 0; i < particles.tot; i++){
                 if (p->index == particles[i]->index && k == 0) continue;
 
                 temp = particles[i]->pos;
-                temp[2] += k * 2.0 * this->geo->_d[2]; 
+                temp[2] += k * this->geo->d[2]; 
 
                 if (p->index == particles[i]->index){
                     CC += 0.5 * i2i(p->q, particles[i]->q, this->geo->distance(p->pos, temp));
@@ -535,11 +451,11 @@ class MIHalfwald : public EnergyBase{
         }
 
         //  CC'
-        for(int k = -this->cutoff; k <= this->cutoff; k++){
+        for(int k = -this->kMax; k <= this->kMax; k++){
             //#pragma omp parallel for reduction(+:CpC) schedule(guided, 500) if(particles.tot >= 3000) 
             for (unsigned int i = 0; i < particles.tot; i++){
                 temp = particles[i]->pos;
-                temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2] + k * 2.0 * this->geo->_d[2]; 
+                temp[2] = math::sgn(temp[2]) * this->geo->_d[2] - temp[2] + k * this->geo->d[2]; 
                 if (p->index == particles[i]->index){
                     CpC += 0.5 * i2i(p->q, -particles[i]->q, this->geo->distance(p->pos, temp));
                 }
@@ -555,7 +471,12 @@ class MIHalfwald : public EnergyBase{
 
 
     inline double i2i(const double q1, const double q2, const double&& dist){
-        return energy_func(q1, q2, dist);
+        if(dist <= this->cutoff){
+            return energy_func(q1, q2, dist);
+        }
+        else{
+            return 0.0;
+        }
     }
 
 
@@ -573,13 +494,13 @@ class MIHalfwald : public EnergyBase{
         }
 
         // CC box-replicates
-        for(int k = -this->cutoff; k <= this->cutoff; k++){
+        for(int k = -this->kMax; k <= this->kMax; k++){
             if(k == 0) continue;
             //#pragma omp parallel for schedule(guided, 200) reduction(+:CC) if(particles.tot >= 1000)
             for(unsigned int i = 0; i < particles.tot; i++){
                 for(unsigned int j = 0; j < particles.tot; j++){
                     temp = particles[j]->pos;
-                    temp[2] += k * 2.0 * this->geo->_d[2]; 
+                    temp[2] += k * this->geo->d[2]; 
                     //CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
                     if(i == j){
                         CCr += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, temp));
@@ -593,12 +514,12 @@ class MIHalfwald : public EnergyBase{
 
 
         //CC'
-        for(int k = -this->cutoff; k <= this->cutoff; k++){
+        for(int k = -this->kMax; k <= this->kMax; k++){
             //#pragma omp parallel for schedule(dynamic, 200) reduction(+:CpC) private(temp) if(particles.tot >= 1000)
             for(unsigned int i = 0; i < particles.tot; i++){
                 for(unsigned int j = 0; j < particles.tot; j++){
                     temp = particles[j]->pos;
-                    temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2] + k * 2.0 * this->geo->_d[2]; 
+                    temp[2] = math::sgn(temp[2]) * this->geo->_d[2] - temp[2] + k * this->geo->d[2]; 
                     //CpC += energy_func(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
                     if(i == j){
                         CpC += i2i(particles[i]->q, -particles[j]->q, this->geo->distance(particles[i]->pos, temp));
@@ -658,4 +579,81 @@ class MIHalfwald : public EnergyBase{
     }
 
 
+};
+
+
+
+
+template <typename E>
+class Ellipsoid : public EnergyBase{
+
+    private:
+
+    E energy_func;  //energy functor
+
+    public:
+
+    Ellipsoid(std::vector<double> a, std::vector<double> b, std::vector<double >c){
+        energy_func.load(a, b, c);
+    }
+
+    double all2all(Particles& particles){
+        double e = 0.0;
+
+
+        //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
+        for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int j = i + 1; j < particles.tot; j++){
+                Eigen::Vector3d disp = particles[i]->pos - particles[j]->pos;
+                e += i2i(particles[i]->q, particles[j]->q, disp);
+            } 
+        }
+        printf("Real energy: %.15lf\n", e);
+        return e * constants::lB;
+    }
+
+    inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
+        double e = 0.0;
+
+        //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+        for (unsigned int i = 0; i < particles.tot; i++){
+            if (p->index == particles[i]->index) continue;
+            Eigen::Vector3d disp = p->pos - particles[i]->pos;
+            e += i2i(p->q, particles[i]->q, disp);
+        }
+
+        return e;
+    }
+
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
+
+        double e = 0.0;
+        for(auto s : p){
+            e += i2all(particles.particles[s], particles);
+        }
+
+        return e * constants::lB;
+    }
+
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
+
+        double e = 0.0;
+        for(auto s : p){
+            e += i2all(particles.particles[s], particles);
+        }
+        return e * constants::lB;
+    }
+
+    inline double i2i(double q1, double q2, Eigen::Vector3d disp){
+        double a = 50.0, b = 50.0, c = 25.0;
+        if(disp[0] * disp[0] / (a * a) + disp[1] * disp[1] / (b * b) + disp[2] * disp[2] / (c * c) <= 1.0){
+            return energy_func(q1, q2, disp);
+        }
+        else{
+            return 0.0;
+        }
+    }
+
+    void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
+    void initialize(Particles& particles){}
 };

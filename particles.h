@@ -248,6 +248,7 @@ class Particles{
                     pModel.b = b[i];
                     pModel.r = r[i];
                     pModel.rf = rf[i];
+                    pModel.name = names[i];
                     setPModel = true;
                 }
             }
@@ -258,6 +259,7 @@ class Particles{
                     nModel.b = b[i];
                     nModel.r = r[i];
                     nModel.rf = rf[i];
+                    nModel.name = names[i];
                     setNModel = true;
                 }
             }
@@ -278,11 +280,13 @@ class Particles{
         pModel.r = rp;
         pModel.rf = rfp;
         pModel.b = bp;
+        pModel.name = "Na";
 
         nModel.q = n;
         nModel.r = rn;
         nModel.rf = rfn;
         nModel.b = bn;
+        nModel.name = "Cl";
 
         Eigen::Vector3d com;
         for(int i = 0; i < pNum + nNum; i++){

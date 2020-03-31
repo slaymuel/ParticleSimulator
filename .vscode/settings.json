@@ -76,6 +76,7 @@
         "clocale": "cpp",
         "*.tcc": "cpp",
         "cinttypes": "cpp",
-        "hashtable": "cpp"
+        "hashtable": "cpp",
+        "filesystem": "cpp"
     }
 }

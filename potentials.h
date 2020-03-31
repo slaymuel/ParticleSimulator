@@ -768,7 +768,7 @@ namespace EwaldLike{
         std::vector<double> resFac, kNorm;
         std::vector< Eigen::Vector3d > kVec;
         std::vector< std::complex<double> > rkVec;
-        double volume, selfTerm = 0.0, xb, yb, zb;
+        double volume, selfTerm, xb, yb, zb;
 
         public:
  
@@ -847,6 +847,8 @@ namespace EwaldLike{
                 this->rkVec.push_back(rho);
             }
 
+            this->selfTerm = 0.0;
+
             for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
@@ -871,7 +873,7 @@ namespace EwaldLike{
                     temp = o->pos;
                     temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
 
-                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 6)
                     for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
                         rk_old.imag(std::sin(dot));
@@ -898,7 +900,7 @@ namespace EwaldLike{
                     temp = n->pos;
                     temp[2] = math::sgn(temp[2]) * this->zb / 2.0 - temp[2]; 
 
-                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 8)
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 6)
                     for(unsigned int k = 0; k < kVec.size(); k++){
                         double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
                         rk_new.imag(std::sin(dot));
@@ -921,7 +923,7 @@ namespace EwaldLike{
         inline double operator()(){
             double energy = 0.0;
 
-            //#pragma omp parallel for reduction(+:energy)
+            #pragma omp parallel for reduction(+:energy) if(kM[0] > 8)
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }

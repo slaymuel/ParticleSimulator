@@ -127,8 +127,17 @@ class Swap : public Move{
             rand2 = Random::get_random(s->particles.tot);
         } while(this->s->particles[rand]->q == this->s->particles[rand2]->q);
         //printf("Before: q1: %lf q2: %lf\n", s->particles.particles[rand]->q, s->particles.particles[rand2]->q);
-        std::swap(this->s->particles.particles[rand]->q, this->s->particles.particles[rand2]->q);
+
+        /*std::swap(this->s->particles.particles[rand]->q, this->s->particles.particles[rand2]->q);
         std::swap(this->s->particles.particles[rand]->name, this->s->particles.particles[rand2]->name);
+        std::swap(this->s->particles.particles[rand]->r, this->s->particles.particles[rand2]->r);
+        std::swap(this->s->particles.particles[rand]->rf, this->s->particles.particles[rand2]->rf);
+        std::swap(this->s->particles.particles[rand]->b, this->s->particles.particles[rand2]->b);
+        std::swap(this->s->particles.particles[rand]->qDisp, this->s->particles.particles[rand2]->qDisp);*/
+
+        std::swap(this->s->particles.particles[rand]->pos, this->s->particles.particles[rand2]->pos);
+        std::swap(this->s->particles.particles[rand]->com, this->s->particles.particles[rand2]->com);
+
         //printf("After: q1: %lf q2: %lf\n", s->particles.particles[rand]->q, s->particles.particles[rand2]->q);
         std::vector< unsigned int > particles = {static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)};
 
@@ -158,23 +167,107 @@ class Swap : public Move{
 
 
 
+class SingleSwap : public Move{
+    private:
+    State* s;
+
+    public:
+    SingleSwap(State* state, double w) : Move(0.0, w), s(state){
+        //printf("\t\tSwap Move\n");
+        this->id = "SingleSwap";
+    }
+    
+    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+
+            
+        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
+        //std::vector< unsigned int > particles = {p->index};
+        int rand = Random::get_random(s->particles.tot), rand2;
+
+        //If cation
+        if(this->s->particles[rand]->q > 0){
+            this->s->particles[rand]->q = this->s->particles.nModel.q;
+            this->s->particles[rand]->b = this->s->particles.nModel.b;
+            this->s->particles[rand]->r = this->s->particles.nModel.r;
+            this->s->particles[rand]->rf = this->s->particles.nModel.rf;
+
+            //Set qDisp
+            Eigen::Vector3d v = Random::get_vector();
+            this->s->particles[rand]->qDisp = v;
+            this->s->particles[rand]->qDisp = this->s->particles[rand]->qDisp.normalized() * this->s->particles[rand]->b;
+            this->s->particles[rand]->pos = this->s->particles[rand]->com + this->s->particles[rand]->qDisp;
+
+            this->s->particles[rand]->name = "Cl";
+            this->s->particles.aTot++;
+            this->s->particles.cTot--;
+        }
+
+        //anion
+        else{
+            //flip charge and change name
+            this->s->particles[rand]->q = this->s->particles.pModel.q;
+            this->s->particles[rand]->b = this->s->particles.pModel.b;
+            this->s->particles[rand]->r = this->s->particles.pModel.r;
+            this->s->particles[rand]->rf = this->s->particles.pModel.rf;
+
+            //Set qDisp
+            Eigen::Vector3d v = Random::get_vector();
+            this->s->particles[rand]->qDisp = v;
+            this->s->particles[rand]->qDisp = this->s->particles[rand]->qDisp.normalized() * this->s->particles[rand]->b;
+            this->s->particles[rand]->pos = this->s->particles[rand]->com + this->s->particles[rand]->qDisp;
+
+            this->s->particles[rand]->name = "Na";
+            this->s->particles.cTot++;
+            this->s->particles.aTot--;      
+        }
+
+
+        std::vector< unsigned int > particles = {static_cast<unsigned int>(rand)};
+
+
+        move_callback(particles);
+        totalMoves++;
+        attempted++;
+
+    }
+
+    bool accept(double dE){
+        bool ret = false;
+
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
+            ret = true;
+            this->accepted++;
+         } 
+         else{
+            ret = false;
+            this->rejected++;
+         }
+
+        return ret;
+    }
+};
+
+
+
+
 class GrandCanonical : public Move{
 
     protected:
     State* s;
     double q;
-    double cp = 0.0, d = 0.0;
+    double d = 0.0;
     double nVolume;
     double pVolume;
     int pAtt = 0, nAtt = 0, pAcc = 0, nAcc = 0;
 
     public:
 
-    GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state) ,cp(chemPot), d(donnan){
+    GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state), d(donnan){
+        constants::cp = chemPot;
         this->pVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
         this->nVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         printf("\t\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
-        printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
+        printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", constants::cp, this->d);
     }
 
     void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
@@ -187,23 +280,23 @@ class GrandCanonical : public Move{
 
         if(ADD){
             if(this->q > 0){
-                prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE);;
+                prob = this->pVolume / s->particles.cTot * std::exp(constants::cp - this->d * this->q - dE);;
                 //prob = std::exp(-dE);
                 //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
             }
             else{
-                prob = this->nVolume / s->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
+                prob = this->nVolume / s->particles.aTot * std::exp(constants::cp - this->d * this->q - dE);
                 //prob = std::exp(-dE);
                 //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
             }            
         }
         else{
             if(this->q > 0){
-                prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - constants::cp - dE);
                 //particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
             }
             else{
-                prob = s->particles.aTot / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = s->particles.aTot / this->nVolume * std::exp(this->d * this->q - constants::cp - dE);
                 //particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
             }
         }
@@ -229,11 +322,15 @@ class GrandCanonicalAdd : public GrandCanonical{
         UNUSED(p);
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
         double rand = Random::get_random();
+
+        //Add cation
         if(rand < 0.5){//if(rand < s->particles.cTot / s->particles.tot){
             s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, s->particles.pModel.b, "Na");
             this->q = s->particles.pModel.q;
             this->pAtt++;
         }
+
+        //Add anion
         else{
             s->particles.add(s->geo->random_pos(), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, s->particles.nModel.b, "Cl");
             this->q = s->particles.nModel.q;
