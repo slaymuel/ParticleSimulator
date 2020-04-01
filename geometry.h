@@ -304,10 +304,10 @@ class CuboidImg : public Geometry{
         return m;
     }
 
-    Eigen::Vector3d random_pos(){
+    Eigen::Vector3d random_pos(double rf){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << _dh[0] * v[0], _dh[1] * v[1], (_dh[2] - 2.5) * v[2];
+        v << _dh[0] * v[0], _dh[1] * v[1], (_dh[2] - rf) * v[2];
         return v;
     }
 };

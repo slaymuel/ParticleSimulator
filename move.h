@@ -325,14 +325,14 @@ class GrandCanonicalAdd : public GrandCanonical{
 
         //Add cation
         if(rand < 0.5){//if(rand < s->particles.cTot / s->particles.tot){
-            s->particles.add(s->geo->random_pos(), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, s->particles.pModel.b, "Na");
+            s->particles.add(s->geo->random_pos(s->particles.pModel.rf), s->particles.pModel.r, s->particles.pModel.rf, s->particles.pModel.q, s->particles.pModel.b, "Na");
             this->q = s->particles.pModel.q;
             this->pAtt++;
         }
 
         //Add anion
         else{
-            s->particles.add(s->geo->random_pos(), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, s->particles.nModel.b, "Cl");
+            s->particles.add(s->geo->random_pos(s->particles.nModel.rf), s->particles.nModel.r, s->particles.nModel.rf, s->particles.nModel.q, s->particles.nModel.b, "Cl");
             this->q = s->particles.nModel.q;
             this->nAtt++;
         }
