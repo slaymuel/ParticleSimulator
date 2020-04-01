@@ -111,7 +111,7 @@ class WidomHS : public Sampler{
     WidomHS(int interval) : Sampler(interval){}
 
     void sample(State& state){
-        Eigen::Vector3d com = state.geo->random_pos();
+        Eigen::Vector3d com = state.geo->random_pos(2.5);
         com[2] = (Random::get_random() * 0.2 - 0.1) * state.geo->dh[2];
         //std::cout << com[0] << " " << com[1] << " " << com[2] << std::endl;
         state.particles.add(com, com, 2.5, state.particles.pModel.rf, state.particles.pModel.q, state.particles.pModel.b, "WIDOM_PARTICLE");

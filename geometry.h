@@ -19,7 +19,7 @@ class Geometry{
     virtual void pbc(std::shared_ptr<Particle>&& p) = 0;
     virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual Eigen::Vector3d mirror(Eigen::Vector3d pos) = 0;
-    virtual Eigen::Vector3d random_pos() = 0;
+    virtual Eigen::Vector3d random_pos(double rf) = 0;
     virtual ~Geometry(){};
 
 };
@@ -183,10 +183,10 @@ class Cuboid : public Geometry{
         return m;
     }
 
-    Eigen::Vector3d random_pos(){
+    Eigen::Vector3d random_pos(double rf){
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << (dh[0] - 2.5) * v[0], (dh[1] - 2.5) * v[1], (dh[2] - 2.5) * v[2];
+        v << (dh[0] - 2.5) * v[0], (dh[1] - 2.5) * v[1], (dh[2] - rf) * v[2];
         return v;
     }
 };
@@ -335,7 +335,7 @@ class Sphere : public Geometry{
         return m;
     }
 
-    Eigen::Vector3d random_pos(){
+    Eigen::Vector3d random_pos(double rf){
         Eigen::Vector3d v;
         return v;
     }

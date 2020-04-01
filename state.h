@@ -225,7 +225,7 @@ class State{
         int i = 0, overlaps = this->get_overlaps();
         if(overlaps > 0){
             for(unsigned int i = 0; i < this->particles.pTot; i++){
-                this->particles.particles[i]->pos = this->geo->random_pos();
+                this->particles.particles[i]->pos = this->geo->random_pos(this->particles.particles[i]->rf);
             }
         }
 
