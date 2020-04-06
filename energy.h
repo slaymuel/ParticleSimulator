@@ -9,10 +9,11 @@ class EnergyBase{
 
     protected:
 
-    Geometry *geo;
+    
     double cutoff;
 
     public:
+    Geometry *geo;
 
     void set_geo(Geometry* geo){
         this->geo = geo;
@@ -30,6 +31,7 @@ class EnergyBase{
     virtual double operator()(std::vector< unsigned int >&& p, Particles& particles) = 0;
     virtual double operator()(std::vector< unsigned int >& p, Particles& particles) = 0;
     virtual void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new) = 0;
+    virtual void update(double x, double y, double z) = 0;
     virtual void initialize(Particles& particles) = 0;
 };
 
@@ -46,7 +48,7 @@ class PairEnergy : public EnergyBase{
     double all2all(Particles& particles){
         double e = 0.0;
 
-
+        //printf("all2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
         //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
         for(unsigned int i = 0; i < particles.tot; i++){
             for(unsigned int j = i + 1; j < particles.tot; j++){
@@ -61,7 +63,7 @@ class PairEnergy : public EnergyBase{
 
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double e = 0.0;
-
+        
         //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
         for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
@@ -72,11 +74,12 @@ class PairEnergy : public EnergyBase{
     }
 
     double operator()(std::vector< unsigned int >&& p, Particles& particles){
-
+        //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
         double e = 0.0;
         for(auto s : p){
             //do instead i2all(s, particles);
             e += i2all(particles.particles[s], particles);
+            //remove s from particles (temporary)
         }
 
         for(int i = 0; i < p.size(); i++){
@@ -89,11 +92,13 @@ class PairEnergy : public EnergyBase{
     }
 
     double operator()(std::vector< unsigned int >& p, Particles& particles){
-
+        //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
         double e = 0.0;
         for(auto s : p){
             //do instead i2all(s, particles);
             e += i2all(particles.particles[s], particles);
+
+            //remove s from particles (temporary)
         }
 
         for(int i = 0; i < p.size(); i++){
@@ -116,6 +121,7 @@ class PairEnergy : public EnergyBase{
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
     void initialize(Particles& particles){}
+    void update(double x, double y, double z){}
 };
 
 
@@ -234,6 +240,7 @@ class PairEnergyWithRep : public EnergyBase{
     }
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
+    void update(double x, double y, double z){}
     void initialize(Particles& particles){}
 };
 
@@ -278,6 +285,11 @@ class ExtEnergy : public EnergyBase{
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){
         energy_func.update(_old, _new);
     }
+
+    void update(double x, double y, double z){
+        energy_func.set_box(x, y, z);
+    }
+
     void initialize(Particles& particles){
         energy_func.initialize(particles);
     }
@@ -403,6 +415,7 @@ class ImgEnergy : public EnergyBase{
         UNUSED(_new);
     }
 
+    void update(double x, double y, double z){}
 
     void initialize(Particles& particles){
         UNUSED(particles);
@@ -573,6 +586,7 @@ class MIHalfwald : public EnergyBase{
         UNUSED(_new);
     }
 
+    void update(double x, double y, double z){}
 
     void initialize(Particles& particles){
         UNUSED(particles);
@@ -655,5 +669,6 @@ class Ellipsoid : public EnergyBase{
     }
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
+    void update(double x, double y, double z){}
     void initialize(Particles& particles){}
 };

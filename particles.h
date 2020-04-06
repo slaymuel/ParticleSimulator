@@ -61,6 +61,8 @@ class Particles{
         this->particles[this->tot]->com << com[0], com[1], com[2];
         this->particles[this->tot]->pos << pos[0], pos[1], pos[2];
         this->particles[this->tot]->qDisp = this->particles[this->tot]->pos - this->particles[this->tot]->com;
+        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized();
+        this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
 
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[this->tot]->index = this->tot;
@@ -106,7 +108,7 @@ class Particles{
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
         this->particles[this->tot]->com << com[0], com[1], com[2];
         this->particles[this->tot]->qDisp = Random::get_vector();
-        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.normalized() * b;
+        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * b;
         this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[this->tot]->index = this->tot;

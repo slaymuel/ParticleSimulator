@@ -7,21 +7,24 @@
 
 using CallBack = std::function<void(std::vector< unsigned int >)>;
 
+
+
 class Move{
     public:
     int accepted, rejected, attempted;
     double stepSize;
     double weight;
     std::string id;
+    CallBack move_callback;
 
     static int totalMoves;
 
-    Move(double step, double w) : stepSize(step), weight(w){
+    Move(double step, double w, CallBack move_callback) : stepSize(step), weight(w), move_callback(move_callback){
         accepted = 0;
         rejected = 0;
         attempted = 0;
     }
-    virtual void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
+    virtual void operator()(std::shared_ptr<Particle> p) = 0;
     virtual bool accept(double dE) = 0;
 };
 
@@ -31,13 +34,13 @@ class Move{
 class Translate : public Move{
     public:
 
-    Translate(double step, double w) : Move(step, w){
+    Translate(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
         printf("\tStepsize: %lf\n", step);
         this->id = "Trans";
     }
 
 
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p){
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
         //printf("Translating\n");
@@ -45,7 +48,7 @@ class Translate : public Move{
         //PBC
 
 
-        move_callback(particles);
+        this->move_callback(particles);
         totalMoves++;
         this->attempted++;
     }
@@ -66,25 +69,26 @@ class Translate : public Move{
     }
 };
 
+int Move::totalMoves = 0;
 
 
 class Rotate : public Move{
     public:
 
-    Rotate(double step, double w) : Move(step, w){
+    Rotate(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
         printf("\tStepsize: %lf\n", step);
         this->id = "Rot";
     }
 
 
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p){
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
 
         p->rotate(this->stepSize);
         //PBC
         
-        move_callback(particles);
+        this->move_callback(particles);
         totalMoves++;
         attempted++;
     }
@@ -112,11 +116,11 @@ class Swap : public Move{
     State* s;
 
     public:
-    Swap(State* state, double w) : Move(0.0, w), s(state){
+    Swap(State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state){
         //printf("\t\tSwap Move\n");
         this->id = "Swap";
     }
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p){
 
             
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
@@ -142,7 +146,7 @@ class Swap : public Move{
         std::vector< unsigned int > particles = {static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)};
 
 
-        move_callback(particles);
+        this->move_callback(particles);
         totalMoves++;
         attempted++;
 
@@ -172,12 +176,12 @@ class SingleSwap : public Move{
     State* s;
 
     public:
-    SingleSwap(State* state, double w) : Move(0.0, w), s(state){
+    SingleSwap(State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state){
         //printf("\t\tSwap Move\n");
         this->id = "SingleSwap";
     }
     
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p){
 
             
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
@@ -225,7 +229,7 @@ class SingleSwap : public Move{
         std::vector< unsigned int > particles = {static_cast<unsigned int>(rand)};
 
 
-        move_callback(particles);
+        this->move_callback(particles);
         totalMoves++;
         attempted++;
 
@@ -262,7 +266,7 @@ class GrandCanonical : public Move{
 
     public:
 
-    GrandCanonical(double chemPot, double donnan, State* state, double w) : Move(0.0, w), s(state), d(donnan){
+    GrandCanonical(double chemPot, double donnan, State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state), d(donnan){
         constants::cp = chemPot;
         this->pVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
         this->nVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
@@ -270,7 +274,7 @@ class GrandCanonical : public Move{
         printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", constants::cp, this->d);
     }
 
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback) = 0;
+    void operator()(std::shared_ptr<Particle> p){};
     bool accept(double dE) = 0;
 
     template<bool ADD>
@@ -314,11 +318,11 @@ class GrandCanonical : public Move{
 class GrandCanonicalAdd : public GrandCanonical{
 
     public:
-    GrandCanonicalAdd(double chemPot, double donnan, State* state, double w) : GrandCanonical(chemPot, donnan, state, w){
+    GrandCanonicalAdd(double chemPot, double donnan, State* state, double w, CallBack move_callback) : GrandCanonical(chemPot, donnan, state, w, move_callback){
         this->id = "GCAdd";
     }
 
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p){
         UNUSED(p);
         //std::shared_ptr<State> s = std::static_pointer_cast<State>(argument);
         double rand = Random::get_random();
@@ -339,7 +343,7 @@ class GrandCanonicalAdd : public GrandCanonical{
 
         std::vector< unsigned int > particles{s->particles.tot - 1};
 
-        move_callback(particles);
+        this->move_callback(particles);
         totalMoves++;
         attempted++;
         //printf("Add: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
@@ -361,11 +365,11 @@ class GrandCanonicalAdd : public GrandCanonical{
 
 class GrandCanonicalRemove : public GrandCanonical{
     public:
-    GrandCanonicalRemove(double chemPot, double donnan, State* state, double w) : GrandCanonical(chemPot, donnan, state, w){
+    GrandCanonicalRemove(double chemPot, double donnan, State* state, double w, CallBack move_callback) : GrandCanonical(chemPot, donnan, state, w, move_callback){
         this->id = "GCRem";
     }
 
-    void operator()(std::shared_ptr<Particle> p, CallBack& move_callback){
+    void operator()(std::shared_ptr<Particle> p){
 
             
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
@@ -397,7 +401,7 @@ class GrandCanonicalRemove : public GrandCanonical{
         }*/
         s->particles.remove(p->index); // remove particle
 
-        move_callback(particles);
+        this->move_callback(particles);
         totalMoves++;
         attempted++;
 
@@ -417,4 +421,108 @@ class GrandCanonicalRemove : public GrandCanonical{
 };
 
 
-int Move::totalMoves = 0;
+
+
+class VolumeMove: public Move{
+    private:
+    State* s;
+    double _oldV;
+    double pressure;
+    double unit = 2.430527863808942e-10;
+
+    public:
+    VolumeMove(State* s, double step, double pressure, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
+        this->id = "Vol";
+        this->pressure = pressure * this->unit;
+        printf("\tPressure: %lf\n", this->pressure);
+        printf("\tStepsize: %lf\n", step);
+    }
+
+
+    void operator()(std::shared_ptr<Particle> p){
+        _oldV = this->s->geo->volume;
+        //double vMax = 0.00025;
+        double lnV = std::log(this->s->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
+        double V = std::exp(lnV);
+        //printf("Changing volume by: %lf\n", V - this->s->geo->volume);
+        double L = std::cbrt(V);
+        double RL = L / this->s->geo->_d[0];
+        double oldL = this->s->geo->_d[0];
+
+        std::vector<double> LV = {L, L, L};
+        std::vector<double> LVh = {L / 2.0, L / 2.0, L / 2.0};
+
+        this->s->geo->_d = LV;
+        this->s->geo->_dh = LVh;
+        this->s->geo->d = LV;
+        this->s->geo->dh = LVh;
+        this->s->geo->volume = V;
+
+        std::vector< unsigned int > particles;
+        //printf("Move: p1 %.8lf %.8lf %.8lf\n", this->s->particles[0]->com[0], this->s->particles[0]->com[1], this->s->particles[0]->com[2]);
+        //printf("Move: p1 pos %.8lf %.8lf %.8lf\n", this->s->particles[0]->pos[0], this->s->particles[0]->pos[1], this->s->particles[0]->pos[2]);
+        for(int i = 0; i < this->s->particles.tot; i++){
+            this->s->particles[i]->com *= RL;
+            this->s->particles[i]->pos = this->s->particles[i]->com + this->s->particles[i]->qDisp;
+            particles.push_back(s->particles[i]->index);
+        }
+        //printf("Move: p1 %.8lf %.8lf %.8lf\n", this->s->particles[0]->com[0], this->s->particles[0]->com[1], this->s->particles[0]->com[2]);
+        //printf("Move: p1 pos %.8lf %.8lf %.8lf\n", this->s->particles[0]->pos[0], this->s->particles[0]->pos[1], this->s->particles[0]->pos[2]);
+        this->move_callback(particles);
+
+        totalMoves++;
+        this->attempted++;
+    }
+
+    bool accept(double dE){
+        bool ret = false;
+        double prob = exp(-dE - this->pressure * (this->s->geo->volume - _oldV) + //  0.0000243     0.005      0.00383374 0.000024305278638
+                      (this->s->particles.tot + 1.0) * std::log(this->s->geo->volume / _oldV));
+        if(prob >= Random::get_random()){
+            ret = true;
+            this->accepted++;
+         } 
+         else{
+            ret = false;
+            this->rejected++;
+         }
+
+        return ret;
+    }
+};
+
+
+
+
+class ChargeTrans: public Move{
+    public:
+
+    ChargeTrans(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
+        printf("\tStepsize: %lf\n", step);
+        this->id = "qTrans";
+    }
+
+
+    void operator()(std::shared_ptr<Particle> p){
+
+
+        //this->move_callback(particles);
+        totalMoves++;
+        this->attempted++;
+    }
+
+    bool accept(double dE){
+        bool ret = false;
+
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
+            ret = true;
+            this->accepted++;
+         } 
+         else{
+            ret = false;
+            this->rejected++;
+         }
+
+        return ret;
+    }
+};

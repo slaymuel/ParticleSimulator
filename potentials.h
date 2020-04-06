@@ -421,7 +421,7 @@ namespace EwaldLike{
         std::vector<double> resFac, kNorm;
         std::vector< Eigen::Vector3d > kVec;
         std::vector< std::complex<double> > rkVec;
-        double volume, selfTerm = 0.0, xb, yb, zb;
+        double volume, selfTerm, xb, yb, zb;
 
         public:
 
@@ -430,15 +430,18 @@ namespace EwaldLike{
             this->yb = y;
             this->zb = z;
             this->volume = x * y * z;
+            printf("Setting volume in energy to: %lf\n", this->volume);
         }
 
+        void set_kvectors(){
+            this->kVec.clear();
+            this->resFac.clear();
+            this->kNorm.clear();
 
-        void initialize(Particles &particles){
             double k2 = 0;
 
-
-            printf("Setting up ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+            //printf("Setting up k-vectors\n");
+            //printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
             //get k-vectors
             double factor = 1;
@@ -475,12 +478,28 @@ namespace EwaldLike{
                 }
             }
 
-            printf("\tFound: %lu k-vectors\n", kVec.size());
-            printf("\tAlpha is set to: %lf\n", alpha);
+            //printf("\tFound: %lu k-vectors\n", kVec.size());
+            //printf("\tAlpha is set to: %lf\n", alpha);
             //Calculate norms
             for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
             }
+        }
+
+        void set_self(Particles &particles){
+            this->selfTerm = 0.0;
+            
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->selfTerm += particles[i]->q * particles[i]->q;
+            }
+            this->selfTerm *= alpha / sqrt(constants::PI);
+        }
+
+
+        void initialize(Particles &particles){
+            set_kvectors();
+            set_self(particles);
+            this->rkVec.clear();
 
             std::complex<double> rho;
             std::complex<double> rk;
@@ -497,12 +516,7 @@ namespace EwaldLike{
                 }
                 this->rkVec.push_back(rho);
             }
-
-            for(unsigned int i = 0; i < particles.tot; i++){
-                this->selfTerm += particles[i]->q * particles[i]->q;
-            }
-            this->selfTerm *= alpha / sqrt(constants::PI);
-            printf("\tEwald initialization Complete\n");
+            //printf("\tEwald initialization Complete\n");
         }
 
         inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){

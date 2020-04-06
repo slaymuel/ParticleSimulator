@@ -50,6 +50,13 @@ class State{
         }
 
         for(unsigned int i = 0; i < this->particles.tot; i++){
+            if(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
+                                                                this->particles.particles[i]->b > 1e-5){
+                printf("|Pos - com| is not b! it is: %.6lf and should be: %.6lf\n",
+                                    this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos), 
+                                    this->particles.particles[i]->b);
+                exit(1);
+            }
             if(this->particles.particles[i]->pos != this->_old->particles.particles[i]->pos){
                 printf("current positions is not equal to old positions for particle %i.\n", i);
                 std::cout << this->particles.particles[i]->pos << std::endl;
@@ -79,8 +86,8 @@ class State{
     }
 
     void finalize(){
-        _old = std::make_shared<State>();
 
+        // Set up old system
         for(std::shared_ptr<Particle> p : this->particles.particles){
             _old->particles.add(p);
         }
@@ -107,6 +114,8 @@ class State{
         //printf("Save:\n");
         //printf("current moved %lu\n", this->movedParticles.size());
         //printf("old moved %lu\n\n", this->_old->movedParticles.size());
+        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
+        //printf("p1 old %.8lf %.8lf %.8lf\n", this->_old->particles[0]->com[0], this->_old->particles[0]->com[1], this->_old->particles[0]->com[2]);
         for(auto i : this->movedParticles){
             if(this->particles.tot > this->_old->particles.tot){
                 //printf("\nSave: adding particle %i to old\n\n", i);
@@ -120,7 +129,8 @@ class State{
                 this->_old->particles.aTot = this->particles.aTot;
             }
         }
-
+        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
+        //printf("p1 old %.8lf %.8lf %.8lf\n", this->_old->particles[0]->com[0], this->_old->particles[0]->com[1], this->_old->particles[0]->com[2]);
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
                 //printf("\nSave: removing particle %i from old\n\n", i);
@@ -131,18 +141,36 @@ class State{
         this->movedParticles.clear();
         this->_old->movedParticles.clear();
         this->cummulativeEnergy += this->dE;
+
+        //printf("save b: old box: %lf %lf %lf\n", this->_old->geo->dh[0], this->_old->geo->dh[1], this->_old->geo->dh[2]);
+        if(this->geo->volume != this->_old->geo->volume){
+            //Update old geometry
+            this->_old->geo->d = this->geo->d;
+            this->_old->geo->_d = this->geo->_d;
+            this->_old->geo->dh = this->geo->dh;
+            this->_old->geo->_dh = this->geo->_dh;
+            this->_old->geo->volume = this->geo->volume;
+        }
+        //printf("Save a: old box: %lf %lf %lf\n", this->_old->geo->dh[0], this->_old->geo->dh[1], this->_old->geo->dh[2]);
     }
 
 
     void revert(){
         //Set moved partiles in current state equal to previous state
-        //also need to set volume and maybe other properties
         if(this->dE != std::numeric_limits<double>::infinity()){
             for(auto e : this->energyFunc){
-                e->update( this->particles.get_subset(this->movedParticles), this->_old->particles.get_subset(this->_old->movedParticles) );
+                if(this->geo->volume != this->_old->geo->volume){
+                    //printf("Volume move, reverting energy\n");
+                    e->update(this->_old->geo->d[0], this->_old->geo->d[1], this->_old->geo->d[2]);
+                    e->initialize(this->_old->particles);
+                }
+                else{
+                    e->update( this->particles.get_subset(this->movedParticles), this->_old->particles.get_subset(this->_old->movedParticles) );
+                }
             }
         }
 
+        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
         for(auto i : this->movedParticles){
             if(this->particles.tot > _old->particles.tot){
                 //printf("\nReject: removing particle %i from current\n\n", i);
@@ -156,7 +184,8 @@ class State{
                 this->particles.aTot = this->_old->particles.aTot;
             }
         }
-        //                                                                                      REARRANGE, MOVE CONDITION OUTSIDE OF LOOP, LESS GENERAL THOUGH.....
+        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
+        //   REARRANGE, MOVE CONDITION OUTSIDE OF LOOP, LESS GENERAL THOUGH.....
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
                 //printf("\nRevert: adding back particle %i to current\n", i);
@@ -167,6 +196,13 @@ class State{
 
         this->movedParticles.clear();
         this->_old->movedParticles.clear();
+
+        //Revert geometry
+        this->geo->d      = this->_old->geo->d;
+        this->geo->_d     = this->_old->geo->_d;
+        this->geo->dh     = this->_old->geo->dh;
+        this->geo->_dh    = this->_old->geo->_dh;
+        this->geo->volume = this->_old->geo->volume;
     }
 
 
@@ -182,12 +218,21 @@ class State{
         }
 
         for(auto e : this->energyFunc){
+            //stupid design
+            e->geo = this->_old->geo;
             //auto start = std::chrono::steady_clock::now();
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
             //auto end = std::chrono::steady_clock::now();
             //std::cout << "Energy: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us\n\n";
             //start = std::chrono::steady_clock::now();
-            e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
+            e->geo = this->geo;
+            if(this->geo->volume != this->_old->geo->volume){
+                e->update(this->geo->d[0], this->geo->d[1], this->geo->d[2]);
+                e->initialize(particles);
+            }
+            else{
+                e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
+            }
             //end = std::chrono::steady_clock::now();
             //std::cout << "Update: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us " <<  "\n\n";
             E2 += (*e)( this->movedParticles, this->particles );
@@ -201,19 +246,21 @@ class State{
 
     //Called after move - set movedParticles
     void move_callback(std::vector< unsigned int > ps){   
-        // FIX FOR MORE THAN ONE MOVED PARTICLE
-
-        geo->pbc(particles[ps[0]]);
+        for(auto i : ps){
+            geo->pbc(particles[i]);
+        }
 
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
 
-        //If a particle is added, this->movedparticles is empty. If particle is removed this->_old->particles is empty
+        //If a particle is removed, this->movedparticles is empty. If particle is added this->_old->particles is empty
         if(this->particles.tot >= this->_old->particles.tot){
             std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
                                                     this->movedParticles.push_back(i); });
         }
 
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
+
+        //printf("%lu particles moved, old %lu\n", this->movedParticles.size(),this->_old->movedParticles.size());
     }
 
 
@@ -281,12 +328,14 @@ class State{
     }
 
     void set_geometry(int type, std::vector<double> args){
+        this->_old = std::make_shared<State>();
 
         switch (type){
             default:
                 printf("Creating Cuboid box\n");
                 assert(args.size() == 3);
                 this->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
+                this->_old->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
                 break;
 
             case 1:
@@ -297,18 +346,21 @@ class State{
                 printf("Creating Cuboid-Image box\n");
                 assert(args.size() == 3);
                 this->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
+                this->_old->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
                 break;
 
             case 3:
                 printf("Creating Cuboid-Image box with no PBC in z\n");
                 assert(args.size() == 3);
                 this->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
+                this->_old->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
                 break;
 
             case 4:
                 printf("Creating Cuboid box with no PBC\n");
                 assert(args.size() == 3);
                 this->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
+                this->_old->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
                 break;
         }
 
@@ -326,14 +378,14 @@ class State{
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
-                this->energyFunc.back()->set_geo(this->geo);
+                //this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                //this->energyFunc.back()->set_geo(this->geo);
 
                 EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
-
                 EwaldLike::kMax = args[5];
                 EwaldLike::spherical = bool(args[6]);
+
                 printf("\tSpherical cutoff: %s", EwaldLike::spherical ? "true\n" : "false\n");
                 printf("\tReciprocal cutoff: %lf\n", EwaldLike::kMax);
                 break;

@@ -77,6 +77,10 @@
         "*.tcc": "cpp",
         "cinttypes": "cpp",
         "hashtable": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "__errc": "cpp",
+        "__node_handle": "cpp",
+        "bit": "cpp",
+        "stack": "cpp"
     }
 }

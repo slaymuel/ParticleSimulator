@@ -37,8 +37,8 @@ class Simulator{
     std::vector<Move*> moves;
     std::vector<Sampler*> sampler;
     /* State callback after move */
-    std::function< void(std::vector< unsigned int >) > move_callback 
-                = std::bind(&State::move_callback, &state, std::placeholders::_1);
+    //std::function< void(std::vector< unsigned int >) > move_callback 
+    //            = std::bind(&State::move_callback, &state, std::placeholders::_1);
     std::string name;
 
     public:
@@ -80,27 +80,31 @@ class Simulator{
         switch(i){
             case 0:
                 printf("Translation Move\n");
-                moves.push_back(new Translate(dp, p));
+                moves.push_back(new Translate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 1:
                 printf("GC Add Move\n");
-                moves.push_back(new GrandCanonicalAdd(cp, d, &state, p));
+                moves.push_back(new GrandCanonicalAdd(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 2:
                 printf("GC Remove\n");
-                moves.push_back(new GrandCanonicalRemove(cp, d, &state, p));
+                moves.push_back(new GrandCanonicalRemove(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 3:
                 printf("Rotation Move\n");
-                moves.push_back(new Rotate(dp, p));
+                moves.push_back(new Rotate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 4:
                 printf("Swap Move\n");
-                moves.push_back(new Swap(&state, p));
+                moves.push_back(new Swap(&state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 5:
                 printf("Single Swap Move\n");
-                moves.push_back(new SingleSwap(&state, p));
+                moves.push_back(new SingleSwap(&state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
+            case 6:
+                printf("Volume Move\n");
+                moves.push_back(new VolumeMove(&state, dp, cp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             default:
                 printf("Could not find move %i\n", i);
@@ -170,12 +174,15 @@ class Simulator{
             for(int micro = 0; micro < microSteps; micro++){
                 
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
-                (*moves[wIt - mWeights.begin()])(state.particles.random(), move_callback);
-
+                //printf("moving\n");
+                (*moves[wIt - mWeights.begin()])(state.particles.random());
+                //printf("accepting\n");
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
+                    //printf("saving\n");
                     state.save();
                 }
                 else{
+                    //printf("reverting\n");
                     state.revert();
                 }
 
@@ -186,6 +193,7 @@ class Simulator{
                         s->sample(state);
                     }
                 }*/
+                //printf("sampling\n");
                 if(macro >= eqSteps){
                     for(auto s : sampler){
                         if(micro % s->interval == 0){
@@ -194,6 +202,7 @@ class Simulator{
                     }
                 }
             }
+            //printf("control\n");
             /*                                "HALF TIME"                                  */
             //Check energy drift etc
             state.control();
@@ -209,6 +218,7 @@ class Simulator{
             
             printf("Total energy is: %lf, energy drift: %.15lf\n", state.energy, state.error);
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
+            printf("Volume: %lf (%.15lf * %lf * %lf)\n", state.geo->volume, state.geo->d[0], state.geo->d[1], state.geo->d[2]);
             auto end = std::chrono::steady_clock::now();
             std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s per macrostep\n\n";
 

@@ -12,6 +12,7 @@ class Geometry{
     std::vector<double> d;
     std::vector<double> _d;
     std::vector<double> dh;  //half dimensions
+    std::vector<double> _dh;
     double volume;
 
     virtual void resize() = 0;
@@ -45,7 +46,7 @@ class Cuboid : public Geometry{
 
 
     bool is_inside(std::shared_ptr<Particle>& p){
-        assert(p->com.size() == 3);
+        //assert(p->com.size() == 3);
 
         if(X){
             if(p->com[0] >= this->dh[0] || p->com[0] <= -this->dh[0]){
@@ -195,8 +196,6 @@ class Cuboid : public Geometry{
 
 template<bool X = true, bool Y = true, bool Z = true>
 class CuboidImg : public Geometry{
-    private:
-    std::vector<double> _dh;
 
     public:
 
@@ -204,7 +203,6 @@ class CuboidImg : public Geometry{
         this->_d = {x, y,       z};
         this->d  = {x, y, 2.0 * z};
         this->dh = {this->d[0] / 2.0, this->d[1] / 2.0, this->d[2] / 2.0};
-
         this->_dh = {this->_d[0] / 2.0, this->_d[1] / 2.0, this->_d[2] / 2.0};
 
         this->volume = x * y * z;
