@@ -430,7 +430,7 @@ namespace EwaldLike{
             this->yb = y;
             this->zb = z;
             this->volume = x * y * z;
-            printf("Setting volume in energy to: %lf\n", this->volume);
+            //printf("Setting volume in energy to: %lf\n", this->volume);
         }
 
         void set_kvectors(){
@@ -488,7 +488,7 @@ namespace EwaldLike{
 
         void set_self(Particles &particles){
             this->selfTerm = 0.0;
-            
+
             for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }

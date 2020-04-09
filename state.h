@@ -378,8 +378,8 @@ class State{
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                //this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
-                //this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
 
                 EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
@@ -388,6 +388,7 @@ class State{
 
                 printf("\tSpherical cutoff: %s", EwaldLike::spherical ? "true\n" : "false\n");
                 printf("\tReciprocal cutoff: %lf\n", EwaldLike::kMax);
+                printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
                 break;
 
             case 2:
