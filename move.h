@@ -171,6 +171,8 @@ class Swap : public Move{
 
 
 
+
+
 class SingleSwap : public Move{
     private:
     State* s;
@@ -315,6 +317,8 @@ class GrandCanonical : public Move{
 };
 
 
+
+
 class GrandCanonicalAdd : public GrandCanonical{
 
     public:
@@ -361,6 +365,8 @@ class GrandCanonicalAdd : public GrandCanonical{
         }
     }
 };
+
+
 
 
 class GrandCanonicalRemove : public GrandCanonical{

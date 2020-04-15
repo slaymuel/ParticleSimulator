@@ -186,12 +186,12 @@ class ChargeWell : public EnergyBase{
             //remove s from particles (temporary)
         }
 
-        for(int i = 0; i < p.size(); i++){
+        /*for(int i = 0; i < p.size(); i++){
            for(int j = i + 1; j < p.size(); j++){
                e -= this->i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
            }
-        }
-
+        }*/
+        //printf("%lf\n", e);
         return e * constants::lB;
     }
 
@@ -205,12 +205,12 @@ class ChargeWell : public EnergyBase{
             //remove s from particles (temporary)
         }
 
-        for(int i = 0; i < p.size(); i++){
+        /*for(int i = 0; i < p.size(); i++){
            for(int j = i + 1; j < p.size(); j++){
                e -= this->i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
            }
-        }
-
+        }*/
+        //printf("%lf\n", e);
         return e * constants::lB;
     }
 
