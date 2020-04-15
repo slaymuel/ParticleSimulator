@@ -50,8 +50,8 @@ class State{
         }
 
         for(unsigned int i = 0; i < this->particles.tot; i++){
-            if(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
-                                                                this->particles.particles[i]->b > 1e-5){
+            if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
+                                                                this->particles.particles[i]->b) > 1e-5){
                 printf("|Pos - com| is not b! it is: %.6lf and should be: %.6lf\n",
                                     this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos), 
                                     this->particles.particles[i]->b);
@@ -65,9 +65,11 @@ class State{
             }
             if(this->particles.particles[i]->index != i){
                 printf("index is wrong in current for particle %i, it has index %i.\n", i, this->particles.particles[i]->index );
+                exit(1);
             }
             if(this->_old->particles.particles[i]->index != i){
-                printf("index is wrong in current for particle %i, it has index %i.\n", i, this->_old->particles.particles[i]->index );
+                printf("index is wrong in in _old for particle %i, it has index %i.\n", i, this->_old->particles.particles[i]->index );
+                exit(1);
             }
         }
 
@@ -222,6 +224,7 @@ class State{
             e->geo = this->_old->geo;
             //auto start = std::chrono::steady_clock::now();
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
+            //printf("b Energy: %lf\n", (*e)( this->_old->movedParticles, this->_old->particles ));
             //auto end = std::chrono::steady_clock::now();
             //std::cout << "Energy: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us\n\n";
             //start = std::chrono::steady_clock::now();
@@ -233,6 +236,7 @@ class State{
             else{
                 e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
             }
+            //printf("a Energy:%lf\n", (*e)( this->_old->movedParticles, this->_old->particles ));
             //end = std::chrono::steady_clock::now();
             //std::cout << "Update: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us " <<  "\n\n";
             E2 += (*e)( this->movedParticles, this->particles );
@@ -270,9 +274,11 @@ class State{
         
         // Initial Check
         int i = 0, overlaps = this->get_overlaps();
+        //exit(0);
         if(overlaps > 0){
             for(unsigned int i = 0; i < this->particles.pTot; i++){
-                this->particles.particles[i]->pos = this->geo->random_pos(this->particles.particles[i]->rf);
+                this->particles.particles[i]->com = this->geo->random_pos(this->particles.particles[i]->rf);
+                this->particles.particles[i]->pos = this->particles.particles[i]->com + this->particles.particles[i]->qDisp;
             }
         }
 
@@ -287,6 +293,7 @@ class State{
             oldCom = p->com;
             oldPos = p->pos;
             p->translate(step);
+            //this->geo->pbc(p);
             if(!this->geo->is_inside(p) || this->overlap(p->index)){
                 p->com = oldCom;
                 p->pos = oldPos;
@@ -313,6 +320,7 @@ class State{
             if(p->index == i) continue;
 
             if(this->geo->distance(p->com, this->particles.particles[i]->com) <= p->r + this->particles.particles[i]->r){
+                //printf("%lf\n", this->geo->distance(p->com, this->particles.particles[i]->com));
                 return true;
             }
         }
@@ -480,6 +488,14 @@ class State{
 
                 EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 EwaldLike::alpha = args[5];
+                break;
+
+            case 8:
+                printf("\nAdding harmonic well to charges\n");
+                assert(args.size() == 1);
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Harmonic> >(args[0]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(100.0);
                 break;
 
             default:

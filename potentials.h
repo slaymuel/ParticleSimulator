@@ -17,6 +17,21 @@ class Coulomb{
 };
 
 
+class Harmonic{
+    private:
+    double k;
+
+    public:
+    void set_k(double k){
+        this->k = k;
+        printf("\tForce constant is (k): %lf\n", this->k);
+    }
+
+    inline double operator()(const double& q1, const double& q2, const double& dist){
+        //printf("k: %lf dist: %lf\n", this->k, dist);
+        return this->k * dist * dist;
+    }
+};
 
 
 
@@ -447,6 +462,7 @@ namespace EwaldLike{
             double factor = 1;
             Eigen::Vector3d vec;
             //printf("Calculating k-vectors");
+            //printf("%lf %lf %lf\n", this->xb, this->yb, this->zb);
             for(int kx = 0; kx <= kM[0]; kx++){
                 for(int ky = -kM[1]; ky <= kM[1]; ky++){
                     for(int kz = -kM[2]; kz <= kM[2]; kz++){

@@ -136,6 +136,64 @@ class WidomHS : public Sampler{
 };
 
 
+class QDist : public Sampler{
+    private:
+
+    double binWidth;
+    std::vector<int> pqDist;
+    std::vector<int> nqDist;
+
+    public:
+
+    QDist(double dl, double binWidth, int interval) : Sampler(interval){
+        this->binWidth = binWidth;
+        this->pqDist.resize((int) dl / binWidth, 0);
+        this->nqDist.resize((int) dl / binWidth, 0);
+    }
+
+    void sample(State& state){
+        for(unsigned int i = 0; i < state.particles.tot; i++){
+            if(state.particles.particles[i]->q > 0.0){
+            //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
+            //printf("%lf\n", state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com));
+                pqDist.at( (int) ( (state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com)) /
+                                this->binWidth ) )++;
+            }
+            else{
+                nqDist.at( (int) ( (state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com)) /
+                                this->binWidth ) )++; 
+            }
+        }
+        this->samples++;
+    }
+
+    void save(std::string filename){
+        std::ofstream pf ("pqDist_" + filename + ".txt");
+        if (pf.is_open())
+        {
+            for(unsigned int i = 0; i < this->pqDist.size(); i++){
+                pf << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                     (double) this->pqDist[i] / this->samples << "\n";
+            }
+            pf.close();
+        }
+        else std::cout << "Unable to open file";
+
+        std::ofstream nf ("nqDist_" + filename + ".txt");
+        if (nf.is_open())
+        {
+            for(unsigned int i = 0; i < this->nqDist.size(); i++){
+                nf << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                     (double) this->nqDist[i] / this->samples << "\n";
+            }
+            nf.close();
+        }
+        else std::cout << "Unable to open file";
+    }
+};
+
+
+
 }
 
 /*

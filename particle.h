@@ -38,6 +38,17 @@ class Particle{
         this->pos = this->qDisp + this->com;
     };
 
+    void chargeTrans(double step){
+        Eigen::Vector3d v = Random::get_vector();
+
+        this->qDisp += step * v;
+        if(this->qDisp.norm() > this->r){
+            this->qDisp = this->qDisp.normalized() * this->r;
+        }
+        this->b = this->qDisp.norm();
+
+        this->pos = this->qDisp + this->com;
+    };
 
     void translate(std::vector<double> v){
         this->com[0] +=  v[0];

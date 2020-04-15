@@ -444,6 +444,7 @@ class VolumeMove: public Move{
         //double vMax = 0.00025;
         double lnV = std::log(this->s->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
         double V = std::exp(lnV);
+        //V = this->s->geo->volume + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
         //printf("Changing volume by: %lf\n", V - this->s->geo->volume);
         double L = std::cbrt(V);
         double RL = L / this->s->geo->_d[0];
@@ -476,8 +477,18 @@ class VolumeMove: public Move{
 
     bool accept(double dE){
         bool ret = false;
+        
         double prob = exp(-dE - this->pressure * (this->s->geo->volume - _oldV) + //  0.0000243     0.005      0.00383374 0.000024305278638
-                      (this->s->particles.tot + 1.0) * std::log(this->s->geo->volume / _oldV));
+                      (this->s->particles.tot + 1) * std::log(this->s->geo->volume / _oldV));
+
+        /*
+        printf("press: %lf\n", this->pressure * (this->s->geo->volume - _oldV));
+        printf("dE: %lf\n", dE);
+        printf("p: %lf\n", (this->s->particles.tot) * std::log(this->s->geo->volume / _oldV));
+        printf("tot: %lf\n", -dE - this->pressure * (this->s->geo->volume - _oldV) +
+                            (this->s->particles.tot) * std::log(this->s->geo->volume / _oldV));
+        printf("prob: %lf\n", prob);
+        */
         if(prob >= Random::get_random()){
             ret = true;
             this->accepted++;
@@ -495,18 +506,26 @@ class VolumeMove: public Move{
 
 
 class ChargeTrans: public Move{
+    private:
+    State* s;
     public:
 
-    ChargeTrans(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
+    ChargeTrans(State* s, double step, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
         printf("\tStepsize: %lf\n", step);
         this->id = "qTrans";
     }
 
 
     void operator()(std::shared_ptr<Particle> p){
-
-
-        //this->move_callback(particles);
+        int rand = 0;
+        do{
+            rand = Random::get_random(s->particles.tot);
+        } while(s->particles[rand]->q < 0.0);
+        
+        std::vector< unsigned int > particles = {s->particles[rand]->index};
+        //printf("Translating\n");
+        s->particles[rand]->chargeTrans(this->stepSize);
+        this->move_callback(particles);
         totalMoves++;
         this->attempted++;
     }

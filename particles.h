@@ -61,7 +61,7 @@ class Particles{
         this->particles[this->tot]->com << com[0], com[1], com[2];
         this->particles[this->tot]->pos << pos[0], pos[1], pos[2];
         this->particles[this->tot]->qDisp = this->particles[this->tot]->pos - this->particles[this->tot]->com;
-        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized();
+        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * b;
         this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
 
         //std::cout << this->particles[tot]->pos << " " << std::endl;

@@ -106,6 +106,10 @@ class Simulator{
                 printf("Volume Move\n");
                 moves.push_back(new VolumeMove(&state, dp, cp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
+            case 7:
+                printf("ChargeTrans Move\n");
+                moves.push_back(new ChargeTrans(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -127,6 +131,11 @@ class Simulator{
             case 2:
                 printf("Adding energy sampler\n");
                 sampler.push_back(new Samplers::Energy(interval));
+                break;
+
+            case 3:
+                printf("Adding charge distribution sampler\n");
+                sampler.push_back(new Samplers::QDist(4, 0.05, interval));
                 break;
 
             default:
