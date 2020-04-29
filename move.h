@@ -551,3 +551,48 @@ class ChargeTrans: public Move{
         return ret;
     }
 };
+
+
+
+
+class ChargeTransRand: public Move{
+    private:
+    State* s;
+    public:
+
+    ChargeTransRand(State* s, double step, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
+        this->id = "qTransRand";
+    }
+
+
+    void operator()(std::shared_ptr<Particle> p){
+        //printf("Move\n");
+        int rand = 0;
+        do{
+            rand = Random::get_random(s->particles.tot);
+        } while(s->particles[rand]->q < 0.0);
+        
+        std::vector< unsigned int > particles = {s->particles[rand]->index};
+        //printf("Translating\n");
+        s->particles[rand]->chargeTransRand();
+        this->move_callback(particles);
+        totalMoves++;
+        this->attempted++;
+        //printf("Move end\n");
+    }
+
+    bool accept(double dE){
+        bool ret = false;
+
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
+            ret = true;
+            this->accepted++;
+         } 
+         else{
+            ret = false;
+            this->rejected++;
+         }
+
+        return ret;
+    }
+};

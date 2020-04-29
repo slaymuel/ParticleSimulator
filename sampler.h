@@ -154,8 +154,9 @@ class QDist : public Sampler{
     void sample(State& state){
         for(unsigned int i = 0; i < state.particles.tot; i++){
             if(state.particles.particles[i]->q > 0.0){
+
             //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
-            //printf("%lf\n", state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com));
+                //printf("%lf\n", state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com));
                 pqDist.at( (int) ( (state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com)) /
                                 this->binWidth ) )++;
             }

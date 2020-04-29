@@ -110,6 +110,10 @@ class Simulator{
                 printf("ChargeTrans Move\n");
                 moves.push_back(new ChargeTrans(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
+            case 8:
+                printf("ChargeTransRand Move\n");
+                moves.push_back(new ChargeTransRand(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -287,14 +291,14 @@ int main(){
     //sim->add_move(1, 0.0, 0.005, -10.7, 0.0);
     //sim->add_move(2, 0.0, 0.005, -10.7, 0.0);
 
-    sim->add_sampler(0);
+    sim->add_sampler(0, 100);
 
 
-    sim->state.equilibrate();
+    sim->state.equilibrate(5.0);
 
     //After equilibrate
     sim->state.finalize();
-    sim->run(1, 0);
+    sim->run(1, 0, 0);
     //sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 

@@ -2,6 +2,7 @@
 #include <Eigen/Dense>
 #include <vector>
 #include <memory>
+#include "constants.h"
 
 class Random{
     private:
@@ -37,6 +38,15 @@ class Random{
         }
         inline operator std::vector<double>(){
             std::vector<double> v = { (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ) };
+            return v;
+        }
+    };
+
+    struct get_norm_vector{
+        inline operator Eigen::Vector3d(){
+            double phi = get_random() * 2.0 * constants::PI;
+            double z = get_random() * 2.0 - 1.0;
+            Eigen::Vector3d v(std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z);
             return v;
         }
     };

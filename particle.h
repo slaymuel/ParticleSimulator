@@ -38,8 +38,9 @@ class Particle{
         this->pos = this->qDisp + this->com;
     };
 
+
     void chargeTrans(double step){
-        Eigen::Vector3d v = Random::get_vector();
+        Eigen::Vector3d v = Random::get_norm_vector();
 
         this->qDisp += step * v;
         if(this->qDisp.norm() > this->r){
@@ -49,6 +50,19 @@ class Particle{
 
         this->pos = this->qDisp + this->com;
     };
+
+
+    void chargeTransRand(){
+        //printf("Particle Move\n");
+        this->qDisp = Random::get_norm_vector();
+        //printf("raw: %lf\n", this->qDisp.norm());
+        this->qDisp = this->qDisp * Random::get_random() * this->r;
+        //printf("fixed: %lf\n", this->qDisp.norm());
+        this->b = this->qDisp.norm();
+        this->pos = this->qDisp + this->com;
+        //printf("particle Move end\n");
+    };
+
 
     void translate(std::vector<double> v){
         this->com[0] +=  v[0];
