@@ -9,11 +9,11 @@ class Particle{
 
     public:
 
-    Eigen::Vector3d pos;
-    Eigen::Vector3d com;
-    Eigen::Vector3d qDisp;
-    std::string name;
-    double r, b, q, rf;
+    Eigen::Vector3d pos;    //Position of charge
+    Eigen::Vector3d com;    //COM position
+    Eigen::Vector3d qDisp;  //Charge vector
+    std::string name;       //name
+    double r, b, q, rf;     //radius, length of charge vector, charge, minimum distance to wall
 
     unsigned int index;
 

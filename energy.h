@@ -147,9 +147,9 @@ class ChargeWell : public EnergyBase{
         energy_func.set_k(k);
     }
 
-    inline double i2i(double& q1, double& q2, double&& dist){
+    inline double i2i(double& r, double&& dist){
         if(dist <= this->cutoff){
-            return energy_func(q1, q2, dist);
+            return energy_func(r, dist);
         }
         else{
             return 0.0;
@@ -159,58 +159,36 @@ class ChargeWell : public EnergyBase{
     double all2all(Particles& particles){
         double e = 0.0;
 
-        //printf("all2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
-        //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
         for(unsigned int i = 0; i < particles.tot; i++){
-            //printf("distance %lf\n", this->geo->distance(particles[i]->pos, particles[j]->pos));
-            //printf("Indices: %u, %u\n", i, j);
-            e += this->i2i(particles[i]->q, particles[i]->q, this->geo->distance(particles[i]->pos, particles[i]->com));
+            e += this->i2i(particles[i]->r, this->geo->distance(particles[i]->pos, particles[i]->com));
         }
-        //printf("Real energy: %.15lf\n", e);
+
         return e * constants::lB;
     }
 
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
-        //printf("Charge: %lf Distance: %lf\n", p->q, this->geo->distance(p->pos, p->com));
-        double e = this->i2i(p->q, p->q, this->geo->distance(p->pos, p->com));
+
+        double e = this->i2i(p->r, this->geo->distance(p->pos, p->com));
 
         return e;
     }
 
     double operator()(std::vector< unsigned int >&& p, Particles& particles){
-        //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
+
         double e = 0.0;
         for(auto s : p){
-            //do instead i2all(s, particles);
             e += i2all(particles.particles[s], particles);
-            //remove s from particles (temporary)
         }
 
-        /*for(int i = 0; i < p.size(); i++){
-           for(int j = i + 1; j < p.size(); j++){
-               e -= this->i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
-           }
-        }*/
-        //printf("%lf\n", e);
         return e * constants::lB;
     }
 
     double operator()(std::vector< unsigned int >& p, Particles& particles){
-        //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
+
         double e = 0.0;
         for(auto s : p){
-            //do instead i2all(s, particles);
             e += i2all(particles.particles[s], particles);
-
-            //remove s from particles (temporary)
         }
-
-        /*for(int i = 0; i < p.size(); i++){
-           for(int j = i + 1; j < p.size(); j++){
-               e -= this->i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
-           }
-        }*/
-        //printf("%lf\n", e);
         return e * constants::lB;
     }
 

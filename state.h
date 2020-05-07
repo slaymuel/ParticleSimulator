@@ -498,6 +498,14 @@ class State{
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
 
+            case 9:
+                printf("\nAdding Sture-potential to charges\n");
+                assert(args.size() == 1);
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Sture> >(args[0]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(100.0);
+                break;
+
             default:
                 printf("\nAdding Coulomb potential\n");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );

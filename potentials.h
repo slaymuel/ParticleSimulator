@@ -27,13 +27,48 @@ class Harmonic{
         printf("\tForce constant is (k): %lf\n", this->k);
     }
 
-    inline double operator()(const double& q1, const double& q2, const double& dist){
+    inline double operator()(const double& R, const double& dist){
         //printf("k: %lf dist: %lf\n", this->k, dist);
         return this->k * dist * dist;
     }
 };
 
 
+
+class FENE{
+    private:
+    double k;
+
+    public:
+    void set_k(double k){
+        this->k = k;
+        printf("\tForce constant is (k): %lf\n", this->k);
+    }
+
+    inline double operator()(const double& R, const double& dist){
+        double Rsq = R * R;
+
+        return -0.5 * this->k * Rsq * std::log(1.0 - dist * dist / Rsq);
+    }
+};
+
+
+
+class Sture{
+    private:
+    double k;
+
+    public:
+    void set_k(double k){
+        this->k = k;
+        printf("\tForce constant is (k): %lf\n", this->k);
+    }
+
+    inline double operator()(const double& R, const double& dist){
+        double Rsq = R * R;
+        return this->k * Rsq * (Rsq / (Rsq - dist * dist) - 1.0);
+    }
+};
 
 
 
