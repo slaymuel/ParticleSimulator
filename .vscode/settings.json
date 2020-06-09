@@ -81,6 +81,8 @@
         "__errc": "cpp",
         "__node_handle": "cpp",
         "bit": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "core": "cpp",
+        "lu": "cpp"
     }
 }

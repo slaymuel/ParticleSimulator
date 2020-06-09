@@ -8,12 +8,14 @@
 #include "energy.h"
 #include "potentials.h"
 #include "Spline.h"
+#include "io.h"
 
 class State{
     private:
 
     std::shared_ptr<State> _old;
     SplineData spline;
+    IO io;
 
     public:
 
@@ -87,7 +89,7 @@ class State{
         }
     }
 
-    void finalize(){
+    void finalize(std::string name){
 
         // Set up old system
         for(std::shared_ptr<Particle> p : this->particles.particles){
@@ -100,6 +102,8 @@ class State{
             this->energy += e->all2all(this->particles);
         }
         this->cummulativeEnergy = this->energy;
+
+        io.open(name);
     }
 
     void reset_energy(){
@@ -223,6 +227,7 @@ class State{
             //stupid design
             e->geo = this->_old->geo;
             //auto start = std::chrono::steady_clock::now();
+
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
             //printf("b Energy: %lf\n", (*e)( this->_old->movedParticles, this->_old->particles ));
             //auto end = std::chrono::steady_clock::now();
@@ -519,4 +524,18 @@ class State{
     void load_spline(std::vector<double> aKnots, std::vector<double> bKnots, std::vector<double >controlPoints){
         spline.load(aKnots, bKnots, controlPoints);
     }
+
+
+    void close(){
+        io.close();
+    }
+
+    void to_xtc(int step, int time){
+        io.to_xtc(particles, geo->d, step, time);
+    }
+
+    void to_gro(std::string fileName){
+        io.to_gro(fileName, particles, geo->d);
+    }
+
 };

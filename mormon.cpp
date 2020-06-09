@@ -36,6 +36,7 @@ class Simulator{
     std::vector<double>::iterator wIt;
     std::vector<Move*> moves;
     std::vector<Sampler*> sampler;
+
     /* State callback after move */
     //std::function< void(std::vector< unsigned int >) > move_callback 
     //            = std::bind(&State::move_callback, &state, std::placeholders::_1);
@@ -156,7 +157,7 @@ class Simulator{
             this->mWeights[i] += this->mWeights[i - 1];
         }
 
-        this->state.finalize();
+        this->state.finalize(this->name);
     }
 
     void run(int macroSteps, int microSteps, int eqSteps){
@@ -210,7 +211,8 @@ class Simulator{
                 if(macro >= eqSteps){
                     for(auto s : sampler){
                         if(micro % s->interval == 0){
-                            s->sample(state);    
+                            s->sample(state);
+                            this->state.to_xtc(micro, micro);    
                         }
                     }
                 }
@@ -247,12 +249,15 @@ class Simulator{
                 s->save(this->name);
             }
         }
-        printf("Saving analysis data...\n");
+        /*printf("Saving analysis data...\n");
         for(auto s : sampler){
             s->save(this->name);
-        }
+        }*/
+
         this->state.particles.to_xyz(this->name);
         this->state.particles.to_cpt(this->name);
+        this->state.to_gro(this->name);
+        this->state.close();
         printf("Simulation Done!\n\n");
     }
 };
