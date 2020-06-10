@@ -1,15 +1,20 @@
 #include "state.h"
+#include "xdrfile.h"
+#include "xdrfile_xtc.h"
+#include "xdrfile_trr.h"
 
 class Sampler{
 
     public:
     int samples = 0;
     int interval;
+    std::string filename;
 
     Sampler(int interval) : interval(interval){}
 
     virtual void sample(State& state) = 0;
-    virtual void save(std::string filename) = 0;
+    virtual void save() = 0;
+    virtual void close() = 0;
 };
 
 
@@ -26,7 +31,7 @@ class Density : public Sampler{
 
     public:
 
-    Density(int d, double dl, double binWidth, double xb, double yb, int interval) : Sampler(interval){
+    Density(int d, double dl, double binWidth, double xb, double yb, int interval, std::string filename) : Sampler(interval){
         this->binWidth = binWidth;
         this->bins = dl / binWidth;
         this->pDens.resize(this->bins, 0);
@@ -35,6 +40,7 @@ class Density : public Sampler{
         this->dh = dl / 2.0;
         this->xb = xb;
         this->yb = yb;
+        this->filename = filename;
     }
 
     void sample(State& state){
@@ -51,8 +57,8 @@ class Density : public Sampler{
         this->samples++;
     }
 
-    void save(std::string filename){
-        std::ofstream f ("p_" + filename + ".txt");
+    void save(){
+        std::ofstream f ("p_" + this->filename + ".txt");
         if (f.is_open())
         {
             for(unsigned int i = 0; i < this->pDens.size(); i++){
@@ -63,7 +69,7 @@ class Density : public Sampler{
         }
         else std::cout << "Unable to open file";
         
-        std::ofstream fi ("n_" + filename + ".txt");
+        std::ofstream fi ("n_" + this->filename + ".txt");
         if (fi.is_open())
         {
             for(unsigned int i = 0; i < this->nDens.size(); i++){
@@ -74,6 +80,8 @@ class Density : public Sampler{
         }
         else std::cout << "Unable to open file";
     }
+
+    void close(){};
 };
 
 
@@ -82,16 +90,17 @@ class Energy : public Sampler{
     std::vector<double> energies;
 
     public:
-    Energy(int interval) : Sampler(interval){
+    Energy(int interval, std::string filename) : Sampler(interval){
         energies.reserve(50000);
+        this->filename = "energies_" + filename + ".txt";
     }
 
     void sample(State &state){
         energies.push_back(state.cummulativeEnergy);
     }
 
-    void save(std::string filename){
-        std::ofstream f ("energies_" + filename + ".txt");
+    void save(){
+        std::ofstream f (this->filename);
         if (f.is_open()){
             for(auto e : energies){
                 f << std::fixed << std::setprecision(15) << e << "\n";
@@ -100,6 +109,8 @@ class Energy : public Sampler{
         }
         else std::cout << "Unable to open file";
     }
+
+    void close(){};
 };
 
 
@@ -108,7 +119,9 @@ class WidomHS : public Sampler{
 
     public:
 
-    WidomHS(int interval) : Sampler(interval){}
+    WidomHS(int interval, std::string filename) : Sampler(interval){
+        this->filename = "cp_HS_" + filename + ".txt";
+    }
 
     void sample(State& state){
         Eigen::Vector3d com = state.geo->random_pos(2.5);
@@ -125,14 +138,16 @@ class WidomHS : public Sampler{
         printf("cp: %lf\n\n", this->cp);
     }
 
-    void save(std::string filename){
-        std::ofstream f ("cp_HS_" + filename + ".txt");
+    void save(){
+        std::ofstream f (this->filename);
         if (f.is_open()){
             f << std::fixed << std::setprecision(10) << "Hard-sphere chemical potential: " << -std::log(this->cp / this->samples)  << "\n";
             f.close();
         }
         else std::cout << "Unable to open file";
     }
+
+    void close(){};
 };
 
 
@@ -145,10 +160,11 @@ class QDist : public Sampler{
 
     public:
 
-    QDist(double dl, double binWidth, int interval) : Sampler(interval){
+    QDist(double dl, double binWidth, int interval, std::string filename) : Sampler(interval){
         this->binWidth = binWidth;
         this->pqDist.resize((int) dl / binWidth, 0);
         this->nqDist.resize((int) dl / binWidth, 0);
+        this->filename = filename;
     }
 
     void sample(State& state){
@@ -168,8 +184,8 @@ class QDist : public Sampler{
         this->samples++;
     }
 
-    void save(std::string filename){
-        std::ofstream pf ("pqDist_" + filename + ".txt");
+    void save(){
+        std::ofstream pf ("pqDist_" + this->filename + ".txt");
         if (pf.is_open())
         {
             for(unsigned int i = 0; i < this->pqDist.size(); i++){
@@ -180,7 +196,7 @@ class QDist : public Sampler{
         }
         else std::cout << "Unable to open file";
 
-        std::ofstream nf ("nqDist_" + filename + ".txt");
+        std::ofstream nf ("nqDist_" + this->filename + ".txt");
         if (nf.is_open())
         {
             for(unsigned int i = 0; i < this->nqDist.size(); i++){
@@ -191,8 +207,60 @@ class QDist : public Sampler{
         }
         else std::cout << "Unable to open file";
     }
+
+    void close(){};
 };
 
+
+class XDR : public Sampler{
+    private:
+    XDRFILE *xdf = nullptr;
+
+    public:
+    XDR(int interval, std::string filename) : Sampler(interval){
+        filename = filename + ".xtc";
+        xdf = xdrfile_open(filename.c_str(), "w");
+    }
+
+    void save(){};
+
+    void close(){
+        xdrfile_close(xdf);
+    }
+
+    void sample(State& state){
+        matrix box;
+        box[0][0] = state.geo->_d[0];
+        box[0][1] = 0.0;
+        box[0][2] = 0.0;
+        box[1][0] = state.geo->_d[1];
+        box[1][1] = 0.0;
+        box[1][2] = 0.0;
+        box[2][0] = state.geo->_d[2];
+        box[2][1] = 0.0;
+        box[2][2] = 0.0;
+
+        
+        if (xdf != nullptr) {
+            rvec *ps = new rvec[state.particles.tot];
+            size_t N = 0;
+
+            for (int i = 0; i < state.particles.tot; i++) {
+                ps[i][0] = state.particles[i]->pos[0] * 0.1 + state.geo->_d[0] * 0.5;
+                ps[i][1] = state.particles[i]->pos[1] * 0.1 + state.geo->_d[1] * 0.5;
+                ps[i][2] = state.particles[i]->pos[2] * 0.1 + state.geo->_d[2] * 0.5; 
+            }
+
+            write_xtc(xdf, state.particles.tot, state.step, state.step, box, ps, 1000);
+
+            delete[] ps;
+        }
+        else{
+            printf("Could not open xtc file!\n");
+            exit(0);
+        }
+    }
+};
 
 
 }

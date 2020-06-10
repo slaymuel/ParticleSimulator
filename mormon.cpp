@@ -19,6 +19,7 @@
 #include "sampler.h"
 #include <algorithm>
 #include "comparators.h"
+#include "io.h"
 #ifdef PY11
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -126,21 +127,25 @@ class Simulator{
             case 0:
                 printf("Adding density sampler\n");
                 sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], 0.05, 
-                                              this->state.geo->d[0], this->state.geo->d[1], interval));
+                                              this->state.geo->d[0], this->state.geo->d[1], interval, this->name));
                 break;
             case 1:
                 printf("Adding Widom HS-CP sampler\n");
-                sampler.push_back(new Samplers::WidomHS(interval));
+                sampler.push_back(new Samplers::WidomHS(interval, this->name));
                 break;
 
             case 2:
                 printf("Adding energy sampler\n");
-                sampler.push_back(new Samplers::Energy(interval));
+                sampler.push_back(new Samplers::Energy(interval, this->name));
                 break;
 
             case 3:
                 printf("Adding charge distribution sampler\n");
-                sampler.push_back(new Samplers::QDist(4, 0.05, interval));
+                sampler.push_back(new Samplers::QDist(4, 0.05, interval, this->name));
+                break;
+            case 4:
+                printf("Adding XDR trajectory sampler\n");
+                sampler.push_back(new Samplers::XDR(interval, this->name));
                 break;
 
             default:
@@ -212,7 +217,7 @@ class Simulator{
                     for(auto s : sampler){
                         if(micro % s->interval == 0){
                             s->sample(state);
-                            this->state.to_xtc(micro, micro);    
+                            //this->state.to_xtc(micro, micro);    
                         }
                     }
                 }
@@ -221,7 +226,7 @@ class Simulator{
             /*                                "HALF TIME"                                  */
             //Check energy drift etc
             state.control();
-
+            state.advance();
             //Print progress
             std::cout << "\nIteration: " << macro * microSteps + microSteps << std::endl;
 
@@ -246,18 +251,20 @@ class Simulator{
             //    s.sample(s.arguments);
             //}
             for(auto s : sampler){
-                s->save(this->name);
+                s->save();
             }
         }
         /*printf("Saving analysis data...\n");
         for(auto s : sampler){
             s->save(this->name);
         }*/
-
-        this->state.particles.to_xyz(this->name);
-        this->state.particles.to_cpt(this->name);
-        this->state.to_gro(this->name);
-        this->state.close();
+        for(auto s : sampler){
+            s->close();
+        }
+        IO::to_xyz(this->name, state.particles, state.geo->d);
+        IO::to_cpt(this->name, state.particles, state.geo->d);
+        IO::to_gro(this->name, state.particles, state.geo->d);
+        //this->state.close();
         printf("Simulation Done!\n\n");
     }
 };

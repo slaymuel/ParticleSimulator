@@ -1,55 +1,10 @@
-#include "xdrfile.h"
-#include "xdrfile_xtc.h"
-#include "xdrfile_trr.h"
+#include "particles.h"
+
 
 class IO{
-    private:
-    XDRFILE *xdf = nullptr;
-
     public:
-    void open(std::string fileName){
-        fileName = fileName + ".xtc";
-        xdf = xdrfile_open(fileName.c_str(), "w");
-    }
 
-    void close(){
-        xdrfile_close(xdf);
-    }
-
-    void to_xtc(Particles& p, std::vector<double> d, int step, int time){
-        matrix box;
-        box[0][0] = d[0];
-        box[0][1] = 0.0;
-        box[0][2] = 0.0;
-        box[1][0] = d[1];
-        box[1][1] = 0.0;
-        box[1][2] = 0.0;
-        box[2][0] = d[2];
-        box[2][1] = 0.0;
-        box[2][2] = 0.0;
-
-        
-        if (xdf != nullptr) {
-            rvec *ps = new rvec[p.tot];
-            size_t N = 0;
-
-            for (int i = 0; i < p.tot; i++) {
-                ps[i][0] = p[i]->pos[0] * 0.1 + d[0] * 0.5;
-                ps[i][1] = p[i]->pos[1] * 0.1 + d[1] * 0.5;
-                ps[i][2] = p[i]->pos[2] * 0.1 + d[2] * 0.5; 
-            }
-
-            write_xtc(xdf, p.tot, step, time, box, ps, 1000);
-
-            delete[] ps;
-        }
-        else{
-            printf("Could not open xtc file!\n");
-            exit(0);
-        }
-    }
-
-    void to_gro(std::string fileName, Particles& p, std::vector<double> d){
+    static void to_gro(std::string fileName, Particles& p, std::vector<double> d){
         int i = 0;
         fileName = fileName + ".gro";
         FILE *f = fopen(fileName.c_str(), "w");
@@ -70,5 +25,51 @@ class IO{
         }
         fprintf(f, "%lf    %lf     %lf\n", d[0], d[1], d[2]);
         fclose(f);
+    }
+
+        //Write xyz file
+   static  void to_xyz(std::string fileName, Particles& p, std::vector<double> d){
+        std::ofstream f (fileName + ".xyz");
+        if (f.is_open())
+        {
+            f << p.tot << "\n\n";
+            for(unsigned int i = 0; i < p.tot; i++){
+
+                f << std::fixed << std::setprecision(3) << p[i]->name << " " <<  p[i]->pos[0] << " " << p[i]->pos[1] << " " << p[i]->pos[2] << "\n";
+            }
+            f << "10 10 10" << "\n";
+            f.close();
+        }
+        else std::cout << "Unable to open file\n";
+
+        std::ofstream fq (fileName + "_com.xyz");
+        if (fq.is_open())
+        {
+            fq << p.tot << "\n\n";
+            for(unsigned int i = 0; i < p.tot; i++){
+
+                fq << std::fixed << std::setprecision(3) << p[i]->name << " " <<  p[i]->com[0] << " " << p[i]->com[1] << " " << p[i]->com[2] << "\n";
+            }
+            fq << d[0] << " " << d[1] << " " << d[2] << "\n";
+            fq.close();
+        }
+        else std::cout << "Unable to open file\n";
+    }
+
+    //write checkpoint file
+    static void to_cpt(std::string fileName, Particles& p, std::vector<double> d){
+        std::ofstream f (fileName + ".cp");
+        if (f.is_open())
+        {
+            for(unsigned int i = 0; i < p.tot; i++){
+
+                f << std::fixed << std::setprecision(15) << " " <<  p[i]->com[0] << " " << p[i]->com[1] << " " << p[i]->com[2] << " " << 
+                                                                    p[i]->pos[0] << " " << p[i]->pos[1] << " " << p[i]->pos[2] << " " << 
+                                                                    p[i]->q << " " << p[i]->r << " " << p[i]->rf << " " << 
+                                                                    p[i]->b << " " << p[i]->name << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
     }
 };

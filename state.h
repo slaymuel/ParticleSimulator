@@ -8,27 +8,30 @@
 #include "energy.h"
 #include "potentials.h"
 #include "Spline.h"
-#include "io.h"
 
 class State{
     private:
 
     std::shared_ptr<State> _old;
     SplineData spline;
-    IO io;
-
+    //IO io;
+    
     public:
 
-    ~State(){
-        delete geo;
-    }
-
+    int step = 0;
     double energy = 0.0, cummulativeEnergy = 0.0, dE = 0.0, error = 0.0;
     Particles particles;
     std::vector< unsigned int > movedParticles;    //Particles that has moved from previous state
     Geometry *geo;
     std::vector< std::shared_ptr<EnergyBase> > energyFunc;
-    
+
+    ~State(){
+        delete geo;
+    }
+
+    void advance(){
+        this->step++;
+    }
 
     void control(){
         #ifdef DEBUG
@@ -103,7 +106,7 @@ class State{
         }
         this->cummulativeEnergy = this->energy;
 
-        io.open(name);
+        //io.open(name);
     }
 
     void reset_energy(){
@@ -525,7 +528,7 @@ class State{
         spline.load(aKnots, bKnots, controlPoints);
     }
 
-
+/*
     void close(){
         io.close();
     }
@@ -537,5 +540,5 @@ class State{
     void to_gro(std::string fileName){
         io.to_gro(fileName, particles, geo->d);
     }
-
+*/
 };
