@@ -133,9 +133,9 @@ class WidomHS : public Sampler{
         }
         state.particles.remove(state.particles.tot - 1);
         this->samples++;
-        printf("HS-CP: %lf\n", -std::log(this->cp / this->samples));
-        printf("samples: %d\n", this->samples);
-        printf("cp: %lf\n\n", this->cp);
+        //printf("HS-CP: %lf\n", -std::log(this->cp / this->samples));
+        //printf("samples: %d\n", this->samples);
+        //printf("cp: %lf\n\n", this->cp);
     }
 
     void save(){

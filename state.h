@@ -41,9 +41,21 @@ class State{
         #endif
         
         this->energy = 0.0;
+        int count = 0;
+        for(auto e : this->energyFunc){
+            if(this->step % 100 == 0){
+                e->initialize(this->particles);
+            }
+            this->energy += e->all2all(this->particles);
+            //printf("Energy %i is: %.15lf\n", count, e->all2all(this->particles));
+            //count++;
+        }
+
+        /*
         for(auto e : this->energyFunc){
             this->energy += e->all2all(this->particles);;
         }
+        */
 
         this->error = std::fabs((this->energy - this->cummulativeEnergy) / this->energy);
 
@@ -93,7 +105,7 @@ class State{
     }
 
     void finalize(std::string name){
-
+        printf("\nFinalizing simulation: %s.\n\n", name.c_str());
         // Set up old system
         for(std::shared_ptr<Particle> p : this->particles.particles){
             _old->particles.add(p);
@@ -105,6 +117,7 @@ class State{
             this->energy += e->all2all(this->particles);
         }
         this->cummulativeEnergy = this->energy;
+        printf("\tEnergy of the first frame is: %lf\n\n", this->energy);
 
         //io.open(name);
     }
@@ -250,6 +263,7 @@ class State{
             E2 += (*e)( this->movedParticles, this->particles );
             //std::cout << this->_old->particles[this->_old->movedParticles[0]]->q << " " << this->particles[this->_old->movedParticles[0]]->q  << std::endl;
         }
+        //printf("cummulativeEnergy: %lf E1: %lf\n", this->cummulativeEnergy, E1);
         this->dE = E2 - E1;
         //printf("dE = %lf\n", this->dE);
         return this->dE;
@@ -284,6 +298,7 @@ class State{
         int i = 0, overlaps = this->get_overlaps();
         //exit(0);
         if(overlaps > 0){
+            printf("\tRandomly placing particles\n");
             for(unsigned int i = 0; i < this->particles.pTot; i++){
                 this->particles.particles[i]->com = this->geo->random_pos(this->particles.particles[i]->rf);
                 this->particles.particles[i]->pos = this->particles.particles[i]->com + this->particles.particles[i]->qDisp;
@@ -296,27 +311,33 @@ class State{
         std::shared_ptr<Particle> p;
 
         //Move particles to prevent overlap
-        while(overlaps > 0){
-            p = this->particles.random();
-            oldCom = p->com;
-            oldPos = p->pos;
-            p->translate(step);
-            //this->geo->pbc(p);
-            if(!this->geo->is_inside(p) || this->overlap(p->index)){
-                p->com = oldCom;
-                p->pos = oldPos;
-            }
+        if(overlaps > 0){
+            printf("\tRemoving overlaps.\n");
+            while(overlaps > 0){
+                p = this->particles.random();
+                oldCom = p->com;
+                oldPos = p->pos;
+                p->translate(step);
+                //this->geo->pbc(p);
+                if(!this->geo->is_inside(p) || this->overlap(p->index)){
+                    p->com = oldCom;
+                    p->pos = oldPos;
+                }
 
 
-            if(i % 50000 == 0){
-                overlaps = this->get_overlaps();
-                printf("\tOverlaps: %i, iteration: %i\r", overlaps, i);
-                fflush(stdout);
+                if(i % 50000 == 0){
+                    overlaps = this->get_overlaps();
+                    printf("\tOverlaps: %i, iteration: %i\r", overlaps, i);
+                    fflush(stdout);
+                }
+                i++;
+                if(i > 1E9){
+                    i = 0;
+                }
             }
-            i++;
-            if(i > 1E9){
-                i = 0;
-            }
+        }
+        else{
+            printf("\tNo overlaps to remove!\n");
         }
         printf("\n\tEquilibration done\n\n");
     }

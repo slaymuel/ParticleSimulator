@@ -162,14 +162,13 @@ class Simulator{
             this->mWeights[i] += this->mWeights[i - 1];
         }
 
+        //Make sure move list is not corrupted
+        assert(this->mWeights.back() == 1.0);
+        
         this->state.finalize(this->name);
     }
 
     void run(int macroSteps, int microSteps, int eqSteps){
-
-        //Make sure move list is not corrupted
-        assert(this->mWeights.back() == 1.0);
-
 
         printf("            +\n"                                            
                "           (|)\n"
@@ -190,7 +189,7 @@ class Simulator{
 
         for(int macro = 0; macro < macroSteps; macro++){
             auto start = std::chrono::steady_clock::now();
-            for(int micro = 0; micro < microSteps; micro++){
+            for(int micro = 0; micro <= microSteps; micro++){
                 
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
                 //printf("moving\n");
@@ -207,22 +206,16 @@ class Simulator{
 
                     //should also be able to
                     //state.get_energy(subset_of_particles);
-                /*if(micro % 100 == 0 && micro > 0 && macro > 10){
-                    for(auto s : sampler){
-                        s->sample(state);
-                    }
-                }*/
-                //printf("sampling\n");
+
                 if(macro >= eqSteps){
                     for(auto s : sampler){
                         if(micro % s->interval == 0){
-                            s->sample(state);
-                            //this->state.to_xtc(micro, micro);    
+                            s->sample(state);  
                         }
                     }
                 }
             }
-            //printf("control\n");
+
             /*                                "HALF TIME"                                  */
             //Check energy drift etc
             state.control();
@@ -230,15 +223,20 @@ class Simulator{
             //Print progress
             std::cout << "\nIteration: " << macro * microSteps + microSteps << std::endl;
 
-            printf("Acceptance ratios: ");
-            for(auto move : moves){
+            printf("Acceptance ratios: \n");
+            /*for(auto move : moves){
                 printf("%s %.1lf%% %i(%i) ", move->id.c_str(), (double)move->accepted / move->attempted * 100.0, move->attempted, move->accepted);
+            }*/
+
+            for(auto move : moves){
+                std::cout << move->dump() << std::endl;
             }
-            printf("\n");
             
             printf("Total energy is: %lf, energy drift: %.15lf\n", state.energy, state.error);
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
-            printf("Volume: %lf (%.15lf * %lf * %lf)\n", state.geo->volume, state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            printf("Box: %lf (%.15lf * %lf * %lf (%lf))\n", state.geo->volume, state.geo->_d[0], state.geo->_d[1], state.geo->_d[2], state.geo->d[2]);
+            //printf("Box: %lf * %lf * %lf\n", state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            //printf("Chemical potential: %lf\n\n", constants::cp);
             auto end = std::chrono::steady_clock::now();
             std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s per macrostep\n\n";
 
@@ -265,6 +263,7 @@ class Simulator{
         IO::to_cpt(this->name, state.particles, state.geo->d);
         IO::to_gro(this->name, state.particles, state.geo->d);
         //this->state.close();
+        printf("Energy of last frame: %.15lf\n", this->state.cummulativeEnergy);
         printf("Simulation Done!\n\n");
     }
 };
@@ -344,7 +343,19 @@ PYBIND11_MODULE(mormon, m) {
 
 
     py::class_<Particles>(m, "Particles")
+        .def_readonly("particles", &Particles::particles)
+        .def_readonly("pModel", &Particles::pModel)
+        .def_readonly("nModel", &Particles::nModel)
         .def("load", &Particles::load)
         .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
+
+    py::class_<Particle>(m, "Particle")
+        .def_readonly("com", &Particle::com)
+        .def_readonly("pos", &Particle::pos)
+        .def_readonly("qDisp", &Particle::qDisp)
+        .def_readonly("q", &Particle::q)
+        .def_readonly("b", &Particle::b)
+        .def_readonly("r", &Particle::r)
+        .def_readonly("rf", &Particle::rf);
 }
 #endif

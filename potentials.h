@@ -852,6 +852,11 @@ namespace EwaldLike{
             printf("Setting up ewald\n");
             printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
+            this->kVec.clear();
+            this->resFac.clear();
+            this->kNorm.clear();
+            this->selfTerm = 0.0;
+            
             //get k-vectors
             double factor = 1;
             //std::vector<double> vec(3);
@@ -912,7 +917,7 @@ namespace EwaldLike{
                 this->rkVec.push_back(rho);
             }
 
-            this->selfTerm = 0.0;
+            
 
             for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;

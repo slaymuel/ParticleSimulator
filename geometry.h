@@ -185,9 +185,13 @@ class Cuboid : public Geometry{
     }
 
     Eigen::Vector3d random_pos(double rf){
+        double x = (X) ? rf : 0.0;
+        double y = (Y) ? rf : 0.0;
+        double z = (Z) ? rf : 0.0;
+
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << (dh[0] - 2.5) * v[0], (dh[1] - 2.5) * v[1], (dh[2] - rf) * v[2];
+        v << (dh[0] - x) * v[0], (dh[1] - y) * v[1], (dh[2] - z) * v[2];
         return v;
     }
 };
@@ -210,9 +214,7 @@ class CuboidImg : public Geometry{
         printf("\tVolume %.3lf\n", this->volume);
     }
 
-    void resize(){
-
-    }
+    void resize(){}
 
 
 
@@ -240,6 +242,7 @@ class CuboidImg : public Geometry{
         else if(p->com[1] < -this->_dh[1]){
             p->com[1] += _d[1];
         }
+
         p->pos = p->com + p->qDisp;
 
         if(p->pos[0] > this->_dh[0]){

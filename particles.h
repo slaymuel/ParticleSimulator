@@ -63,7 +63,7 @@ class Particles{
         this->particles[this->tot]->pos << pos[0], pos[1], pos[2];
         this->particles[this->tot]->qDisp = this->particles[this->tot]->pos - this->particles[this->tot]->com;
         this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * b;
-        this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
+        //this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
 
         //std::cout << this->particles[tot]->pos << " " << std::endl;
         this->particles[this->tot]->index = this->tot;
@@ -108,7 +108,7 @@ class Particles{
 
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
         this->particles[this->tot]->com << com[0], com[1], com[2];
-        this->particles[this->tot]->qDisp = Random::get_vector();
+        this->particles[this->tot]->qDisp = Random::get_norm_vector();
         this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * b;
         this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
         //std::cout << this->particles[tot]->pos << " " << std::endl;
@@ -232,8 +232,6 @@ class Particles{
 
         this->pTot--;
         this->tot--;
-
-
     }
 
 
@@ -244,6 +242,7 @@ class Particles{
         for(unsigned int i = 0; i < pos.size(); i++){
 
             this->add(com[i], pos[i], r[i], rf[i], charges[i], b[i], names[i]);
+            //this->add(com[i], com[i], 2.5, rf[i], charges[i], 0.0, names[i]);
             
             if(!setPModel){
                 if(charges[i] > 0){
@@ -272,7 +271,7 @@ class Particles{
             printf("Cation or anion model not set!\n");
             exit(1);
         }
-        printf("Loaded %u particles\n", this->tot);
+        printf("Loaded %u particles, %u cations and %u anions.\n", this->tot, this->cTot, this->aTot);
     }
 
 

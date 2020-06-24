@@ -10,22 +10,25 @@ using CallBack = std::function<void(std::vector< unsigned int >)>;
 
 
 class Move{
-    public:
+
+    protected:
     int accepted, rejected, attempted;
     double stepSize;
-    double weight;
     std::string id;
     CallBack move_callback;
 
-    static int totalMoves;
+    public:
+    double weight;
 
     Move(double step, double w, CallBack move_callback) : stepSize(step), weight(w), move_callback(move_callback){
-        accepted = 0;
-        rejected = 0;
-        attempted = 0;
+        this->accepted = 0;
+        this->rejected = 0;
+        this->attempted = 0;
     }
+
     virtual void operator()(std::shared_ptr<Particle> p) = 0;
     virtual bool accept(double dE) = 0;
+    virtual std::string dump() = 0;
 };
 
 
@@ -49,7 +52,6 @@ class Translate : public Move{
 
 
         this->move_callback(particles);
-        totalMoves++;
         this->attempted++;
     }
 
@@ -67,9 +69,15 @@ class Translate : public Move{
 
         return ret;
     }
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
+    }
 };
 
-int Move::totalMoves = 0;
 
 
 class Rotate : public Move{
@@ -86,10 +94,7 @@ class Rotate : public Move{
         std::vector< unsigned int > particles = {p->index};
 
         p->rotate(this->stepSize);
-        //PBC
-        
         this->move_callback(particles);
-        totalMoves++;
         attempted++;
     }
 
@@ -106,6 +111,13 @@ class Rotate : public Move{
          }
 
         return ret;
+    }
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
     }
 };
 
@@ -147,7 +159,6 @@ class Swap : public Move{
 
 
         this->move_callback(particles);
-        totalMoves++;
         attempted++;
 
         //printf("Remove: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
@@ -166,6 +177,14 @@ class Swap : public Move{
          }
 
         return ret;
+    }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
     }
 };
 
@@ -232,9 +251,7 @@ class SingleSwap : public Move{
 
 
         this->move_callback(particles);
-        totalMoves++;
         attempted++;
-
     }
 
     bool accept(double dE){
@@ -251,6 +268,14 @@ class SingleSwap : public Move{
 
         return ret;
     }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
+    }
 };
 
 
@@ -265,13 +290,15 @@ class GrandCanonical : public Move{
     double nVolume;
     double pVolume;
     int pAtt = 0, nAtt = 0, pAcc = 0, nAcc = 0;
+    int* att;
+    int* acc;
 
     public:
 
     GrandCanonical(double chemPot, double donnan, State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state), d(donnan){
         constants::cp = chemPot;
-        this->pVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
-        this->nVolume = state->geo->d[0] * state->geo->d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
+        this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
+        this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         printf("\t\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
         printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", constants::cp, this->d);
     }
@@ -279,40 +306,59 @@ class GrandCanonical : public Move{
     void operator()(std::shared_ptr<Particle> p){};
     bool accept(double dE) = 0;
 
-    template<bool ADD>
-    bool accept_imp(double dE){
+    bool accept_add(double dE){
 
         double prob;
 
-        if(ADD){
-            if(this->q > 0){
-                prob = this->pVolume / s->particles.cTot * std::exp(constants::cp - this->d * this->q - dE);;
-                //prob = std::exp(-dE);
-                //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
-            }
-            else{
-                prob = this->nVolume / s->particles.aTot * std::exp(constants::cp - this->d * this->q - dE);
-                //prob = std::exp(-dE);
-                //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
-            }            
+        if(this->q > 0){
+            prob = this->pVolume / s->particles.cTot * std::exp(constants::cp - this->d * this->q - dE);
+            this->acc = &this->pAcc;
+            //prob = std::exp(-dE);
+            //prob = volumeP / particles.numOfCations * std::exp(cp - d * q - dE);
         }
         else{
-            if(this->q > 0){
-                prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - constants::cp - dE);
-                //particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
-            }
-            else{
-                prob = s->particles.aTot / this->nVolume * std::exp(this->d * this->q - constants::cp - dE);
-                //particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
-            }
-        }
+            prob = this->nVolume / s->particles.aTot * std::exp(constants::cp - this->d * this->q - dE);
+            this->acc = &this->nAcc;
+            //prob = std::exp(-dE);
+            //prob =  volumeN / particles.numOfAnions * std::exp(cp - d * q - dE);
+        } 
+
         //printf("%lf\n", dE);
         if(prob >= Random::get_random()){
+            *(this->acc) += 1;
             return true;
         }
         else{
             return false;
         }
+    }
+
+    bool accept_rem(double dE){
+
+        double prob;
+
+        if(this->q > 0){
+            prob = (s->particles.cTot + 1.0) / this->pVolume * std::exp(this->d * this->q - constants::cp - dE);
+            this->acc = &this->pAcc;
+            //particles.numOfCations / volumeP * std::exp(d * particles[r].q - cp + dE);
+        }
+        else{
+            prob = (s->particles.aTot + 1.0) / this->nVolume * std::exp(this->d * this->q - constants::cp - dE);
+            this->acc = &this->nAcc;
+            //particles.numOfAnions / volumeN * std::exp(d * particles[r].q - cp + dE);
+        }
+
+        if(prob >= Random::get_random()){
+            *(this->acc) += 1;
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+    std::string dump(){
+        return "";
     }
 };
 
@@ -348,14 +394,12 @@ class GrandCanonicalAdd : public GrandCanonical{
         std::vector< unsigned int > particles{s->particles.tot - 1};
 
         this->move_callback(particles);
-        totalMoves++;
         attempted++;
-        //printf("Add: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
     }
 
 
     bool accept(double dE){
-        if(accept_imp<true>(dE)){
+        if(accept_add(dE)){
             this->accepted++;
             return true;
         }
@@ -363,6 +407,15 @@ class GrandCanonicalAdd : public GrandCanonical{
             this->rejected++;
             return false;
         }
+    }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << " +: " << (double) this->pAcc / this->pAtt * 100.0 << "%, " << this->pAtt << " (" << this->pAcc <<") ";
+        s << this->id << " -: " << (double) this->nAcc / this->nAtt * 100.0 << "%, " << this->nAtt << " (" << this->nAcc <<") ";
+        return s.str();
     }
 };
 
@@ -402,20 +455,15 @@ class GrandCanonicalRemove : public GrandCanonical{
         p = s->particles[rand2];
         std::vector< unsigned int > particles = {p->index};
         this->q = p->q;
-        /*if(s->particles.cTot == 1 && p->q > 0.0){
-            printf("Trying to remove the last cation\n");
-        }*/
+
         s->particles.remove(p->index); // remove particle
 
         this->move_callback(particles);
-        totalMoves++;
         attempted++;
-
-        //printf("Remove: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
     }
 
     bool accept(double dE){
-        if(accept_imp<false>(dE)){
+        if(accept_rem(dE)){
             this->accepted++;
             return true;
         }
@@ -423,6 +471,15 @@ class GrandCanonicalRemove : public GrandCanonical{
             this->rejected++;
             return false;
         }
+    }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << " +: " << (double) this->pAcc / this->pAtt * 100.0 << "%, " << this->pAtt << " (" << this->pAcc <<") ";
+        s << this->id << " -: " << (double) this->nAcc / this->nAtt * 100.0 << "%, " << this->nAtt << " (" << this->nAcc <<") ";
+        return s.str();
     }
 };
 
@@ -477,7 +534,6 @@ class VolumeMove: public Move{
         //printf("Move: p1 pos %.8lf %.8lf %.8lf\n", this->s->particles[0]->pos[0], this->s->particles[0]->pos[1], this->s->particles[0]->pos[2]);
         this->move_callback(particles);
 
-        totalMoves++;
         this->attempted++;
     }
 
@@ -506,6 +562,14 @@ class VolumeMove: public Move{
 
         return ret;
     }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
+    }
 };
 
 
@@ -532,7 +596,6 @@ class ChargeTrans: public Move{
         //printf("Translating\n");
         s->particles[rand]->chargeTrans(this->stepSize);
         this->move_callback(particles);
-        totalMoves++;
         this->attempted++;
     }
 
@@ -549,6 +612,14 @@ class ChargeTrans: public Move{
          }
 
         return ret;
+    }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
     }
 };
 
@@ -573,12 +644,9 @@ class ChargeTransRand: public Move{
         } while(s->particles[rand]->q < 0.0);
         
         std::vector< unsigned int > particles = {s->particles[rand]->index};
-        //printf("Translating\n");
         s->particles[rand]->chargeTransRand();
         this->move_callback(particles);
-        totalMoves++;
         this->attempted++;
-        //printf("Move end\n");
     }
 
     bool accept(double dE){
@@ -594,5 +662,13 @@ class ChargeTransRand: public Move{
          }
 
         return ret;
+    }
+
+    std::string dump(){
+        std::ostringstream s;
+        s.precision(1);
+        s << std::fixed;
+        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return s.str();
     }
 };
