@@ -26,6 +26,13 @@ class Random{
         return i * (*real_dist)(rand_gen);
     }
 
+    inline static Eigen::Vector3d random_pos_box(double rf, std::vector<double> box){
+        Eigen::Vector3d v;
+        v = get_vector();
+        v << box[0] * v[0], box[1] * v[1], (box[2] - rf) * v[2];
+        return v;
+    }
+
     //inline static Eigen::Vector3d get_random_vector(){
     //    Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
     //    return a;

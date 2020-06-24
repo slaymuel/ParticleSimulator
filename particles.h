@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <tuple>
 //#include "../libxdrfile/include/xdrfile_xtc.h"
 
 class Particles{
@@ -207,6 +208,55 @@ class Particles{
 
         this->pTot++;
     }
+
+
+
+    std::tuple<unsigned int, double> add_random(std::vector<double> box){
+        Eigen::Vector3d com;
+        double rand = Random::get_random();
+        double q;
+
+        //Add cation
+        if(rand < 0.5){
+            com = Random::random_pos_box(this->pModel.rf, box);
+            this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b, "Na");
+            q = this->pModel.q;
+        }
+
+        //Add anion
+        else{
+            com = Random::random_pos_box(this->nModel.rf, box);
+            this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b, "Cl");
+            q = this->nModel.q;
+        }
+        //printf("Adding %i charge %lf com %lf %lf %lf\n", this->tot - 1, q, com[0], com[1], com[2]);
+        return {this->tot - 1, q};
+    }
+
+    std::tuple<unsigned int, double> remove_random(){
+        double q;
+        double rand = Random::get_random();
+        int rand2 = Random::get_random(this->tot);
+
+        if(rand < 0.5){
+            do{
+                rand2 = Random::get_random(this->tot);
+            } while(this->particles[rand2]->q != this->pModel.q);
+        }
+        else{
+            do{
+                rand2 = Random::get_random(this->tot);
+            } while(this->particles[rand2]->q != this->nModel.q);
+        }
+
+        q = this->particles[rand2]->q;
+        if(this->cTot > 0 && this->aTot > 0){
+            this->remove(rand2); // remove particle
+        }
+        //printf("Removing %i charge %lf\n", rand2, q);
+        return {rand2, q};
+    }
+
 
 
     void remove(std::size_t index){

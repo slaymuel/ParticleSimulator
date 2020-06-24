@@ -85,12 +85,12 @@ class Simulator{
                 moves.push_back(new Translate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 1:
-                printf("GC Add Move\n");
-                moves.push_back(new GrandCanonicalAdd(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                printf("GC (Add)\n");
+                moves.push_back(new GrandCanonical<true>(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 2:
-                printf("GC Remove\n");
-                moves.push_back(new GrandCanonicalRemove(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                printf("GC (Remove)\n");
+                moves.push_back(new GrandCanonical<false>(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 3:
                 printf("Rotation Move\n");
@@ -164,7 +164,7 @@ class Simulator{
 
         //Make sure move list is not corrupted
         assert(this->mWeights.back() == 1.0);
-        
+
         this->state.finalize(this->name);
     }
 
