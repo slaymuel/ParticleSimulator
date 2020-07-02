@@ -25,8 +25,8 @@ class Density : public Sampler{
     private:
 
     double binWidth, dh, xb, yb;
-    std::vector<int> pDens;
-    std::vector<int> nDens;
+    std::vector<unsigned long long int> pDens;
+    std::vector<unsigned long long int> nDens;
     int d, bins;
 
     public:
@@ -47,11 +47,11 @@ class Density : public Sampler{
         for(unsigned int i = 0; i < state.particles.tot; i++){
             //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
             if(state.particles.particles[i]->q > 0){
-                pDens.at( (int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
+                pDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
 
             else{
-                nDens.at( (int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
+                nDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
             }
         }
         this->samples++;
@@ -62,7 +62,7 @@ class Density : public Sampler{
         if (f.is_open())
         {
             for(unsigned int i = 0; i < this->pDens.size(); i++){
-                f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 -  this->dh<< " " <<  
                      (double) this->pDens[i] / (this->xb * this->yb * this->binWidth * this->samples) << "\n";
             }
             f.close();
@@ -73,7 +73,7 @@ class Density : public Sampler{
         if (fi.is_open())
         {
             for(unsigned int i = 0; i < this->nDens.size(); i++){
-                fi << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
+                fi << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 -  this->dh << " " <<  
                       (double) this->nDens[i] / (this->xb * this->yb * this->binWidth * this->samples) << "\n";
             }
             fi.close();
@@ -243,9 +243,9 @@ class XDR : public Sampler{
         
         if (xdf != nullptr) {
             rvec *ps = new rvec[state.particles.tot];
-            size_t N = 0;
+            //size_t N = 0;
 
-            for (int i = 0; i < state.particles.tot; i++) {
+            for (unsigned int i = 0; i < state.particles.tot; i++) {
                 ps[i][0] = state.particles[i]->pos[0] * 0.1 + state.geo->_d[0] * 0.5;
                 ps[i][1] = state.particles[i]->pos[1] * 0.1 + state.geo->_d[1] * 0.5;
                 ps[i][2] = state.particles[i]->pos[2] * 0.1 + state.geo->_d[2] * 0.5; 
@@ -261,6 +261,50 @@ class XDR : public Sampler{
         }
     }
 };
+
+
+class NumIons : public Sampler{
+    private:
+
+    std::vector<unsigned long long int> pNum;
+    std::vector<unsigned long long int> nNum;
+
+    public:
+
+    NumIons(int interval, std::string filename) : Sampler(interval){
+        this->filename = filename;
+    }
+
+    void sample(State& state){
+        pNum.push_back(state.particles.cTot);
+        nNum.push_back(state.particles.aTot);
+    }
+
+    void save(){
+        std::ofstream f ("pNum_" + this->filename + ".txt");
+        if (f.is_open())
+        {
+            for(unsigned int i = 0; i < this->pNum.size(); i++){
+                f << this->pNum[i] << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+        
+        std::ofstream fi ("nNum_" + this->filename + ".txt");
+        if (fi.is_open())
+        {
+            for(unsigned int i = 0; i < this->nNum.size(); i++){
+                fi << this->nNum[i] << "\n";
+            }
+            fi.close();
+        }
+        else std::cout << "Unable to open file";
+    }
+
+    void close(){};
+};
+
 
 
 }

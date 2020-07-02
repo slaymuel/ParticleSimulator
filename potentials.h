@@ -8,6 +8,8 @@
                               std::transform(omp_out.begin(), omp_out.end(), omp_in.begin(), omp_out.begin(), std::plus<std::complex<double>>())) \
                     initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
 */
+
+
 class Coulomb{
     public:
 
@@ -328,9 +330,9 @@ namespace EwaldLike{
 
 
         inline std::complex<double> Ak(unsigned int i){
-            std::complex<double> energy1;
-            std::complex<double> energy2;
-            std::complex<double> energy3;
+            //std::complex<double> energy1;
+            //std::complex<double> energy2;
+            //std::complex<double> energy3;
             std::complex<double> energy4;
 
             std::complex<double> c1;
@@ -855,6 +857,11 @@ namespace EwaldLike{
             this->kVec.clear();
             this->resFac.clear();
             this->kNorm.clear();
+            this->rkVec.clear();
+            if(!this->rkVec.empty()){
+                printf("rkVec is not empty!\n");
+                exit(0);
+            }
             this->selfTerm = 0.0;
             
             //get k-vectors
@@ -997,7 +1004,8 @@ namespace EwaldLike{
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
-            return energy * constants::PI / (this->volume) - this->selfTerm;
+            //return energy * constants::PI / (this->volume) - this->selfTerm;
+            return (-this->selfTerm);
         } 
     };
 

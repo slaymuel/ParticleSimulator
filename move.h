@@ -20,7 +20,7 @@ class Move{
     public:
     double weight;
 
-    Move(double step, double w, CallBack move_callback) : stepSize(step), weight(w), move_callback(move_callback){
+    Move(double step, double w, CallBack move_callback) : stepSize(step), move_callback(move_callback), weight(w){
         this->accepted = 0;
         this->rejected = 0;
         this->attempted = 0;
@@ -38,8 +38,9 @@ class Translate : public Move{
     public:
 
     Translate(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
-        printf("\tStepsize: %lf\n", step);
         this->id = "Trans";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tStepsize: %lf\n", step);
     }
 
 
@@ -84,8 +85,9 @@ class Rotate : public Move{
     public:
 
     Rotate(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
-        printf("\tStepsize: %lf\n", step);
         this->id = "Rot";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tStepsize: %lf\n", step);
     }
 
 
@@ -129,20 +131,15 @@ class Swap : public Move{
 
     public:
     Swap(State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state){
-        //printf("\t\tSwap Move\n");
         this->id = "Swap";
+        printf("\t%s\n", this->id.c_str());
     }
     void operator()(std::shared_ptr<Particle> p){
-
-            
-        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        //std::vector< unsigned int > particles = {p->index};
         int rand = Random::get_random(s->particles.tot), rand2;
 
         do{
             rand2 = Random::get_random(s->particles.tot);
         } while(this->s->particles[rand]->q == this->s->particles[rand2]->q);
-        //printf("Before: q1: %lf q2: %lf\n", s->particles.particles[rand]->q, s->particles.particles[rand2]->q);
 
         /*std::swap(this->s->particles.particles[rand]->q, this->s->particles.particles[rand2]->q);
         std::swap(this->s->particles.particles[rand]->name, this->s->particles.particles[rand2]->name);
@@ -153,8 +150,6 @@ class Swap : public Move{
 
         std::swap(this->s->particles.particles[rand]->pos, this->s->particles.particles[rand2]->pos);
         std::swap(this->s->particles.particles[rand]->com, this->s->particles.particles[rand2]->com);
-
-        //printf("After: q1: %lf q2: %lf\n", s->particles.particles[rand]->q, s->particles.particles[rand2]->q);
         std::vector< unsigned int > particles = {static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)};
 
 
@@ -200,6 +195,7 @@ class SingleSwap : public Move{
     SingleSwap(State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state){
         //printf("\t\tSwap Move\n");
         this->id = "SingleSwap";
+        printf("\t%s\n", this->id.c_str());
     }
     
     void operator()(std::shared_ptr<Particle> p){
@@ -207,7 +203,8 @@ class SingleSwap : public Move{
             
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         //std::vector< unsigned int > particles = {p->index};
-        int rand = Random::get_random(s->particles.tot), rand2;
+        int rand = Random::get_random(s->particles.tot);
+        //int rand2;
 
         //If cation
         if(this->s->particles[rand]->q > 0){
@@ -305,7 +302,7 @@ class GrandCanonical : public Move{
         else{
             this->id = "GCRem";
         }
-
+        printf("\t%s\n", this->id.c_str());
         constants::cp = chemPot;
         this->cp = chemPot;
         this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
@@ -318,14 +315,12 @@ class GrandCanonical : public Move{
         UNUSED(p);
         if(ADD){
             auto [ind, qt] = s->particles.add_random(s->geo->_dh);
-            //printf("add got %i, %lf\n\n", ind, qt);
             this->q = qt;
             std::vector< unsigned int > particles{ind};
             this->move_callback(particles);
         }
         else{
             auto [ind, qt] = s->particles.remove_random();
-            //printf("remove got %i, %lf\n\n", ind, qt);
             this->q = qt;
             std::vector< unsigned int > particles{ind};
             this->move_callback(particles);        
@@ -339,7 +334,7 @@ class GrandCanonical : public Move{
         // ADD
         if(ADD){
             //Cation
-            if(this->q > 0){
+            if(this->q > 0.0){
                 prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE);
                 this->acc = &this->pAcc;
                 this->pAtt++;
@@ -354,7 +349,7 @@ class GrandCanonical : public Move{
         // REMOVE
         else{
             //Cation
-            if(this->q > 0){
+            if(this->q > 0.0){
                 prob = (s->particles.cTot + 1.0) / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
                 this->acc = &this->pAcc;
                 this->pAtt++;
@@ -401,6 +396,7 @@ class VolumeMove: public Move{
     public:
     VolumeMove(State* s, double step, double pressure, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
         this->id = "Vol";
+        printf("\t%s\n", this->id.c_str());
         this->pressure = pressure * this->unit;
         printf("\tPressure: %lf\n", this->pressure);
         printf("\tStepsize: %lf\n", step);
@@ -416,7 +412,7 @@ class VolumeMove: public Move{
         //printf("Changing volume by: %lf\n", V - this->s->geo->volume);
         double L = std::cbrt(V);
         double RL = L / this->s->geo->_d[0];
-        double oldL = this->s->geo->_d[0];
+        //double oldL = this->s->geo->_d[0];
 
         std::vector<double> LV = {L, L, L};
         std::vector<double> LVh = {L / 2.0, L / 2.0, L / 2.0};
@@ -428,17 +424,14 @@ class VolumeMove: public Move{
         this->s->geo->volume = V;
 
         std::vector< unsigned int > particles;
-        //printf("Move: p1 %.8lf %.8lf %.8lf\n", this->s->particles[0]->com[0], this->s->particles[0]->com[1], this->s->particles[0]->com[2]);
-        //printf("Move: p1 pos %.8lf %.8lf %.8lf\n", this->s->particles[0]->pos[0], this->s->particles[0]->pos[1], this->s->particles[0]->pos[2]);
-        for(int i = 0; i < this->s->particles.tot; i++){
+
+        for(unsigned int i = 0; i < this->s->particles.tot; i++){
             this->s->particles[i]->com *= RL;
             this->s->particles[i]->pos = this->s->particles[i]->com + this->s->particles[i]->qDisp;
             particles.push_back(s->particles[i]->index);
         }
-        //printf("Move: p1 %.8lf %.8lf %.8lf\n", this->s->particles[0]->com[0], this->s->particles[0]->com[1], this->s->particles[0]->com[2]);
-        //printf("Move: p1 pos %.8lf %.8lf %.8lf\n", this->s->particles[0]->pos[0], this->s->particles[0]->pos[1], this->s->particles[0]->pos[2]);
-        this->move_callback(particles);
 
+        this->move_callback(particles);
         this->attempted++;
     }
 
@@ -448,14 +441,6 @@ class VolumeMove: public Move{
         double prob = exp(-dE - this->pressure * (this->s->geo->volume - _oldV) + //  0.0000243     0.005      0.00383374 0.000024305278638
                       (this->s->particles.tot + 1) * std::log(this->s->geo->volume / _oldV));
 
-        /*
-        printf("press: %lf\n", this->pressure * (this->s->geo->volume - _oldV));
-        printf("dE: %lf\n", dE);
-        printf("p: %lf\n", (this->s->particles.tot) * std::log(this->s->geo->volume / _oldV));
-        printf("tot: %lf\n", -dE - this->pressure * (this->s->geo->volume - _oldV) +
-                            (this->s->particles.tot) * std::log(this->s->geo->volume / _oldV));
-        printf("prob: %lf\n", prob);
-        */
         if(prob >= Random::get_random()){
             ret = true;
             this->accepted++;
@@ -486,8 +471,9 @@ class ChargeTrans: public Move{
     public:
 
     ChargeTrans(State* s, double step, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
-        printf("\tStepsize: %lf\n", step);
         this->id = "qTrans";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tStepsize: %lf\n", step);
     }
 
 
@@ -538,6 +524,7 @@ class ChargeTransRand: public Move{
 
     ChargeTransRand(State* s, double step, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
         this->id = "qTransRand";
+        printf("\t%s\n", this->id.c_str());
     }
 
 

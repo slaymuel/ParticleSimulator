@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include "constants.h"
+#include "ran2_lib.h"
 
 class Random{
     private:
@@ -19,11 +20,12 @@ class Random{
     }
 
     inline static double get_random(){
-        return (*real_dist)(rand_gen);
+        //return (*real_dist)(rand_gen);
+        return ran2::get_random();
     }
 
     inline static int get_random(int i){
-        return i * (*real_dist)(rand_gen);
+        return i * get_random();
     }
 
     inline static Eigen::Vector3d random_pos_box(double rf, std::vector<double> box){
@@ -40,11 +42,11 @@ class Random{
 
     struct get_vector{
         inline operator Eigen::Vector3d(){
-            Eigen::Vector3d v((double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ) );
+            Eigen::Vector3d v(get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0);
             return v;
         }
         inline operator std::vector<double>(){
-            std::vector<double> v = { (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ), (double)( (*real_dist)(rand_gen) * 2.0 - 1.0 ) };
+            std::vector<double> v = {get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0};
             return v;
         }
     };

@@ -41,21 +41,14 @@ class State{
         #endif
         
         this->energy = 0.0;
-        int count = 0;
         for(auto e : this->energyFunc){
+            //printf("Before initialize: %.10lf\n", e->all2all(this->particles));
             if(this->step % 100 == 0){
                 e->initialize(this->particles);
             }
+            //printf("After initialize: %.10lf\n", e->all2all(this->particles));
             this->energy += e->all2all(this->particles);
-            //printf("Energy %i is: %.15lf\n", count, e->all2all(this->particles));
-            //count++;
         }
-
-        /*
-        for(auto e : this->energyFunc){
-            this->energy += e->all2all(this->particles);;
-        }
-        */
 
         this->error = std::fabs((this->energy - this->cummulativeEnergy) / this->energy);
 
@@ -65,7 +58,7 @@ class State{
             printf("_old state has %i particles and current state has %i.\n", _old->particles.tot, this->particles.tot);
             exit(1);
         }
-
+        unsigned int cations = 0, anions = 0;
         for(unsigned int i = 0; i < this->particles.tot; i++){
             if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
                                                                 this->particles.particles[i]->b) > 1e-5){
@@ -80,6 +73,12 @@ class State{
                 std::cout << "\n" << this->_old->particles.particles[i]->pos<< std::endl;
                 exit(1);
             }
+            if(this->particles.particles[i]->com != this->_old->particles.particles[i]->com){
+                printf("current center of mass is not equal to old for particle %i.\n", i);
+                std::cout << this->particles.particles[i]->com << std::endl;
+                std::cout << "\n" << this->_old->particles.particles[i]->com << std::endl;
+                exit(1);
+            }
             if(this->particles.particles[i]->index != i){
                 printf("index is wrong in current for particle %i, it has index %i.\n", i, this->particles.particles[i]->index );
                 exit(1);
@@ -88,11 +87,29 @@ class State{
                 printf("index is wrong in in _old for particle %i, it has index %i.\n", i, this->_old->particles.particles[i]->index );
                 exit(1);
             }
+
+            (this->particles.particles[i]->q > 0.0) ? cations++ : anions++;
+        }
+
+        if(cations != this->particles.cTot || anions != this->particles.aTot){
+            printf("Wrong number of cations or anions!\n");
+            printf("Cations %i should be %i. Anions %i should be %i\n", this->particles.cTot, cations, this->particles.aTot, anions);
+            exit(0);
         }
 
         if(this->particles.cTot + this->particles.aTot != this->particles.tot){
-            printf("Ctot + aTot != tot\n");
-            exit(1);
+            printf("cTot + aTot != tot\n");
+            exit(0);
+        }
+
+        if(!this->movedParticles.empty()){
+            printf("Moved particles is not empty!\n");
+            exit(0);
+        }
+
+        if(!this->_old->movedParticles.empty()){
+            printf("_old Moved particles is not empty!\n");
+            exit(0);
         }
         #endif
 
@@ -117,9 +134,7 @@ class State{
             this->energy += e->all2all(this->particles);
         }
         this->cummulativeEnergy = this->energy;
-        printf("\tEnergy of the first frame is: %lf\n\n", this->energy);
-
-        //io.open(name);
+        printf("\tEnergy of the first frame is: %.15lf\n\n", this->energy);
     }
 
     void reset_energy(){
@@ -133,16 +148,9 @@ class State{
     }
 
     void save(){
-        //printf("Save:\n");
-        //printf("current moved %lu\n", this->movedParticles.size());
-        //printf("old moved %lu\n\n", this->_old->movedParticles.size());
-        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
-        //printf("p1 old %.8lf %.8lf %.8lf\n", this->_old->particles[0]->com[0], this->_old->particles[0]->com[1], this->_old->particles[0]->com[2]);
         for(auto i : this->movedParticles){
             if(this->particles.tot > this->_old->particles.tot){
-                //printf("\nSave: adding particle %i to old\n\n", i);
                 this->_old->particles.add(this->particles.particles[i]);
-                //this->_old->particles.add(this->particles.particles[i], i);
             }
             else if(this->particles.tot == this->_old->particles.tot){
                 *(this->_old->particles.particles[i]) = *(this->particles.particles[i]);
@@ -151,11 +159,9 @@ class State{
                 this->_old->particles.aTot = this->particles.aTot;
             }
         }
-        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
-        //printf("p1 old %.8lf %.8lf %.8lf\n", this->_old->particles[0]->com[0], this->_old->particles[0]->com[1], this->_old->particles[0]->com[2]);
+
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
-                //printf("\nSave: removing particle %i from old\n\n", i);
                 this->_old->particles.remove(i);
             }
         }
@@ -164,7 +170,6 @@ class State{
         this->_old->movedParticles.clear();
         this->cummulativeEnergy += this->dE;
 
-        //printf("save b: old box: %lf %lf %lf\n", this->_old->geo->dh[0], this->_old->geo->dh[1], this->_old->geo->dh[2]);
         if(this->geo->volume != this->_old->geo->volume){
             //Update old geometry
             this->_old->geo->d = this->geo->d;
@@ -173,7 +178,6 @@ class State{
             this->_old->geo->_dh = this->geo->_dh;
             this->_old->geo->volume = this->geo->volume;
         }
-        //printf("Save a: old box: %lf %lf %lf\n", this->_old->geo->dh[0], this->_old->geo->dh[1], this->_old->geo->dh[2]);
     }
 
 
@@ -182,7 +186,6 @@ class State{
         if(this->dE != std::numeric_limits<double>::infinity()){
             for(auto e : this->energyFunc){
                 if(this->geo->volume != this->_old->geo->volume){
-                    //printf("Volume move, reverting energy\n");
                     e->update(this->_old->geo->d[0], this->_old->geo->d[1], this->_old->geo->d[2]);
                     e->initialize(this->_old->particles);
                 }
@@ -206,8 +209,7 @@ class State{
                 this->particles.aTot = this->_old->particles.aTot;
             }
         }
-        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
-        //   REARRANGE, MOVE CONDITION OUTSIDE OF LOOP, LESS GENERAL THOUGH.....
+    
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
                 //printf("\nRevert: adding back particle %i to current\n", i);
@@ -241,14 +243,11 @@ class State{
 
         for(auto e : this->energyFunc){
             //stupid design
+
             e->geo = this->_old->geo;
-            //auto start = std::chrono::steady_clock::now();
 
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
-            //printf("b Energy: %lf\n", (*e)( this->_old->movedParticles, this->_old->particles ));
-            //auto end = std::chrono::steady_clock::now();
-            //std::cout << "Energy: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us\n\n";
-            //start = std::chrono::steady_clock::now();
+
             e->geo = this->geo;
             if(this->geo->volume != this->_old->geo->volume){
                 e->update(this->geo->d[0], this->geo->d[1], this->geo->d[2]);
@@ -257,36 +256,35 @@ class State{
             else{
                 e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
             }
-            //printf("a Energy:%lf\n", (*e)( this->_old->movedParticles, this->_old->particles ));
-            //end = std::chrono::steady_clock::now();
-            //std::cout << "Update: " << (double) std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.0 << "us " <<  "\n\n";
+
             E2 += (*e)( this->movedParticles, this->particles );
-            //std::cout << this->_old->particles[this->_old->movedParticles[0]]->q << " " << this->particles[this->_old->movedParticles[0]]->q  << std::endl;
         }
-        //printf("cummulativeEnergy: %lf E1: %lf\n", this->cummulativeEnergy, E1);
+
         this->dE = E2 - E1;
-        //printf("dE = %lf\n", this->dE);
+
         return this->dE;
     }
 
 
     //Called after move - set movedParticles
     void move_callback(std::vector< unsigned int > ps){   
-        for(auto i : ps){
-            geo->pbc(particles[i]);
-        }
-
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
 
-        //If a particle is removed, this->movedparticles is empty. If particle is added this->_old->particles is empty
+        //If a particle is removed, this->movedparticles is empty. 
+        //If particle is added this->_old->particles is empty
         if(this->particles.tot >= this->_old->particles.tot){
             std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
                                                     this->movedParticles.push_back(i); });
         }
 
-        std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), [this](int i){ return i < this->_old->particles.tot; });
+        std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), 
+                                            [this](unsigned int i){ return i < this->_old->particles.tot; });
 
-        //printf("%lu particles moved, old %lu\n", this->movedParticles.size(),this->_old->movedParticles.size());
+        if(!this->movedParticles.empty()){                                  
+            for(auto i : ps){
+                geo->pbc(particles[i]);
+            }
+        }
     }
 
 
@@ -296,10 +294,9 @@ class State{
         
         // Initial Check
         int i = 0, overlaps = this->get_overlaps();
-        //exit(0);
         if(overlaps > 0){
             printf("\tRandomly placing particles\n");
-            for(unsigned int i = 0; i < this->particles.pTot; i++){
+            for(unsigned int i = 0; i < this->particles.tot; i++){
                 this->particles.particles[i]->com = this->geo->random_pos(this->particles.particles[i]->rf);
                 this->particles.particles[i]->pos = this->particles.particles[i]->com + this->particles.particles[i]->qDisp;
             }
@@ -349,7 +346,6 @@ class State{
             if(p->index == i) continue;
 
             if(this->geo->distance(p->com, this->particles.particles[i]->com) <= p->r + this->particles.particles[i]->r){
-                //printf("%lf\n", this->geo->distance(p->com, this->particles.particles[i]->com));
                 return true;
             }
         }
@@ -548,18 +544,4 @@ class State{
     void load_spline(std::vector<double> aKnots, std::vector<double> bKnots, std::vector<double >controlPoints){
         spline.load(aKnots, bKnots, controlPoints);
     }
-
-/*
-    void close(){
-        io.close();
-    }
-
-    void to_xtc(int step, int time){
-        io.to_xtc(particles, geo->d, step, time);
-    }
-
-    void to_gro(std::string fileName){
-        io.to_gro(fileName, particles, geo->d);
-    }
-*/
 };

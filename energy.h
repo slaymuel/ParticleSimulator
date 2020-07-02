@@ -37,7 +37,6 @@ class EnergyBase{
 
 
 
-
 template <typename E>
 class PairEnergy : public EnergyBase{
 
@@ -513,7 +512,8 @@ class MIHalfwald : public EnergyBase{
     MIHalfwald(int kMax) : kMax(kMax){}
 
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
-        double CC = 0.0, CpC = 0.0, self = 0.0;
+        double CC = 0.0, CpC = 0.0;
+        //double self = 0.0;
         Eigen::Vector3d temp;
 
         // CC

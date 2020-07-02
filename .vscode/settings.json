@@ -83,6 +83,7 @@
         "bit": "cpp",
         "stack": "cpp",
         "core": "cpp",
-        "lu": "cpp"
+        "lu": "cpp",
+        "__functional_03": "cpp"
     }
 }

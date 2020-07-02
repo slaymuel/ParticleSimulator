@@ -78,42 +78,33 @@ class Simulator{
 
 
     void add_move(int i, double dp, double p, double cp = 0.0, double d = 0.0){
-        printf("\nAdding move: ");
+        printf("\nAdding move:\n");
         switch(i){
             case 0:
-                printf("Translation Move\n");
                 moves.push_back(new Translate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 1:
-                printf("GC (Add)\n");
                 moves.push_back(new GrandCanonical<true>(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 2:
-                printf("GC (Remove)\n");
                 moves.push_back(new GrandCanonical<false>(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 3:
-                printf("Rotation Move\n");
                 moves.push_back(new Rotate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 4:
-                printf("Swap Move\n");
                 moves.push_back(new Swap(&state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 5:
-                printf("Single Swap Move\n");
                 moves.push_back(new SingleSwap(&state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 6:
-                printf("Volume Move\n");
                 moves.push_back(new VolumeMove(&state, dp, cp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 7:
-                printf("ChargeTrans Move\n");
                 moves.push_back(new ChargeTrans(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 8:
-                printf("ChargeTransRand Move\n");
                 moves.push_back(new ChargeTransRand(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             default:
@@ -147,7 +138,10 @@ class Simulator{
                 printf("Adding XDR trajectory sampler\n");
                 sampler.push_back(new Samplers::XDR(interval, this->name));
                 break;
-
+            case 5:
+                printf("Adding number of ions sampler\n");
+                sampler.push_back(new Samplers::NumIons(interval, this->name));
+                break;
             default:
                 break;
         }
@@ -158,7 +152,7 @@ class Simulator{
         std::sort(this->moves.begin(), this->moves.end(), comparators::mLess);
         std::sort(this->mWeights.begin(), this->mWeights.end());
 
-        for(int i = 1; i < this->mWeights.size(); i++){
+        for(unsigned int i = 1; i < this->mWeights.size(); i++){
             this->mWeights[i] += this->mWeights[i - 1];
         }
 
@@ -168,7 +162,7 @@ class Simulator{
         this->state.finalize(this->name);
     }
 
-    void run(int macroSteps, int microSteps, int eqSteps){
+    void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps){
 
         printf("            +\n"                                            
                "           (|)\n"
@@ -184,15 +178,18 @@ class Simulator{
 
 
         printf("Bjerrum length is: %.15lf\n", constants::lB);
-        std::cout << "Running simulation at: " << constants::T << "K, "<< " with: " << state.particles.particles.size() 
-                                                                << " particles" << std::endl;
+        std::cout << "Running simulation at: " << constants::T << "K, "
+                                                                << " with: " 
+                                                                << state.particles.particles.size() << " particles ( "
+                                                                << state.particles.cTot << " cations, " 
+                                                                << state.particles.aTot <<" anions)" 
+                                                                << std::endl;
 
-        for(int macro = 0; macro < macroSteps; macro++){
+        for(unsigned int macro = 0; macro < macroSteps; macro++){
+            //printf("Macro\n");
             auto start = std::chrono::steady_clock::now();
-            for(int micro = 0; micro <= microSteps; micro++){
-                
+            for(unsigned int micro = 0; micro <= microSteps; micro++){
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
-                //printf("moving\n");
                 (*moves[wIt - mWeights.begin()])(state.particles.random());
                 //printf("accepting\n");
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
@@ -221,7 +218,7 @@ class Simulator{
             state.control();
             state.advance();
             //Print progress
-            std::cout << "\nIteration: " << macro * microSteps + microSteps << std::endl;
+            std::cout << "\nIteration (macrostep): " << macro << std::endl;
 
             printf("Acceptance ratios: \n");
             /*for(auto move : moves){
@@ -274,42 +271,32 @@ class Simulator{
 int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
+    std::string infile = "internal_test_1000K2_cont9_no_rec_gnu.cp";
+    std::string outfile = "internal_test_1000K2_cont9_no_rec";
 
-    Simulator* sim = new Simulator(78.3, 298.0, "hw_gc_-2d");
+    double cutoff = 27.5;
+    Simulator* sim = new Simulator(2.0, 1000.0, outfile);
 
-    sim->state.set_geometry(2, std::vector<double>{200, 200, 145});
-    sim->state.set_energy(2, std::vector<double>{100.0, 7, 7.0 / sim->state.geo->d[0]});
-    //sim->state.particles.create(383, 247, 2.0, -1.0, 0.5, 2.5);
+    sim->state.set_geometry(2, std::vector<double>{172, 172, 55});
+    sim->state.set_energy(2, std::vector<double>{cutoff, 7, 7, 7, constants::PI / cutoff});
+    //sim->state.particles.create(200, 200, 1.0, -1.0 , 0.5, 2.5, 2.5, 2.5, 0.0, 0.0);
+    sim->state.particles.read_cp(infile);
 
-    std::vector< double > b;
-    std::vector< double > q;
-    std::vector< std::string > n;
-    n.push_back("Na");
-    n.push_back("Cl");
-    b.push_back(0.0);
-    b.push_back(0.0);
-    q.push_back(1.0);
-    q.push_back(-1.0);
-    std::vector< std::vector<double> > pos;
-    pos.emplace_back();
-    pos.back() = {0, 0, 4.5};
-    pos.emplace_back();
-    pos.back() = {0, 0, -4.5};
-    sim->state.particles.load(pos, q, b, n);
-
-    //After set_geometry and particles.create
-    sim->add_move(0, 0.0, 1.00);
-    //sim->add_move(1, 0.0, 0.005, -10.7, 0.0);
-    //sim->add_move(2, 0.0, 0.005, -10.7, 0.0);
+    sim->add_move(0, 0.12, 0.49);
+    sim->add_move(0, 25.0, 0.01);
+    sim->add_move(1, 0.0, 0.25, -16.0, 0.0);
+    sim->add_move(2, 0.0, 0.25, -16.0, 0.0);
 
     sim->add_sampler(0, 100);
+    sim->add_sampler(2, 100);
+    //sim->add_sampler(5, 100);
+    sim->add_sampler(6, 100);
 
-
-    sim->state.equilibrate(5.0);
+    sim->state.equilibrate(10.0);
 
     //After equilibrate
-    sim->state.finalize();
-    sim->run(1, 0, 0);
+    sim->finalize();
+    sim->run(5000, 10000, 0);
     //sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
@@ -357,5 +344,10 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("b", &Particle::b)
         .def_readonly("r", &Particle::r)
         .def_readonly("rf", &Particle::rf);
+
+//    py::class_<Random>(m, "Random")
+//        .def("get_random", &Random::get_random);
+
+
 }
 #endif
