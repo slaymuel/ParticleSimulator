@@ -271,32 +271,38 @@ class Simulator{
 int main(){
 
     //trans.operator()<decltype(ps[1])>(ps[0]);
-    std::string infile = "internal_test_1000K2_cont9_no_rec_gnu.cp";
-    std::string outfile = "internal_test_1000K2_cont9_no_rec";
+    std::string infile = "fgarpm_bulk.cp";
+    std::string outfile = "fgarpm_bulk";
+    
+    double cutoff = 30.0;
+    Simulator* sim = new Simulator(2.0, 900.0, outfile);
 
-    double cutoff = 27.5;
-    Simulator* sim = new Simulator(2.0, 1000.0, outfile);
+    sim->state.set_geometry(0, std::vector<double>{60.0, 60.0, 60.0});
+    sim->state.set_energy(1, std::vector<double>{cutoff, 7, 7, 7, constants::PI / cutoff, 1, false});
+    //sim->state.set_energy(9, {0.00425});
 
-    sim->state.set_geometry(2, std::vector<double>{172, 172, 55});
-    sim->state.set_energy(2, std::vector<double>{cutoff, 7, 7, 7, constants::PI / cutoff});
-    //sim->state.particles.create(200, 200, 1.0, -1.0 , 0.5, 2.5, 2.5, 2.5, 0.0, 0.0);
+    //sim->state.particles.create(378, 378, 1.0, -1.0 , 2.5, 2.5, 2.5, 2.5, 0.0, 0.0);
     sim->state.particles.read_cp(infile);
-
+    //sim->state.particles.set_models(std::vector<double>{1.0, -1.0}, std::vector<double>{2.5, 2.5}, std::vector<double>{2.5, 2.5},
+    //                                std::vector<double>{0.0, 0.0}, std::vector<std::string>{"Na", "Cl"});
     sim->add_move(0, 0.12, 0.49);
-    sim->add_move(0, 25.0, 0.01);
+    sim->add_move(0, 30.0, 0.01);
     sim->add_move(1, 0.0, 0.25, -16.0, 0.0);
     sim->add_move(2, 0.0, 0.25, -16.0, 0.0);
+    //sim->add_move(6, 0.00025, 0.005, 101325.0);
+    //sim->add_move(8, 0.2, 0.3);
 
-    sim->add_sampler(0, 100);
-    sim->add_sampler(2, 100);
+
+    //sim->add_sampler(0, 100);
+    //sim->add_sampler(2, 100);
+    //sim->add_sampler(3, 100);
     //sim->add_sampler(5, 100);
-    sim->add_sampler(6, 100);
 
     sim->state.equilibrate(10.0);
 
     //After equilibrate
     sim->finalize();
-    sim->run(5000, 10000, 0);
+    sim->run(500, 10000, 0);
     //sim->state.particles.to_xyz("hej.xyz");
     //std::function<void(std::vector<int>)> move_callback = [state](std::vector<int> indices) { state.move_callback(indices); }
 
@@ -334,7 +340,9 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("pModel", &Particles::pModel)
         .def_readonly("nModel", &Particles::nModel)
         .def("load", &Particles::load)
-        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
+        .def("set_models", &Particles::set_models, py::arg("q"), py::arg("r"), py::arg("rf"), py::arg("b"), py::arg("names"))
+        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, 
+                    py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
 
     py::class_<Particle>(m, "Particle")
         .def_readonly("com", &Particle::com)
@@ -344,10 +352,5 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("b", &Particle::b)
         .def_readonly("r", &Particle::r)
         .def_readonly("rf", &Particle::rf);
-
-//    py::class_<Random>(m, "Random")
-//        .def("get_random", &Random::get_random);
-
-
 }
 #endif

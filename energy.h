@@ -50,7 +50,7 @@ class PairEnergy : public EnergyBase{
         double e = 0.0;
 
         //printf("all2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
-        //#pragma omp parallel for reduction(+:e) schedule(guided, 100) if(particles.tot >= 500)
+        #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
         for(unsigned int i = 0; i < particles.tot; i++){
             for(unsigned int j = i + 1; j < particles.tot; j++){
                 //printf("distance %lf\n", this->geo->distance(particles[i]->pos, particles[j]->pos));
@@ -65,7 +65,6 @@ class PairEnergy : public EnergyBase{
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double e = 0.0;
         
-        //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
         for (unsigned int i = 0; i < particles.tot; i++){
             if (p->index == particles[i]->index) continue;
             e += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
@@ -77,16 +76,22 @@ class PairEnergy : public EnergyBase{
     double operator()(std::vector< unsigned int >&& p, Particles& particles){
         //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
         double e = 0.0;
-        for(auto s : p){
-            //do instead i2all(s, particles);
-            e += i2all(particles.particles[s], particles);
-            //remove s from particles (temporary)
+        // Need to fix this, not a nice solution.........
+        if(p.size() == particles.tot){
+            e = all2all(particles) / constants::lB;
         }
+        else{
+            #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+            for(int i = 0; i < p.size(); i++){
+                //do instead i2all(s, particles);
+                e += i2all(particles.particles[p[i]], particles);
+            }
 
-        for(int i = 0; i < p.size(); i++){
-           for(int j = i + 1; j < p.size(); j++){
-               e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
-           }
+            for(int i = 0; i < p.size(); i++){
+                for(int j = i + 1; j < p.size(); j++){
+                    e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
+                }
+            }
         }
 
         return e * constants::lB;
@@ -95,17 +100,22 @@ class PairEnergy : public EnergyBase{
     double operator()(std::vector< unsigned int >& p, Particles& particles){
         //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
         double e = 0.0;
-        for(auto s : p){
-            //do instead i2all(s, particles);
-            e += i2all(particles.particles[s], particles);
-
-            //remove s from particles (temporary)
+        // Need to fix this, not a nice solution.........
+        if(p.size() == particles.tot){
+            e = all2all(particles) / constants::lB;
         }
+        else{
+            #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+            for(int i = 0; i < p.size(); i++){
+                //do instead i2all(s, particles);
+                e += i2all(particles.particles[p[i]], particles);
+            }
 
-        for(int i = 0; i < p.size(); i++){
-           for(int j = i + 1; j < p.size(); j++){
-               e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
-           }
+            for(int i = 0; i < p.size(); i++){
+                for(int j = i + 1; j < p.size(); j++){
+                    e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
+                }
+            }
         }
 
         return e * constants::lB;

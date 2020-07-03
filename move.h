@@ -314,6 +314,7 @@ class GrandCanonical : public Move{
     void operator()(std::shared_ptr<Particle> p){
         UNUSED(p);
         if(ADD){
+            
             auto [ind, qt] = s->particles.add_random(s->geo->_dh);
             this->q = qt;
             std::vector< unsigned int > particles{ind};
@@ -405,14 +406,10 @@ class VolumeMove: public Move{
 
     void operator()(std::shared_ptr<Particle> p){
         _oldV = this->s->geo->volume;
-        //double vMax = 0.00025;
         double lnV = std::log(this->s->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
         double V = std::exp(lnV);
-        //V = this->s->geo->volume + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
-        //printf("Changing volume by: %lf\n", V - this->s->geo->volume);
         double L = std::cbrt(V);
         double RL = L / this->s->geo->_d[0];
-        //double oldL = this->s->geo->_d[0];
 
         std::vector<double> LV = {L, L, L};
         std::vector<double> LVh = {L / 2.0, L / 2.0, L / 2.0};
@@ -438,8 +435,8 @@ class VolumeMove: public Move{
     bool accept(double dE){
         bool ret = false;
         
-        double prob = exp(-dE - this->pressure * (this->s->geo->volume - _oldV) + //  0.0000243     0.005      0.00383374 0.000024305278638
-                      (this->s->particles.tot + 1) * std::log(this->s->geo->volume / _oldV));
+        double prob = exp(-dE - this->pressure * (this->s->geo->volume - _oldV) +
+                      (this->s->particles.tot + 1.0) * std::log(this->s->geo->volume / _oldV));
 
         if(prob >= Random::get_random()){
             ret = true;

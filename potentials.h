@@ -558,6 +558,7 @@ namespace EwaldLike{
             std::complex<double> rk;
             std::complex<double> charge;
 
+            //#pragma omp parallel for private(rk_new, rk_old)
             for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0;
                 for(unsigned int i = 0; i < particles.tot; i++){
@@ -618,7 +619,7 @@ namespace EwaldLike{
         inline double operator()(){
             double energy = 0.0;
 
-            //#pragma omp parallel for reduction(+:energy)
+            #pragma omp parallel for reduction(+:energy)
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }

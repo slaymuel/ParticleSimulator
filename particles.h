@@ -32,6 +32,9 @@ class Particles{
 
     std::vector< std::shared_ptr<Particle> > get_subset(std::vector<unsigned int> &ps){
         std::vector< std::shared_ptr<Particle> > subset;
+
+        //std::vector<Particle> subset(ps.size(), 0);
+        //std::transform(ps.begin(), ps.end(), subset.begin(), [particles](size_t i) {return particles[i];});
         for (auto p : ps){
             if (p < this->tot) subset.push_back(this->particles[p]);
         }
@@ -46,6 +49,19 @@ class Particles{
         return this->particles[Random::get_random(this->tot)];
     }
 
+    void set_models(std::vector<double> q, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){
+        this->pModel.q =        q[0];
+        this->pModel.r =        r[0];
+        this->pModel.rf =      rf[0];
+        this->pModel.b =        b[0];
+        this->pModel.name = names[0]; 
+
+        this->nModel.q =        q[1];
+        this->nModel.r =        r[1];
+        this->nModel.rf =      rf[1];
+        this->nModel.b =        b[1];
+        this->nModel.name = names[1]; 
+    }
 
     template <typename T>
     void add(T com, T pos, double r, double rf, double q, double b, std::string name){
@@ -98,7 +114,6 @@ class Particles{
             //printf("Allocating\n");
             this->particles.push_back(std::make_shared<Particle>());
         //}
-
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
         this->particles[this->tot]->com << com[0], com[1], com[2];
         this->particles[this->tot]->qDisp = Random::get_norm_vector();
@@ -236,13 +251,12 @@ class Particles{
         }
 
         q = this->particles[rand2]->q;
-        if(this->cTot > 0 && this->aTot > 0){
-            this->remove(rand2); // remove particle
-            return {rand2, q};
+        this->remove(rand2); // remove particle
+        if(this->cTot <= 0 || this->aTot <= 0){
+            printf("Woops, no particles left!\n");
+            exit(0);
         }
-        else{
-            return {-1, -1};
-        }
+        return {rand2, q};
         //printf("Removing %i charge %lf\n", rand2, q);
         
     }
@@ -261,7 +275,7 @@ class Particles{
         else{
             this->aTot--; 
         }
-        
+
         this->particles.erase(this->particles.begin() + index);
 
         for(unsigned int i = index; i < this->tot - 1; i++){

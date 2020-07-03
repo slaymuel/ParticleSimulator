@@ -233,7 +233,7 @@ class State{
     //Get energy different between *this and old state
     double get_energy_change(){
         double E1 = 0.0, E2 = 0.0;
-
+        //auto start = std::chrono::steady_clock::now();
         for(auto p : this->movedParticles){
             if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(p)){
                 this->dE = std::numeric_limits<double>::infinity();
@@ -259,15 +259,17 @@ class State{
 
             E2 += (*e)( this->movedParticles, this->particles );
         }
-
+        /*auto end = std::chrono::steady_clock::now();
+        if(this->geo->volume != this->_old->geo->volume){
+            std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s\n\n";
+        }*/
         this->dE = E2 - E1;
-
         return this->dE;
     }
 
 
     //Called after move - set movedParticles
-    void move_callback(std::vector< unsigned int > ps){   
+    void move_callback(std::vector< unsigned int > ps){  
         //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
 
         //If a particle is removed, this->movedparticles is empty. 
@@ -280,10 +282,18 @@ class State{
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), 
                                             [this](unsigned int i){ return i < this->_old->particles.tot; });
 
-        if(!this->movedParticles.empty()){                                  
+        /*if(!this->movedParticles.empty()){                                  
             for(auto i : ps){
-                geo->pbc(particles[i]);
+                geo->pbc(this->particles[i]);
             }
+        }*/
+        /*if(this->movedParticles.empty() && this->_old->movedParticles.empty()){
+            printf("Error both are empty");
+            exit(1);
+        }*/
+
+        for(auto p : this->movedParticles){
+            geo->pbc(this->particles[p]);
         }
     }
 

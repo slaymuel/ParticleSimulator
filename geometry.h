@@ -35,6 +35,7 @@ class Cuboid : public Geometry{
         this->d = {x, y, z};
         this->_d = this->d;
         this->dh = {x / 2.0, y / 2.0, z / 2.0};
+        this->_dh = dh;
         this->volume = x * y * z;
         printf("\tVolume: %lf\n", this->volume);
     }
