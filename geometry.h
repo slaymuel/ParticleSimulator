@@ -186,9 +186,9 @@ class Cuboid : public Geometry{
     }
 
     Eigen::Vector3d random_pos(double rf){
-        double x = (X) ? rf : 0.0;
-        double y = (Y) ? rf : 0.0;
-        double z = (Z) ? rf : 0.0;
+        double x = X ? 0.0 : rf;
+        double y = Y ? 0.0 : rf;
+        double z = Z ? 0.0 : rf;
 
         Eigen::Vector3d v;
         v = Random::get_vector();

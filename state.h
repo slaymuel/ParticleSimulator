@@ -122,7 +122,7 @@ class State{
     }
 
     void finalize(std::string name){
-        printf("\nFinalizing simulation: %s.\n\n", name.c_str());
+        printf("\nFinalizing simulation: %s.\n", name.c_str());
         // Set up old system
         for(std::shared_ptr<Particle> p : this->particles.particles){
             _old->particles.add(p);
@@ -259,10 +259,7 @@ class State{
 
             E2 += (*e)( this->movedParticles, this->particles );
         }
-        /*auto end = std::chrono::steady_clock::now();
-        if(this->geo->volume != this->_old->geo->volume){
-            std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s\n\n";
-        }*/
+
         this->dE = E2 - E1;
         return this->dE;
     }
@@ -477,15 +474,18 @@ class State{
 
             case 5:
                 printf("\nAdding Minimum Image Halfwald\n");
-                assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<Coulomb> >(args[1]) );
+                assert(args.size() == 3);
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Coulomb> >(args[1], args[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                // Set box size due to reflections
-                printf("\tResetting box size in z to %lf\n", (4.0 * args[0] + 2.0) * this->geo->_d[2]);
-                this->geo->d[2] = (4.0 * args[0] + 2.0) * this->geo->_d[2];
+                // Set box size due to reflections, needed for distance PBC
+                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
+                this->_old->geo->d[2] = this->geo->d[2];
+                this->_old->geo->dh[2] = this->geo->dh[2]; 
+
                 break;
 
 
@@ -513,16 +513,23 @@ class State{
 
             case 7:
                 printf("\nAdding Halfwald with real replicates\n");
-                assert(args.size() == 6);
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<EwaldLike::Short> >(args[1]) );
+                assert(args.size() == 7);
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<EwaldLike::Short> >(args[1], args[6]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
+                this->geo->dh[2] = 0.5 * this->geo->d[2]; 
+                this->_old->geo->d[2] = this->geo->d[2];
+                this->_old->geo->dh[2] = this->geo->dh[2]; 
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
                 this->energyFunc.back()->set_geo(this->geo);
 
                 EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 EwaldLike::alpha = args[5];
+
                 break;
 
             case 8:

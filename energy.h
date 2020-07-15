@@ -76,7 +76,7 @@ class PairEnergy : public EnergyBase{
     double operator()(std::vector< unsigned int >&& p, Particles& particles){
         //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
         double e = 0.0;
-        // Need to fix this, not a nice solution.........
+        // Need to fix this, not a nice solution (when volume move).........
         if(p.size() == particles.tot){
             e = all2all(particles) / constants::lB;
         }
@@ -516,10 +516,14 @@ class MIHalfwald : public EnergyBase{
 
     E energy_func;  //energy functor
     int kMax;
+    double eps;
 
     public:
 
-    MIHalfwald(int kMax) : kMax(kMax){}
+    MIHalfwald(int kMax, double eps) : kMax(kMax), eps(eps){
+        printf("\tNumber of replicas (on each side of original cell): %i\n", this->kMax);
+        printf("\teps factor: %lf\n", this->eps);
+    }
 
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double CC = 0.0, CpC = 0.0;
@@ -528,34 +532,38 @@ class MIHalfwald : public EnergyBase{
 
         // CC
         for(int k = -this->kMax; k <= this->kMax; k++){
-            //#pragma omp parallel for reduction(+:CC) schedule(guided, 500) if(particles.tot >= 3000) 
+            #pragma omp parallel for schedule(dynamic, 250) reduction(+:CC) private(temp) if(particles.tot >= 1000)
             for (unsigned int i = 0; i < particles.tot; i++){
                 if (p->index == particles[i]->index && k == 0) continue;
+                double tmpE = 0.0;
 
                 temp = particles[i]->pos;
-                temp[2] += k * this->geo->d[2]; 
+                temp[2] += k * 2.0 * this->geo->_d[2]; 
+                tmpE = i2i(p->q, particles[i]->q, this->geo->distance(p->pos, temp)) * std::pow(this->eps, 2.0 * std::fabs(k)); 
 
-                if (p->index == particles[i]->index){
-                    CC += 0.5 * i2i(p->q, particles[i]->q, this->geo->distance(p->pos, temp));
+                if(p->index == i){
+                    tmpE *= 0.5; 
                 }
-                else{
-                    CC += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, temp));    
-                }
+                
+                CC += tmpE;
             }
         }
 
         //  CC'
         for(int k = -this->kMax; k <= this->kMax; k++){
-            //#pragma omp parallel for reduction(+:CpC) schedule(guided, 500) if(particles.tot >= 3000) 
+            #pragma omp parallel for schedule(dynamic, 250) reduction(+:CpC) private(temp) if(particles.tot >= 1000)
             for (unsigned int i = 0; i < particles.tot; i++){
+                double tmpE = 0.0;
                 temp = particles[i]->pos;
-                temp[2] = math::sgn(temp[2]) * this->geo->_d[2] - temp[2] + k * this->geo->d[2]; 
-                if (p->index == particles[i]->index){
-                    CpC += 0.5 * i2i(p->q, -particles[i]->q, this->geo->distance(p->pos, temp));
+                //temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
+                temp[2] = math::sgn(temp[2]) * this->geo->_d[2] - temp[2] + k * 2.0 * this->geo->_d[2]; 
+
+                tmpE = i2i(p->q, -particles[i]->q, this->geo->distance(p->pos, temp)) * std::pow(this->eps, 2.0 * std::fabs(k) + 1.0);
+                if(p->index == i){
+                    tmpE *= 0.5; 
                 }
-                else{
-                    CpC += i2i(p->q, -particles[i]->q, this->geo->distance(p->pos, temp));
-                }
+
+                CpC += tmpE;
             }
         }
         // => CC == C'C' and C'C == CC'
@@ -575,33 +583,23 @@ class MIHalfwald : public EnergyBase{
 
 
     double all2all(Particles& particles){
-        double CC = 0.0, CpC = 0.0, CCr = 0.0;
+        double CC = 0.0, CpC = 0.0;
         Eigen::Vector3d temp;
 
         // CC box-box
-        //#pragma omp parallel for schedule(guided, 200) reduction(+:CC) if(particles.tot >= 1000)
-        for(unsigned int i = 0; i < particles.tot; i++){
-            for(unsigned int j = i + 1; j < particles.tot; j++){
-                //CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
-                CC += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
-            } 
-        }
-
-        // CC box-replicates
         for(int k = -this->kMax; k <= this->kMax; k++){
-            if(k == 0) continue;
-            //#pragma omp parallel for schedule(guided, 200) reduction(+:CC) if(particles.tot >= 1000)
+            #pragma omp parallel for schedule(guided, 200) reduction(+:CC) private(temp) if(particles.tot >= 1000)
             for(unsigned int i = 0; i < particles.tot; i++){
                 for(unsigned int j = 0; j < particles.tot; j++){
+                    if(k == 0 && i == j) continue;
+
+                    double tmpE = 0.0;
                     temp = particles[j]->pos;
-                    temp[2] += k * this->geo->d[2]; 
-                    //CC += energy_func(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, particles[j]->pos));
-                    if(i == j){
-                        CCr += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, temp));
-                    }
-                    else{
-                        CCr += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, temp));
-                    }
+                    temp[2] += k * 2.0 * this->geo->_d[2]; 
+
+                    tmpE = i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->pos, temp)) * std::pow(this->eps, 2.0 * std::fabs(k));
+
+                    CC += tmpE;
                 } 
             }
         }
@@ -609,24 +607,20 @@ class MIHalfwald : public EnergyBase{
 
         //CC'
         for(int k = -this->kMax; k <= this->kMax; k++){
-            //#pragma omp parallel for schedule(dynamic, 200) reduction(+:CpC) private(temp) if(particles.tot >= 1000)
+            #pragma omp parallel for schedule(dynamic, 200) reduction(+:CpC) private(temp) if(particles.tot >= 1000)
             for(unsigned int i = 0; i < particles.tot; i++){
                 for(unsigned int j = 0; j < particles.tot; j++){
+                    double tmpE = 0.0;
                     temp = particles[j]->pos;
-                    temp[2] = math::sgn(temp[2]) * this->geo->_d[2] - temp[2] + k * this->geo->d[2]; 
-                    //CpC += energy_func(-particles[i]->q, particles[j]->q, this->geo->distance(temp, particles[j]->pos));
-                    if(i == j){
-                        CpC += i2i(particles[i]->q, -particles[j]->q, this->geo->distance(particles[i]->pos, temp));
-                    }
+                    temp[2] = math::sgn(temp[2]) * this->geo->_d[2] - temp[2] + k * 2.0 * this->geo->_d[2];
+                    tmpE = i2i(particles[i]->q, -particles[j]->q, this->geo->distance(particles[i]->pos, temp)) * std::pow(this->eps, 2.0 * std::fabs(k) + 1.0);
 
-                    else{
-                        CpC += i2i(particles[i]->q, -particles[j]->q, this->geo->distance(particles[i]->pos, temp));
-                    }
+                    CpC += tmpE;
                 } 
             }
         }
 
-        return (CC + 0.5 * CpC + 0.5 * CCr) * constants::lB;
+        return (0.5 * CC + 0.5 * CpC) * constants::lB;
     }
 
 

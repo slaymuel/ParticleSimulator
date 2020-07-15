@@ -31,9 +31,6 @@ namespace math{
     }
 
 
-
-
-
     template<typename T>
     inline auto norm(T x) -> double{
         double norm = 0;
@@ -42,8 +39,26 @@ namespace math{
         return std::sqrt(norm);
     }
 
+    //sign function
     template <typename T> 
     int sgn(T val) {
         return (0 < val) - (val <= 0);
+    }
+
+    //Quaternion multiplication
+    template <typename T>
+    inline Eigen::Vector4d q_mul(T& q1, T& q2){
+        Eigen::Vector4d v(  -q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3] + q1[0]*q2[0],
+                             q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2] + q1[0]*q2[1],
+                            -q1[1]*q2[3] + q1[2]*q2[0] + q1[3]*q2[1] + q1[0]*q2[2],
+                             q1[1]*q2[2] - q1[2]*q2[1] + q1[3]*q2[0] + q1[0]*q2[3] );
+        return v;
+    }
+
+    //invert quarternion
+    template <typename T>
+    inline Eigen::Vector4d q_inv(T& q){
+        Eigen::Vector4d v(q[0], -q[1], -q[2], -q[3]);
+        return v;
     }
 }

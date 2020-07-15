@@ -4,6 +4,7 @@
 #include <math.h>
 #include "state.h"
 #include <algorithm>
+#include <unordered_map>
 
 using CallBack = std::function<void(std::vector< unsigned int >)>;
 
@@ -15,18 +16,19 @@ class Move{
     int accepted, rejected, attempted;
     double stepSize;
     std::string id;
+    State* s;
     CallBack move_callback;
-
+    
     public:
     double weight;
 
-    Move(double step, double w, CallBack move_callback) : stepSize(step), move_callback(move_callback), weight(w){
+    Move(double step, double w, State* state, CallBack move_callback) : stepSize(step), s(state), move_callback(move_callback), weight(w){
         this->accepted = 0;
         this->rejected = 0;
         this->attempted = 0;
     }
 
-    virtual void operator()(std::shared_ptr<Particle> p) = 0;
+    virtual void operator()() = 0;
     virtual bool accept(double dE) = 0;
     virtual std::string dump() = 0;
 };
@@ -37,14 +39,16 @@ class Move{
 class Translate : public Move{
     public:
 
-    Translate(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
+    Translate(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
         this->id = "Trans";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
+        printf("\tWeight: %lf\n", this->weight);
     }
 
 
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
+        std::shared_ptr<Particle> p = this->s->particles.random();
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
         //printf("Translating\n");
@@ -84,14 +88,16 @@ class Translate : public Move{
 class Rotate : public Move{
     public:
 
-    Rotate(double step, double w, CallBack move_callback) : Move(step, w, move_callback){
+    Rotate(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
         this->id = "Rot";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
+        printf("\tWeight: %lf\n", this->weight);
     }
 
 
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
+        std::shared_ptr<Particle> p = this->s->particles.random();
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
 
@@ -115,26 +121,25 @@ class Rotate : public Move{
         return ret;
     }
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
     }
 };
 
 
 
 class Swap : public Move{
-    private:
-    State* s;
 
     public:
-    Swap(State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state){
+    Swap(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback){
         this->id = "Swap";
         printf("\t%s\n", this->id.c_str());
+        printf("\tWeight: %lf\n", this->weight);
     }
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
         int rand = Random::get_random(s->particles.tot), rand2;
 
         do{
@@ -175,11 +180,11 @@ class Swap : public Move{
     }
 
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
     }
 };
 
@@ -188,17 +193,16 @@ class Swap : public Move{
 
 
 class SingleSwap : public Move{
-    private:
-    State* s;
 
     public:
-    SingleSwap(State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state){
+    SingleSwap(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback){
         //printf("\t\tSwap Move\n");
         this->id = "SingleSwap";
         printf("\t%s\n", this->id.c_str());
+        printf("\tWeight: %lf\n", this->weight);
     }
     
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
 
             
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
@@ -267,11 +271,11 @@ class SingleSwap : public Move{
     }
 
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
     }
 };
 
@@ -283,7 +287,6 @@ template <bool ADD>
 class GrandCanonical : public Move{
 
     protected:
-    State* s;
     double q;
     double d = 0.0;
     double nVolume;
@@ -295,7 +298,8 @@ class GrandCanonical : public Move{
 
     public:
 
-    GrandCanonical(double chemPot, double donnan, State* state, double w, CallBack move_callback) : Move(0.0, w, move_callback), s(state), d(donnan){
+    GrandCanonical(double chemPot, double donnan, double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback),
+                  d(donnan), cp(chemPot){
         if(ADD){
             this->id = "GCAdd";
         }
@@ -304,15 +308,16 @@ class GrandCanonical : public Move{
         }
         printf("\t%s\n", this->id.c_str());
         constants::cp = chemPot;
-        this->cp = chemPot;
-        this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
-        this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
-        printf("\t\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
-        printf("\t\tChemical potential: %.3lf, Bias potential: %.3lf\n", constants::cp, this->d);
+        this->pVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.pModel.rf);
+        this->nVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.nModel.rf);
+        printf("\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
+        printf("\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
+        printf("\tWeight: %lf\n", this->weight);
     }
 
-    void operator()(std::shared_ptr<Particle> p){
-        UNUSED(p);
+    void operator()(){
+        //UNUSED(p);
+
         if(ADD){
             
             auto [ind, qt] = s->particles.add_random(s->geo->_dh);
@@ -373,13 +378,13 @@ class GrandCanonical : public Move{
     }
 
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << " +: " << (double) this->pAcc / this->pAtt * 100.0 << "%, " << this->pAtt << " (" << this->pAcc <<") ";
-        s << this->id << " -: " << (double) this->nAcc / this->nAtt * 100.0 << "%, " << this->nAtt << " (" << this->nAcc <<") ";
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << " +: " << (double) this->pAcc / this->pAtt * 100.0 << "%, " << this->pAtt << " (" << this->pAcc <<") ";
+        ss << this->id << " -: " << (double) this->nAcc / this->nAtt * 100.0 << "%, " << this->nAtt << " (" << this->nAcc <<") ";
 
-        return s.str();
+        return ss.str();
     }
 };
 
@@ -389,22 +394,22 @@ class GrandCanonical : public Move{
 
 class VolumeMove: public Move{
     private:
-    State* s;
     double _oldV;
     double pressure;
     double unit = 2.430527863808942e-10;
 
     public:
-    VolumeMove(State* s, double step, double pressure, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
+    VolumeMove(double step, double pressure, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
         this->id = "Vol";
         printf("\t%s\n", this->id.c_str());
         this->pressure = pressure * this->unit;
         printf("\tPressure: %lf\n", this->pressure);
         printf("\tStepsize: %lf\n", step);
+        printf("\tWeight: %lf\n", this->weight);
     }
 
 
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
         _oldV = this->s->geo->volume;
         double lnV = std::log(this->s->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
         double V = std::exp(lnV);
@@ -451,11 +456,11 @@ class VolumeMove: public Move{
     }
 
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
     }
 };
 
@@ -463,18 +468,18 @@ class VolumeMove: public Move{
 
 
 class ChargeTrans: public Move{
-    private:
-    State* s;
+
     public:
 
-    ChargeTrans(State* s, double step, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
+    ChargeTrans(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
         this->id = "qTrans";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
+        printf("\tWeight: %lf\n", this->weight);
     }
 
 
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
         int rand = 0;
         do{
             rand = Random::get_random(s->particles.tot);
@@ -482,7 +487,7 @@ class ChargeTrans: public Move{
         
         std::vector< unsigned int > particles = {s->particles[rand]->index};
         //printf("Translating\n");
-        s->particles[rand]->chargeTrans(this->stepSize);
+        this->s->particles[rand]->chargeTrans(this->stepSize);
         this->move_callback(particles);
         this->attempted++;
     }
@@ -503,11 +508,11 @@ class ChargeTrans: public Move{
     }
 
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
     }
 };
 
@@ -515,17 +520,17 @@ class ChargeTrans: public Move{
 
 
 class ChargeTransRand: public Move{
-    private:
-    State* s;
+
     public:
 
-    ChargeTransRand(State* s, double step, double w, CallBack move_callback) : s(s), Move(step, w, move_callback){
+    ChargeTransRand(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
         this->id = "qTransRand";
         printf("\t%s\n", this->id.c_str());
+        printf("\tWeight: %lf\n", this->weight);
     }
 
 
-    void operator()(std::shared_ptr<Particle> p){
+    void operator()(){
         //printf("Move\n");
         int rand = 0;
         do{
@@ -533,7 +538,7 @@ class ChargeTransRand: public Move{
         } while(s->particles[rand]->q < 0.0);
         
         std::vector< unsigned int > particles = {s->particles[rand]->index};
-        s->particles[rand]->chargeTransRand();
+        this->s->particles[rand]->chargeTransRand();
         this->move_callback(particles);
         this->attempted++;
     }
@@ -554,10 +559,108 @@ class ChargeTransRand: public Move{
     }
 
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
+    }
+};
+
+
+class Cluster : public Move{
+    private:
+    double minDist;
+    bool found = false;
+    std::unordered_map<unsigned int, unsigned int> att;
+    std::unordered_map<unsigned int, unsigned int> acc;
+    unsigned int pNum = 0;
+    std::shared_ptr<Particle> p;
+
+    public:
+
+    Cluster(double step, double md, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback), minDist(md){
+        this->id = "Clus";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tStepsize: %lf\n", step);
+        printf("\tMax distance in cluster: %lf\n", this->minDist);
+        printf("\tWeight: %lf\n", this->weight);
+    }
+
+
+    void operator()(){
+        this->p = this->s->particles.random();
+        std::vector<unsigned int> indices;
+        Eigen::Vector3d disp;
+
+        for(auto i : this->s->particles.particles){
+            if(i->index == this->p->index) continue;
+
+            if(this->s->geo->distance(i->pos, this->p->pos) <= this->minDist){
+                indices.push_back(i->index);
+            }
+        }
+        //Choose random particle
+        //If particle is in cluster
+        //Move cluster
+
+        if(!indices.empty()){
+            indices.push_back(this->p->index);
+            this->pNum = indices.size();
+
+            disp = Random::get_norm_vector();
+            disp *= this->stepSize;
+            this->s->particles.translate(indices, disp);
+            this->move_callback(indices);
+            this->attempted++;
+            found = true;
+
+            if(att.count(this->pNum) > 0){
+                att[this->pNum]++;
+            }
+            else{
+                att.insert(std::pair<int, int>(this->pNum, 1));
+                acc.insert(std::pair<int, int>(this->pNum, 0));
+            }
+        }
+        else found = false;
+    }
+
+    bool accept(double dE){
+        int count = 1;
+
+        if(found){
+
+            for(auto i : this->s->particles.particles){
+                if(i->index == this->p->index) continue;
+                if(this->s->geo->distance(i->pos, this->p->pos) <= this->minDist){
+                    count++;
+                }
+            }
+            if(count != this->pNum) return false;
+            
+            if(exp(-dE) >= Random::get_random() || dE < 0.0){
+                acc[this->pNum]++;
+                this->accepted++;
+                return true;
+            } 
+            else{
+                this->rejected++;
+                return false;
+            }
+        }
+        return false;
+    }
+
+    std::string dump(){
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << " ";
+        for(auto const& [key, val] : this->att){
+            ss << key << ": " << (double)this->acc[key] / val * 100.0 << "%, " << val << "   ";
+        } 
+        ss <<" Total: " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
     }
 };

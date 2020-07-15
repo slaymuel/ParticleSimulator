@@ -58,6 +58,12 @@ class Random{
             Eigen::Vector3d v(std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z);
             return v;
         }
+        inline operator std::vector<double>(){
+            double phi = get_random() * 2.0 * constants::PI;
+            double z = get_random() * 2.0 - 1.0;
+            std::vector<double> v = {std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z};
+            return v;
+        }
     };
 };
 

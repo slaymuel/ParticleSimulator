@@ -953,14 +953,14 @@ namespace EwaldLike{
 
                     #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 6)
                     for(unsigned int k = 0; k < kVec.size(); k++){
-                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        double dot = o->pos.dot(this->kVec[k]);
                         rk_old.imag(std::sin(dot));
                         rk_old.real(std::cos(dot));
 
                         this->rkVec[k] -= rk_old * o->q;
 
                         // Remove image
-                        dot = temp.dot(this->kVec[k]);//math::dot(temp, this->kVec[k]);
+                        dot = temp.dot(this->kVec[k]);
                         rk_old.imag(std::sin(dot));
                         rk_old.real(std::cos(dot));
 
@@ -980,14 +980,14 @@ namespace EwaldLike{
 
                     #pragma omp parallel for private(rk_new, rk_old) if(kM[0] > 6)
                     for(unsigned int k = 0; k < kVec.size(); k++){
-                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        double dot = n->pos.dot(this->kVec[k]);
                         rk_new.imag(std::sin(dot));
                         rk_new.real(std::cos(dot));
 
                         this->rkVec[k] += rk_new * n->q;
 
                         // Add image
-                        dot = temp.dot(this->kVec[k]);//math::dot(temp, this->kVec[k]);
+                        dot = temp.dot(this->kVec[k]);
                         rk_new.imag(std::sin(dot));
                         rk_new.real(std::cos(dot));
 
@@ -1005,8 +1005,7 @@ namespace EwaldLike{
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
-            //return energy * constants::PI / (this->volume) - this->selfTerm;
-            return (-this->selfTerm);
+            return energy * constants::PI / (this->volume) - this->selfTerm;
         } 
     };
 

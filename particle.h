@@ -64,13 +64,17 @@ class Particle{
     };
 
 
-    void translate(std::vector<double> v){
+    void translate(std::vector<double> &v){
         this->com[0] +=  v[0];
         this->com[1] +=  v[1];
         this->com[2] +=  v[2];
         this->pos = this->qDisp + this->com;
     }
 
+    void translate(Eigen::Vector3d &v){
+        this->com +=  v;
+        this->pos = this->qDisp + this->com;
+    }
 
     void rotate(double step){
         Eigen::Vector3d v = Random::get_vector();

@@ -77,35 +77,39 @@ class Simulator{
     }
 
 
-    void add_move(int i, double dp, double p, double cp = 0.0, double d = 0.0){
+    void add_move(int i, double i1, double i2, double i3 = 0.0, double i4 = 0.0){
+    //dp = i1, p = i2, cp = i3, d = i4
         printf("\nAdding move:\n");
         switch(i){
             case 0:
-                moves.push_back(new Translate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new Translate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 1:
-                moves.push_back(new GrandCanonical<true>(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new GrandCanonical<true>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 2:
-                moves.push_back(new GrandCanonical<false>(cp, d, &state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new GrandCanonical<false>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 3:
-                moves.push_back(new Rotate(dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new Rotate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 4:
-                moves.push_back(new Swap(&state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new Swap(i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 5:
-                moves.push_back(new SingleSwap(&state, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new SingleSwap(i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 6:
-                moves.push_back(new VolumeMove(&state, dp, cp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new VolumeMove(i1, i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 7:
-                moves.push_back(new ChargeTrans(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new ChargeTrans(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 8:
-                moves.push_back(new ChargeTransRand(&state, dp, p, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new ChargeTransRand(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
+            case 9:
+                moves.push_back(new Cluster(i1, i2, i3, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             default:
                 printf("Could not find move %i\n", i);
@@ -116,7 +120,7 @@ class Simulator{
     void add_sampler(int i, int interval){
         switch(i){
             case 0:
-                printf("Adding density sampler\n");
+                printf("\nAdding density sampler\n");
                 sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], 0.05, 
                                               this->state.geo->d[0], this->state.geo->d[1], interval, this->name));
                 break;
@@ -160,6 +164,9 @@ class Simulator{
         assert(this->mWeights.back() == 1.0);
 
         this->state.finalize(this->name);
+
+        //Save starting configuration for XTC trajectory
+        IO::to_gro(this->name, state.particles, state.geo->d);
     }
 
     void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps){
@@ -190,7 +197,7 @@ class Simulator{
             auto start = std::chrono::steady_clock::now();
             for(unsigned int micro = 0; micro <= microSteps; micro++){
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
-                (*moves[wIt - mWeights.begin()])(state.particles.random());
+                (*moves[wIt - mWeights.begin()])();
                 //printf("accepting\n");
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
                     //printf("saving\n");
@@ -253,12 +260,14 @@ class Simulator{
         for(auto s : sampler){
             s->save(this->name);
         }*/
+
         for(auto s : sampler){
             s->close();
         }
+
         IO::to_xyz(this->name, state.particles, state.geo->d);
         IO::to_cpt(this->name, state.particles, state.geo->d);
-        IO::to_gro(this->name, state.particles, state.geo->d);
+
         //this->state.close();
         printf("Energy of last frame: %.15lf\n", this->state.cummulativeEnergy);
         printf("Simulation Done!\n\n");

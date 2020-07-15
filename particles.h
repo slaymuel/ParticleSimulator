@@ -49,6 +49,18 @@ class Particles{
         return this->particles[Random::get_random(this->tot)];
     }
 
+    void translate(std::vector<unsigned int> &ps, std::vector<double> &disp){
+        for(auto p : ps){
+            this->particles[p]->translate(disp);
+        }
+    }
+
+    void translate(std::vector<unsigned int> &ps, Eigen::Vector3d &disp){
+        for(auto p : ps){
+            this->particles[p]->translate(disp);
+        }
+    }
+
     void set_models(std::vector<double> q, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){
         this->pModel.q =        q[0];
         this->pModel.r =        r[0];
