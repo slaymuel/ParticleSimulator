@@ -341,13 +341,13 @@ class GrandCanonical : public Move{
         if(ADD){
             //Cation
             if(this->q > 0.0){
-                prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE);
+                prob = this->pVolume / (s->particles.cTot + 1.0) * std::exp(this->cp - this->d * this->q - dE);
                 this->acc = &this->pAcc;
                 this->pAtt++;
             }
             //Anion
             else{
-                prob = this->nVolume / s->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
+                prob = this->nVolume / (s->particles.aTot + 1.0) * std::exp(this->cp - this->d * this->q - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
             } 
@@ -356,13 +356,13 @@ class GrandCanonical : public Move{
         else{
             //Cation
             if(this->q > 0.0){
-                prob = (s->particles.cTot + 1.0) / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
                 this->acc = &this->pAcc;
                 this->pAtt++;
             }
             //Anion
             else{
-                prob = (s->particles.aTot + 1.0) / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = s->particles.aTot / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
             }

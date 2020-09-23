@@ -61,4 +61,13 @@ namespace math{
         Eigen::Vector4d v(q[0], -q[1], -q[2], -q[3]);
         return v;
     }
+
+    template <typename T>
+    inline Eigen::Vector3d rotate_around(T v1, Eigen::Vector3d v2, double angle){
+        Eigen::Transform <double, 3, Eigen::Affine > t = Eigen::Transform <double, 3, Eigen::Affine >::Identity();
+        t.rotate( Eigen::AngleAxisd(angle, v2) );
+        
+        //T v(Map<T>(t.data(), t.cols()*t.rows()));
+        return t * v1.colwise().homogeneous();
+    }
 }

@@ -152,8 +152,8 @@ class ChargeWell : public EnergyBase{
     E energy_func;  //energy functor
 
     public:
-    ChargeWell(double k){
-        energy_func.set_k(k);
+    ChargeWell(double k, double R){
+        energy_func.set_k(k, R);
     }
 
     inline double i2i(double& r, double&& dist){

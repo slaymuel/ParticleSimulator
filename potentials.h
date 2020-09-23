@@ -24,7 +24,7 @@ class Harmonic{
     double k;
 
     public:
-    void set_k(double k){
+    void set_k(double k, double R){
         this->k = k;
         printf("\tForce constant is (k): %lf\n", this->k);
     }
@@ -39,18 +39,17 @@ class Harmonic{
 
 class FENE{
     private:
-    double k;
+    double k, Rsq;
 
     public:
-    void set_k(double k){
+    void set_k(double k, double R){
         this->k = k;
-        printf("\tForce constant is (k): %lf\n", this->k);
+        this->Rsq = R * R;
+        printf("\tForce constant is (k): %lf, R is: %lf\n", this->k, R);
     }
 
     inline double operator()(const double& R, const double& dist){
-        double Rsq = R * R;
-
-        return -0.5 * this->k * Rsq * std::log(1.0 - dist * dist / Rsq);
+        return -0.5 * this->k * this->Rsq * std::log(1.0 - dist * dist / this->Rsq);
     }
 };
 
@@ -58,17 +57,17 @@ class FENE{
 
 class Sture{
     private:
-    double k;
+    double k, Rsq;
 
     public:
-    void set_k(double k){
+    void set_k(double k, double R){
         this->k = k;
-        printf("\tForce constant is (k): %lf\n", this->k);
+        this->Rsq = R * R;
+        printf("\tForce constant is (k): %lf, R is: %lf\n", this->k, R);
     }
 
     inline double operator()(const double& R, const double& dist){
-        double Rsq = R * R;
-        return this->k * Rsq * (Rsq / (Rsq - dist * dist) - 1.0);
+        return this->k * this->Rsq * (this->Rsq / (this->Rsq - dist * dist) - 1.0);
     }
 };
 

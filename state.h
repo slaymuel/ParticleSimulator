@@ -535,15 +535,23 @@ class State{
             case 8:
                 printf("\nAdding harmonic well to charges\n");
                 assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< ChargeWell<Harmonic> >(args[0]) );
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Harmonic> >(args[0], 0.0) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
 
             case 9:
                 printf("\nAdding Sture-potential to charges\n");
-                assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< ChargeWell<Sture> >(args[0]) );
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Sture> >(args[0], args[1]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(100.0);
+                break;
+
+            case 10:
+                printf("\nAdding FENE-potential to charges\n");
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< ChargeWell<FENE> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;

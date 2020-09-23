@@ -287,7 +287,8 @@ class Particles{
         else{
             this->aTot--; 
         }
-
+        
+        //move last particle in particles to position of particle to be removed
         this->particles.erase(this->particles.begin() + index);
 
         for(unsigned int i = index; i < this->tot - 1; i++){
