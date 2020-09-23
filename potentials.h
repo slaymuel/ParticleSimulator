@@ -49,7 +49,7 @@ class FENE{
     }
 
     inline double operator()(const double& R, const double& dist){
-        if(dist * dist > this->Rsq) return std::numeric_limits<double>::infinity();
+        if(dist * dist > this->Rsq) return 1e30;
         return -0.5 * this->k * this->Rsq * std::log(1.0 - dist * dist / this->Rsq);
     }
 };
@@ -68,7 +68,7 @@ class Sture{
     }
 
     inline double operator()(const double& R, const double& dist){
-        if(dist * dist > this->Rsq) return std::numeric_limits<double>::infinity();
+        if(dist * dist > this->Rsq) return 1e30;
         return this->k * this->Rsq * (this->Rsq / (this->Rsq - dist * dist) - 1.0);
     }
 };
