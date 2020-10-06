@@ -111,6 +111,9 @@ class Simulator{
             case 9:
                 moves.push_back(new Cluster(i1, i2, i3, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
+            case 10:
+                moves.push_back(new WidomInsertion(i1, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -350,8 +353,9 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("nModel", &Particles::nModel)
         .def("load", &Particles::load)
         .def("set_models", &Particles::set_models, py::arg("q"), py::arg("r"), py::arg("rf"), py::arg("b"), py::arg("names"))
-        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, 
-                    py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
+        //.def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, 
+        //            py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
+        .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("params"));
 
     py::class_<Particle>(m, "Particle")
         .def_readonly("com", &Particle::com)

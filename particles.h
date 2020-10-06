@@ -8,6 +8,7 @@
 #include <fstream>
 #include <iomanip>
 #include <tuple>
+#include <map>
 //#include "../libxdrfile/include/xdrfile_xtc.h"
 
 class Particles{
@@ -224,8 +225,9 @@ class Particles{
 
         //Add cation
         if(rand < 0.5){
+            double b = this->pModel.b_min + (this->pModel.r - this->pModel.b_min) * Random::get_random();
             com = Random::random_pos_box(this->pModel.rf, box);
-            this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b, "Na");
+            this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, b, "Na");
             q = this->pModel.q;
         }
 
@@ -238,6 +240,8 @@ class Particles{
         //printf("Adding %i charge %lf com %lf %lf %lf\n", this->tot - 1, q, com[0], com[1], com[2]);
         return {this->tot - 1, q};
     }
+
+
 
     std::tuple<unsigned int, double> remove_random(){
         double q;
@@ -342,26 +346,52 @@ class Particles{
 
 
 
-    void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5, double rp = 2.5, double rn = 2.5, double bp = 0.0, double bn = 0.0){
+    //void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5, double rp = 2.5, double rn = 2.5, double bp = 0.0, double bp_min = 0.0, double bn = 0.0, double bn_min = 0.0){
+    void create(int pNum, int nNum, std::map<std::string, double> params){
 
-        pModel.q = p;
+        /*pModel.q = p;
         pModel.r = rp;
         pModel.rf = rfp;
         pModel.b = bp;
+        pModel.b_min = bp_min;
         pModel.name = "Na";
 
         nModel.q = n;
         nModel.r = rn;
         nModel.rf = rfn;
         nModel.b = bn;
-        nModel.name = "Cl";
+        nModel.b_min = bn_min;
+        nModel.name = "Cl";*/
+
+
+        this->pModel.q = params["p"];
+        this->pModel.r = params["rp"];
+        this->pModel.rf = params["rfp"];
+        this->pModel.b = params["bp"];
+        this->pModel.b_min = params["bp_min"];
+        this->pModel.name = "Na";
+
+        this->nModel.q = params["n"];
+        this->nModel.r = params["rn"];
+        this->nModel.rf = params["rfn"];
+        this->nModel.b = params["bn"];
+        this->nModel.b_min = params["bn_min"];
+        this->nModel.name = "Cl";
 
         Eigen::Vector3d com;
         for(int i = 0; i < pNum + nNum; i++){
             com = Random::get_vector();
-            (i < pNum) ? this->add(com, rp, rfp, p, bp, "Na") : this->add(com, rn, rfn, n, bn, "Cl");
+            (i < pNum) ? this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b, "Na") : this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b, "Cl");
         }
         printf("\nCreated %i cations and %i anions\n", pNum, nNum);
+        for(auto val : params){
+            printf("\t %s, %lf\n", val.first.c_str(), val.second);
+        }
+
+        if(params.size() != 10){
+            printf("Wrong number of arguments in particles::create params, contains %lu\n", params.size());
+            exit(1);
+        }
     }
 
 
@@ -404,9 +434,10 @@ class Particles{
             if(!setPModel){
                 if(lineData[6] > 0){
                     pModel.q = lineData[6];
-                    pModel.b = lineData[9];
                     pModel.r = lineData[7];
                     pModel.rf = lineData[8];
+                    pModel.b = lineData[9];
+                    pModel.b_min = pModel.b;
                     pModel.name = name;
                     setPModel = true;
                 }
@@ -415,9 +446,10 @@ class Particles{
             if(!setNModel){
                 if(lineData[6] < 0){
                     nModel.q = lineData[6];
-                    nModel.b = lineData[9];
                     nModel.r = lineData[7];
                     nModel.rf = lineData[8];
+                    nModel.b = lineData[9];
+                    nModel.b_min = nModel.b;
                     nModel.name = name;
                     setNModel = true;
                 }

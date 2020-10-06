@@ -664,3 +664,49 @@ class Cluster : public Move{
         return ss.str();
     }
 };
+
+
+class WidomInsertion : public Move{
+
+    protected:
+    double q;
+    double cp = 0.0;
+    int samples = 0;
+    public:
+
+    WidomInsertion(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback) {
+
+        this->id = "WIns";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tWeight: %lf\n", this->weight);
+    }
+
+    void operator()(){      
+        auto [ind, qt] = s->particles.add_random(s->geo->_dh);
+        this->q = qt;
+        std::vector< unsigned int > particles{ind};
+        this->move_callback(particles);
+
+        this->attempted++;
+    }
+
+    bool accept(double dE){
+        if(samples > 10000){
+            this->samples = 0;
+            this->cp = 0.0;
+        }
+        
+        this->cp += std::exp(-dE);
+        this->samples++;
+
+        return false;
+    }
+
+    std::string dump(){
+        std::ostringstream ss;
+        ss.precision(5);
+        ss << std::fixed;
+        ss << "\t" << this->id << " cp: " << -std::log(this->cp / this->samples) <<" " << this->cp / this->samples << " " << this->cp << " samples: " << this->samples << " attempted: " << this->attempted;
+        return ss.str();
+    }
+};
