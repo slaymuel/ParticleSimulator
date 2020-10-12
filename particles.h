@@ -12,8 +12,12 @@
 //#include "../libxdrfile/include/xdrfile_xtc.h"
 
 class Particles{
+    private:
+ 
 
     public:
+    bool setPModel = false;
+    bool setNModel = false;
     //Eigen::MatrixXd positions;
     Particle pModel;
     Particle nModel;
@@ -62,22 +66,11 @@ class Particles{
         }
     }
 
-    void set_models(std::vector<double> q, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){
-        this->pModel.q =        q[0];
-        this->pModel.r =        r[0];
-        this->pModel.rf =      rf[0];
-        this->pModel.b =        b[0];
-        this->pModel.name = names[0]; 
 
-        this->nModel.q =        q[1];
-        this->nModel.r =        r[1];
-        this->nModel.rf =      rf[1];
-        this->nModel.b =        b[1];
-        this->nModel.name = names[1]; 
-    }
 
-    template <typename T>
-    void add(T com, T pos, double r, double rf, double q, double b, std::string name){
+
+    template <typename T, typename G>
+    void add(T com, T pos, G qDisp, double r, double rf, double q, double b, double b_min, double b_max, std::string name){
         //Resize positions
         //this->positions.conservativeResize(this->positions.rows() + 1, 3);
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
@@ -91,19 +84,23 @@ class Particles{
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
         this->particles[this->tot]->com << com[0], com[1], com[2];
         this->particles[this->tot]->pos << pos[0], pos[1], pos[2];
-        this->particles[this->tot]->qDisp = this->particles[this->tot]->pos - this->particles[this->tot]->com;
-        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * b;
-        //this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
+        this->particles[this->tot]->qDisp << qDisp[0], qDisp[1], qDisp[2];
 
-        //std::cout << this->particles[tot]->pos << " " << std::endl;
+        if(std::abs(this->particles[this->tot]->qDisp.norm() - b) > 1e-10){
+            printf("Error reading particles, b is not equal to |qDisp| for particle %u\n", this->tot);
+            printf("b = %.10lf\n", b);
+            printf("|qDisp| = %.10lf\n", this->particles[this->tot]->qDisp.norm());
+            exit(1);   
+        }
+
         this->particles[this->tot]->index = this->tot;
         this->particles[this->tot]->r = r;
         this->particles[this->tot]->rf = rf;
         this->particles[this->tot]->q = q;
         this->particles[this->tot]->b = b;
+        this->particles[this->tot]->b_min = b_min;
+        this->particles[this->tot]->b_max = b_max;
         this->particles[this->tot]->name = name;
-
-
             
         if(q > 0){
             this->cTot++;
@@ -114,10 +111,36 @@ class Particles{
 
         this->tot++;
         assert(this->tot <= this->particles.size() && "tot is larger than particle vector size\n");
+
+        if(!this->setPModel){
+            if(q > 0){
+                this->pModel.q = q;
+                this->pModel.b_min = b_min;
+                this->pModel.b_max = b_max;
+                this->pModel.r = r;
+                this->pModel.rf = rf;
+                this->pModel.name = name;
+                this->setPModel = true;
+            }
+        }
+
+        if(!this->setNModel){
+            if(q < 0){
+                this->nModel.q = q;
+                this->nModel.b_min = b_min;
+                this->nModel.b_max = b_max;
+                this->nModel.r = r;
+                this->nModel.rf = rf;
+                this->nModel.name = name;
+                this->setNModel = true;
+            }
+        }
     }
 
+
+
     template <typename T>
-    void add(T com, double r, double rf, double q, double b, std::string name){
+    void add(T com, double r, double rf, double q, double b_min, double b_max, std::string name){
         //Resize positions
         //this->positions.conservativeResize(this->positions.rows() + 1, 3);
         //this->positions.row(this->positions.rows() - 1) << pos[0], pos[1], pos[2];
@@ -128,22 +151,27 @@ class Particles{
             this->particles.push_back(std::make_shared<Particle>());
         //}
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
-        this->particles[this->tot]->com << com[0], com[1], com[2];
+
+        this->particles[this->tot]->com = com;
+        this->particles[this->tot]->b = b_min + (b_max - b_min) * Random::get_random();
         this->particles[this->tot]->qDisp = Random::get_norm_vector();
-        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * b;
+        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * this->particles[this->tot]->b;
         this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
         //std::cout << this->particles[tot]->pos << " " << std::endl;
-        this->particles[this->tot]->index = this->tot;
+
+        this->particles[this->tot]->q = q;
+        this->particles[this->tot]->b_min = b_min;
+        this->particles[this->tot]->b_max = b_max;
         this->particles[this->tot]->r = r;
         this->particles[this->tot]->rf = rf;
-        this->particles[this->tot]->q = q;
-        this->particles[this->tot]->b = b;
         this->particles[this->tot]->name = name;
+        this->particles[this->tot]->index = this->tot;
+
 
         if(q > 0){
             this->cTot++;
         }
-        else {
+        else{
             this->aTot++;
         }
 
@@ -168,6 +196,8 @@ class Particles{
         this->particles[this->tot]->rf = p->rf;
         this->particles[this->tot]->q = p->q;
         this->particles[this->tot]->b = p->b;
+        this->particles[this->tot]->b_min = p->b_min;
+        this->particles[this->tot]->b_max = p->b_max;
         this->particles[this->tot]->name = p->name;
 
         if(p->q > 0){
@@ -206,6 +236,8 @@ class Particles{
         this->particles[index]->rf = p->rf;
         this->particles[index]->q = p->q;
         this->particles[index]->b = p->b;
+        this->particles[index]->b_min = p->b_min;
+        this->particles[index]->b_max = p->b_max;
         this->particles[index]->name = p->name;
 
         if(p->q > 0){
@@ -218,23 +250,21 @@ class Particles{
 
 
 
-    std::tuple<unsigned int, double> add_random(std::vector<double> box){
-        Eigen::Vector3d com;
+    std::tuple<unsigned int, double> add_random(std::vector<double> box, int type = 0){
         double rand = Random::get_random();
         double q;
-
+        Eigen::Vector3d com;
+        com = Random::random_pos_box(this->pModel.rf, box);
+        if(type != 0) rand = type;
         //Add cation
         if(rand < 0.5){
-            double b = this->pModel.b_min + (this->pModel.r - this->pModel.b_min) * Random::get_random();
-            com = Random::random_pos_box(this->pModel.rf, box);
-            this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, b, "Na");
+            this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b_min, this->pModel.b_max, "Na");
             q = this->pModel.q;
         }
 
         //Add anion
         else{
-            com = Random::random_pos_box(this->nModel.rf, box);
-            this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b, "Cl");
+            this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b_min, this->nModel.b_max, "Cl");
             q = this->nModel.q;
         }
         //printf("Adding %i charge %lf com %lf %lf %lf\n", this->tot - 1, q, com[0], com[1], com[2]);
@@ -247,10 +277,7 @@ class Particles{
         double q;
         double rand = Random::get_random();
         int rand2 = Random::get_random(this->tot);
-        //int rand4 = Random::get_random(this->tot);
-        //int rand2 = (int) rand3;
-        //printf("rand3 %lf rand2 %i rand4 %i\n", rand3, rand2, rand4);
-        //printf("rand2 %i\n", rand2);
+
         if(rand < 0.5){
             if(this->cTot > 0){
                 do{
@@ -272,9 +299,8 @@ class Particles{
             printf("Woops, no particles left!\n");
             exit(0);
         }
-        return {rand2, q};
         //printf("Removing %i charge %lf\n", rand2, q);
-        
+        return {rand2, q};
     }
 
 
@@ -305,84 +331,30 @@ class Particles{
     }
 
 
-
-    void load(std::vector< std::vector<double> > com, std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){
-        //assert correct sizes
-        bool setNModel = false, setPModel = false;
-        for(unsigned int i = 0; i < pos.size(); i++){
-
-            this->add(com[i], pos[i], r[i], rf[i], charges[i], b[i], names[i]);
-            //this->add(com[i], com[i], 2.5, rf[i], charges[i], 0.0, names[i]);
-            
-            if(!setPModel){
-                if(charges[i] > 0){
-                    pModel.q = charges[i];
-                    pModel.b = b[i];
-                    pModel.r = r[i];
-                    pModel.rf = rf[i];
-                    pModel.name = names[i];
-                    setPModel = true;
-                }
-            }
-
-            if(!setNModel){
-                if(charges[i] < 0){
-                    nModel.q = charges[i];
-                    nModel.b = b[i];
-                    nModel.r = r[i];
-                    nModel.rf = rf[i];
-                    nModel.name = names[i];
-                    setNModel = true;
-                }
-            }
-
-        }
-        if(!setPModel || !setNModel){
-            printf("Cation or anion model not set!\n");
-            exit(1);
-        }
-        printf("Loaded %u particles, %u cations and %u anions.\n", this->tot, this->cTot, this->aTot);
-    }
-
-
-
     //void create(int pNum, int nNum, double p, double n, double rfp = 2.5, double rfn = 2.5, double rp = 2.5, double rn = 2.5, double bp = 0.0, double bp_min = 0.0, double bn = 0.0, double bn_min = 0.0){
     void create(int pNum, int nNum, std::map<std::string, double> params){
-
-        /*pModel.q = p;
-        pModel.r = rp;
-        pModel.rf = rfp;
-        pModel.b = bp;
-        pModel.b_min = bp_min;
-        pModel.name = "Na";
-
-        nModel.q = n;
-        nModel.r = rn;
-        nModel.rf = rfn;
-        nModel.b = bn;
-        nModel.b_min = bn_min;
-        nModel.name = "Cl";*/
-
 
         this->pModel.q = params["p"];
         this->pModel.r = params["rp"];
         this->pModel.rf = params["rfp"];
-        this->pModel.b = params["bp"];
         this->pModel.b_min = params["bp_min"];
+        this->pModel.b_max = params["bp_max"];
         this->pModel.name = "Na";
 
         this->nModel.q = params["n"];
         this->nModel.r = params["rn"];
         this->nModel.rf = params["rfn"];
-        this->nModel.b = params["bn"];
         this->nModel.b_min = params["bn_min"];
+        this->nModel.b_max = params["bn_max"];
         this->nModel.name = "Cl";
 
         Eigen::Vector3d com;
         for(int i = 0; i < pNum + nNum; i++){
             com = Random::get_vector();
-            (i < pNum) ? this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b, "Na") : this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b, "Cl");
+            (i < pNum) ? this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b_min, this->pModel.b_max, "Na") : 
+                         this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b_min, this->nModel.b_max, "Cl");
         }
+
         printf("\nCreated %i cations and %i anions\n", pNum, nNum);
         for(auto val : params){
             printf("\t %s, %lf\n", val.first.c_str(), val.second);
@@ -392,73 +364,5 @@ class Particles{
             printf("Wrong number of arguments in particles::create params, contains %lu\n", params.size());
             exit(1);
         }
-    }
-
-
-    void read_cp(std::string fileName){
-        std::vector< std::vector<double> > data;
-        std::ifstream file(fileName);
-        std::string line;
-        std::string name;
-        int linenr = 0;
-        bool setPModel = false, setNModel = false;
-
-        printf("\nLoading checkpoint file \"%s\"....\n", fileName.c_str());
-        while(std::getline(file, line)){
-            //printf("Getting line: %i\n", linenr);
-
-            std::vector<double>   lineData;
-            std::stringstream  lineStream(line);
-
-            double value;
-            //printf("Reading values\n");
-            while(lineStream >> value){
-                //printf("%lf ", value);
-                lineData.push_back(value);
-            }
-            //printf("\n");
-//void add(T com, T pos, double r, double rf, double q, double b, std::string name, bool image = false){
-            name = (lineData[8] > 0) ? "Na" : "Cl";
-            std::vector<double> com{lineData[0], lineData[1], lineData[2]};
-            std::vector<double> pos{lineData[3], lineData[4], lineData[5]};
-            /*
-            lineData[6] = q
-            lineData[7] = r
-            lineData[8] = rf
-            lineData[9] = b
-            lineData[10] = name
-            */
-            //printf("Adding particle\n\n");
-            this->add(com, pos, lineData[7], lineData[8], lineData[6], lineData[9], name);
-
-            if(!setPModel){
-                if(lineData[6] > 0){
-                    pModel.q = lineData[6];
-                    pModel.r = lineData[7];
-                    pModel.rf = lineData[8];
-                    pModel.b = lineData[9];
-                    pModel.b_min = pModel.b;
-                    pModel.name = name;
-                    setPModel = true;
-                }
-            }
-
-            if(!setNModel){
-                if(lineData[6] < 0){
-                    nModel.q = lineData[6];
-                    nModel.r = lineData[7];
-                    nModel.rf = lineData[8];
-                    nModel.b = lineData[9];
-                    nModel.b_min = nModel.b;
-                    nModel.name = name;
-                    setNModel = true;
-                }
-            }
-
-
-            //data.push_back(lineData);
-            linenr++;
-        }
-        printf("Loaded %i particles\n", linenr);
     }
 };

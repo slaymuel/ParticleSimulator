@@ -13,7 +13,7 @@ class Particle{
     Eigen::Vector3d com;    //COM position
     Eigen::Vector3d qDisp;  //Charge vector
     std::string name;       //name
-    double r, b, b_min, q, rf;     //radius, length of charge vector, charge, minimum distance to wall
+    double r, b, b_min, b_max, q, rf;     //radius, length of charge vector, charge, minimum distance to wall
 
     unsigned int index;
 
@@ -53,15 +53,10 @@ class Particle{
 
 
     void chargeTransRand(){
-        //printf("Particle Move\n");
         this->qDisp = Random::get_norm_vector();
-        //printf("raw: %lf\n", this->qDisp.norm());
-        //this->qDisp = this->qDisp * Random::get_random() * this->r;
-        this->qDisp = this->qDisp * (this->b_min + (this->r - this->b_min) * Random::get_random());
-        //printf("fixed: %lf\n", this->qDisp.norm());
+        this->qDisp = this->qDisp * (this->b_min + (this->b_max - this->b_min) * Random::get_random());
         this->b = this->qDisp.norm();
         this->pos = this->qDisp + this->com;
-        //printf("particle Move end\n");
     };
 
 

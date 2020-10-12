@@ -51,8 +51,11 @@ class Translate : public Move{
         std::shared_ptr<Particle> p = this->s->particles.random();
         //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
         std::vector< unsigned int > particles = {p->index};
-        //printf("Translating\n");
+        //printf("Translating particle %lu\n", p->index);
+        //std::cout << p->pos << std::endl;
         p->translate(this->stepSize);
+        //printf("after move\n");
+        //std::cout << p->pos << std::endl;
         //PBC
 
 
@@ -62,7 +65,7 @@ class Translate : public Move{
 
     bool accept(double dE){
         bool ret = false;
-
+        //printf("dE trans %lf\n", dE);
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
             this->accepted++;
@@ -339,6 +342,7 @@ class GrandCanonical : public Move{
 
         // ADD
         if(ADD){
+            //printf("dE add %lf\n", dE);
             //Cation
             if(this->q > 0.0){
                 prob = this->pVolume / (s->particles.cTot + 1.0) * std::exp(this->cp - this->d * this->q - dE);
@@ -354,6 +358,7 @@ class GrandCanonical : public Move{
         }
         // REMOVE
         else{
+            //printf("dE remove %lf\n", dE);
             //Cation
             if(this->q > 0.0){
                 prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
@@ -691,12 +696,57 @@ class WidomInsertion : public Move{
     }
 
     bool accept(double dE){
-        if(samples > 10000){
+        if(this->samples > 10000){
             this->samples = 0;
             this->cp = 0.0;
         }
         
         this->cp += std::exp(-dE);
+        this->samples++;
+
+        return false;
+    }
+
+    std::string dump(){
+        std::ostringstream ss;
+        ss.precision(5);
+        ss << std::fixed;
+        ss << "\t" << this->id << " cp: " << -std::log(this->cp / this->samples) <<" " << this->cp / this->samples << " " << this->cp << " samples: " << this->samples << " attempted: " << this->attempted;
+        return ss.str();
+    }
+};
+
+class WidomDeletion : public Move{
+
+    protected:
+    double q;
+    double cp = 0.0;
+    int samples = 0;
+    public:
+
+    WidomDeletion(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback) {
+
+        this->id = "WDel";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tWeight: %lf\n", this->weight);
+    }
+
+    void operator()(){      
+        auto [ind, qt] = s->particles.remove_random();
+        this->q = qt;
+        std::vector< unsigned int > particles{ind};
+        this->move_callback(particles);
+
+        this->attempted++;
+    }
+
+    bool accept(double dE){
+        if(this->samples > 10000){
+            this->samples = 0;
+            this->cp = 0.0;
+        }
+        //printf("dE %lf\n", dE);
+        this->cp += std::exp(dE);
         this->samples++;
 
         return false;

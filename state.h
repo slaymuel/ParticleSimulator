@@ -259,8 +259,14 @@ class State{
 
             E2 += (*e)( this->movedParticles, this->particles );
         }
-
+        /*
+        printf("particle %u has moved\n", this->movedParticles[0]);
+        std::cout << this->particles[this->movedParticles[0]]->pos << std::endl;
+        printf("from: \n");
+        std::cout << this->_old->particles[this->_old->movedParticles[0]]->pos << std::endl;
+        */
         this->dE = E2 - E1;
+        //printf("dE %lf %lf\n", E1, E2);
         return this->dE;
     }
 
@@ -275,10 +281,13 @@ class State{
             std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
                                                     this->movedParticles.push_back(i); });
         }
-
+        
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), 
                                             [this](unsigned int i){ return i < this->_old->particles.tot; });
-
+        
+        //printf("moved %u\n", this->movedParticles[0]);
+        //printf("old moved %u\n", this->_old->movedParticles[0]);
+        
         /*if(!this->movedParticles.empty()){                                  
             for(auto i : ps){
                 geo->pbc(this->particles[i]);
@@ -568,5 +577,51 @@ class State{
 
     void load_spline(std::vector<double> aKnots, std::vector<double> bKnots, std::vector<double >controlPoints){
         spline.load(aKnots, bKnots, controlPoints);
+    }
+
+    void load_cp(std::vector< std::vector<double> > com, std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<double> b_min, std::vector<double> b_max, std::vector<std::string> names){
+        //assert correct sizes
+
+        Eigen::Vector3d ae, be, qDisp;
+        
+        for(unsigned int i = 0; i < pos.size(); i++){
+            ae << pos[i][0], pos[i][1], pos[i][2];
+            be << com[i][0], com[i][1], com[i][2];
+            qDisp = this->geo->displacement(ae, be);
+
+            this->particles.add(com[i], pos[i], qDisp, r[i], rf[i], charges[i], b[i], b_min[i], b_max[i], names[i]);
+
+        }
+        if(!this->particles.setPModel || !this->particles.setNModel){
+            printf("Cation or anion model not set!\n");
+            exit(1);
+        }
+        printf("Loaded %u particles, %u cations and %u anions.\n", this->particles.tot, this->particles.cTot, this->particles.aTot);
+    }
+
+    void load_cp_old(std::vector< std::vector<double> > com, std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){
+        //assert correct sizes
+
+        Eigen::Vector3d ae, be, qDisp;
+        double b_min, b_max;
+
+        for(unsigned int i = 0; i < pos.size(); i++){
+            ae << pos[i][0], pos[i][1], pos[i][2];
+            be << com[i][0], com[i][1], com[i][2];
+            qDisp = this->geo->displacement(ae, be);
+
+            if(charges[i] < 0){
+                b_min = 0.0;
+                b_max = 0.0;
+            }
+            
+            this->particles.add(com[i], pos[i], qDisp, r[i], rf[i], charges[i], b[i], b_min, b_max, names[i]);
+
+        }
+        if(!this->particles.setPModel || !this->particles.setNModel){
+            printf("Cation or anion model not set!\n");
+            exit(1);
+        }
+        printf("Loaded %u particles, %u cations and %u anions.\n", this->particles.tot, this->particles.cTot, this->particles.aTot);
     }
 };

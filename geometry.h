@@ -19,6 +19,7 @@ class Geometry{
     virtual bool is_inside(std::shared_ptr<Particle>& p) = 0;
     virtual void pbc(std::shared_ptr<Particle>&& p) = 0;
     virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
+    virtual Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual Eigen::Vector3d mirror(Eigen::Vector3d pos) = 0;
     virtual Eigen::Vector3d random_pos(double rf) = 0;
     virtual ~Geometry(){};
@@ -178,6 +179,37 @@ class Cuboid : public Geometry{
         return disp.norm();
     }
 
+    Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b){
+        Eigen::Vector3d disp = a - b;
+        if(X){
+            if(disp[0] > this->dh[0]){
+                disp[0] -= this->d[0];
+            }
+            else if(disp[0] < -this->dh[0]){
+                disp[0] += this->d[0];
+            }
+        }
+
+        if(Y){
+            if(disp[1] > this->dh[1]){
+                disp[1] -= this->d[1];
+            }
+            else if(disp[1] < -this->dh[1]){
+                disp[1] += this->d[1];
+            }
+        }
+
+        if(Z){
+            if(disp[2] > this->dh[2]){
+                disp[2] -= this->d[2];
+            }
+            else if(disp[2] < -this->dh[2]){
+                disp[2] += this->d[2];
+            }
+        }
+
+        return disp;
+    }
 
     Eigen::Vector3d mirror(Eigen::Vector3d pos){
         Eigen::Vector3d m;
@@ -300,6 +332,32 @@ class CuboidImg : public Geometry{
     }
 
 
+
+    Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b){
+        Eigen::Vector3d disp = a - b;
+        if(X){
+            if(disp[0] > this->dh[0]){
+                disp[0] -= this->d[0];
+            }
+            else if(disp[0] < -this->dh[0]){
+                disp[0] += this->d[0];
+            }
+        }
+
+        if(Y){
+            if(disp[1] > this->dh[1]){
+                disp[1] -= this->d[1];
+            }
+            else if(disp[1] < -this->dh[1]){
+                disp[1] += this->d[1];
+            }
+        }
+
+        return disp;
+    }
+
+
+
     Eigen::Vector3d mirror(Eigen::Vector3d pos){
         Eigen::Vector3d m;
         m << pos[0], pos[1], (pos[2] >= 0) ? 2.0 * dh[2] - pos[2] : -2.0 * _dh[2] - pos[2];
@@ -331,6 +389,13 @@ class Sphere : public Geometry{
     double distance(Eigen::Vector3d& a, Eigen::Vector3d& b){ return 0.0; }
 
     void pbc(std::shared_ptr<Particle>&& p){  }
+
+    Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b){
+        Eigen::Vector3d disp = a - b;
+
+        return disp;
+    }
+
 
     Eigen::Vector3d mirror(Eigen::Vector3d pos){
         Eigen::Vector3d m;

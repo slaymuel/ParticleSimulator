@@ -114,6 +114,9 @@ class Simulator{
             case 10:
                 moves.push_back(new WidomInsertion(i1, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
+            case 11:
+                moves.push_back(new WidomDeletion(i1, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
@@ -338,6 +341,7 @@ PYBIND11_MODULE(mormon, m) {
 
     py::class_<State>(m, "State")
         .def("set_geometry", &State::set_geometry)
+        .def("load_cp", &State::load_cp)
         .def("set_energy", &State::set_energy)
         .def("equilibrate", &State::equilibrate)
         .def("load_spline", &State::load_spline)
@@ -351,8 +355,8 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("particles", &Particles::particles)
         .def_readonly("pModel", &Particles::pModel)
         .def_readonly("nModel", &Particles::nModel)
-        .def("load", &Particles::load)
-        .def("set_models", &Particles::set_models, py::arg("q"), py::arg("r"), py::arg("rf"), py::arg("b"), py::arg("names"))
+        //.def("load", &Particles::load)
+        //.def("set_models", &Particles::set_models, py::arg("q"), py::arg("r"), py::arg("rf"), py::arg("b"), py::arg("names"))
         //.def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, 
         //            py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
         .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("params"));

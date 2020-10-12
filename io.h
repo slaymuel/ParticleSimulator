@@ -65,7 +65,7 @@ class IO{
                 f << std::fixed << std::setprecision(15) << " " <<  p[i]->com[0] << " " << p[i]->com[1] << " " << p[i]->com[2] << " " << 
                                                                     p[i]->pos[0] << " " << p[i]->pos[1] << " " << p[i]->pos[2] << " " << 
                                                                     p[i]->q << " " << p[i]->r << " " << p[i]->rf << " " << 
-                                                                    p[i]->b << " " << p[i]->name << "\n";
+                                                                    p[i]->b << " " << p[i]->b_min << " " << p[i]->b_max << " " << p[i]->name << "\n";
             }
             f.close();
         }
