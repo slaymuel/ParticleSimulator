@@ -75,6 +75,119 @@ class Sture{
 
 
 
+
+namespace Fanourgakis{
+    double R;
+
+    class SP2{
+        private:
+
+        public:
+
+        inline double operator()(const double& q1, const double& q2, const double& dist){
+            return q1 * q2 * (1.0 - 2.0 * dist / R + 2.0 * (dist / R) * (dist / R) * (dist / R) - (dist / R) * (dist / R) * 
+                                                                                                  (dist / R) * (dist / R)) / dist;
+        }
+    };
+
+
+
+    class SP2Self{
+        private:
+
+        double selfTerm = 0.0;
+
+        public:
+
+        void set_box(double x, double y, double z){}
+
+
+
+        void initialize(Particles &particles){
+            this->selfTerm = 0.0;
+
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->selfTerm += particles[i]->q * particles[i]->q;
+            }
+            printf("Self term: %lf\n", this->selfTerm);
+        }
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            if(_old.empty()){
+                for(auto n : _new){
+                    this->selfTerm += n->q * n->q;
+                }
+            }
+
+            if(_new.empty()){
+                for(auto o : _old){
+                    this->selfTerm -= o->q * o->q;
+                }
+            }
+        }
+
+
+        inline double operator()(){
+            return -1.0 / R * this->selfTerm;
+        } 
+    };
+
+
+    class SP3{
+        private:
+
+        public:
+
+        inline double operator()(const double& q1, const double& q2, const double& dist){
+            return q1 * q2 * (1.0 - 7.0 / 4.0 * dist / R + 21.0 / 4.0 * std::pow((dist / R), 5.0) - 
+                   7.0 * std::pow((dist / R), 6.0) + 5.0 / 2.0 * std::pow((dist / R), 7.0)) / dist;
+        }
+    };
+
+
+    class SP3Self{
+        private:
+
+        double selfTerm = 0.0;
+
+        public:
+
+        void set_box(double x, double y, double z){}
+
+
+
+        void initialize(Particles &particles){
+            this->selfTerm = 0.0;
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->selfTerm += particles[i]->q * particles[i]->q;
+            }
+        }
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            if(_old.empty()){
+                for(auto n : _new){
+                    this->selfTerm += n->q * n->q;
+                }
+            }
+
+            if(_new.empty()){
+                for(auto o : _old){
+                    this->selfTerm -= o->q * o->q;
+                }
+            }
+        }
+
+
+        inline double operator()(){
+            return -7.0 / (8.0 * R) * this->selfTerm;
+        } 
+    };
+}
+
+
+
+
+
 class Spline{
     std::vector<double> knots;
 

@@ -565,6 +565,45 @@ class State{
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
 
+            case 11:
+                printf("\nAdding FanourgakisSP2 with image charges\n");
+                assert(args.size() == 2);
+                                                                                          // kMax     eps
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Fanourgakis::SP2> >(args[1], 1.0) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Fanourgakis::SP2Self> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                Fanourgakis::R = args[0];
+
+                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
+                this->geo->dh[2] = 0.5 * this->geo->d[2]; 
+                this->_old->geo->d[2] = this->geo->d[2];
+                this->_old->geo->dh[2] = this->geo->dh[2]; 
+                break;
+
+            case 12:
+                printf("\nAdding FanourgakisSP3 with image charges\n");
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Fanourgakis::SP3> >(args[1], 1.0) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Fanourgakis::SP3Self> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                Fanourgakis::R = args[0];
+
+                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
+                this->geo->dh[2] = 0.5 * this->geo->d[2]; 
+                this->_old->geo->d[2] = this->geo->d[2];
+                this->_old->geo->dh[2] = this->geo->dh[2];
+                break;
+
             default:
                 printf("\nAdding Coulomb potential\n");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );
@@ -614,7 +653,7 @@ class State{
                 b_min = 0.0;
                 b_max = 0.0;
             }
-            
+
             this->particles.add(com[i], pos[i], qDisp, r[i], rf[i], charges[i], b[i], b_min, b_max, names[i]);
 
         }
