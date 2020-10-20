@@ -283,6 +283,12 @@ class Particles{
                 do{
                     rand2 = Random::get_random(this->tot);
                 } while(this->particles[rand2]->q != this->pModel.q);
+                q = this->particles[rand2]->q;
+                this->remove(rand2);
+            }
+
+            else{
+                rand2 = -1;
             }
         }
         else{
@@ -290,15 +296,18 @@ class Particles{
                 do{
                     rand2 = Random::get_random(this->tot);
                 } while(this->particles[rand2]->q != this->nModel.q);
+                q = this->particles[rand2]->q;
+                this->remove(rand2);
+            }
+            else{
+                rand2 = -1;
             }
         }
 
-        q = this->particles[rand2]->q;
-        this->remove(rand2); // remove particle
-        if(this->cTot <= 0 || this->aTot <= 0){
-            printf("Woops, no particles left!\n");
-            exit(0);
-        }
+        /*if(this->cTot <= 0 || this->aTot <= 0){
+            printf("Trying to remove last particle!\n");
+        }*/
+
         //printf("Removing %i charge %lf\n", rand2, q);
         return {rand2, q};
     }

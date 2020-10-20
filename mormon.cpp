@@ -126,7 +126,7 @@ class Simulator{
     void add_sampler(int i, int interval){
         switch(i){
             case 0:
-                printf("\nAdding density sampler\n");
+                printf("\nAdding z density sampler\n");
                 sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], 0.05, 
                                               this->state.geo->d[0], this->state.geo->d[1], interval, this->name));
                 break;
@@ -151,6 +151,16 @@ class Simulator{
             case 5:
                 printf("Adding number of ions sampler\n");
                 sampler.push_back(new Samplers::NumIons(interval, this->name));
+                break;
+            case 6:
+                printf("\nAdding x density sampler\n");
+                sampler.push_back(new Samplers::Density(0, this->state.geo->_d[0], 0.05, 
+                                              this->state.geo->d[1], this->state.geo->d[2], interval, this->name));
+                break;
+            case 7:
+                printf("\nAdding y density sampler\n");
+                sampler.push_back(new Samplers::Density(1, this->state.geo->_d[1], 0.05, 
+                                              this->state.geo->d[0], this->state.geo->d[2], interval, this->name));
                 break;
             default:
                 break;

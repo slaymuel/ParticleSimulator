@@ -28,6 +28,7 @@ class Density : public Sampler{
     std::vector<unsigned long long int> pDens;
     std::vector<unsigned long long int> nDens;
     int d, bins;
+    std::string dim;
 
     public:
 
@@ -41,6 +42,9 @@ class Density : public Sampler{
         this->xb = xb;
         this->yb = yb;
         this->filename = filename;
+        if(d == 0) this->dim = "x";
+        if(d == 1) this->dim = "y";
+        if(d == 2) this->dim = "z";
     }
 
     void sample(State& state){
@@ -58,7 +62,7 @@ class Density : public Sampler{
     }
 
     void save(){
-        std::ofstream f ("p_" + this->filename + ".txt");
+        std::ofstream f ("p" + dim + "_" + this->filename + ".txt");
         if (f.is_open())
         {
             for(unsigned int i = 0; i < this->pDens.size(); i++){
@@ -69,7 +73,7 @@ class Density : public Sampler{
         }
         else std::cout << "Unable to open file";
         
-        std::ofstream fi ("n_" + this->filename + ".txt");
+        std::ofstream fi ("n" + dim + "_" + this->filename + ".txt");
         if (fi.is_open())
         {
             for(unsigned int i = 0; i < this->nDens.size(); i++){
@@ -269,8 +273,8 @@ class XDR : public Sampler{
 class NumIons : public Sampler{
     private:
 
-    std::vector<unsigned long long int> pNum;
-    std::vector<unsigned long long int> nNum;
+    std::vector<int> pNum;
+    std::vector<int> nNum;
 
     public:
 
@@ -279,16 +283,16 @@ class NumIons : public Sampler{
     }
 
     void sample(State& state){
-        pNum.push_back(state.particles.cTot);
-        nNum.push_back(state.particles.aTot);
+        this->pNum.push_back(state.particles.cTot);
+        this->nNum.push_back(state.particles.aTot);
     }
 
     void save(){
         std::ofstream f ("pNum_" + this->filename + ".txt");
         if (f.is_open())
         {
-            for(unsigned int i = 0; i < this->pNum.size(); i++){
-                f << this->pNum[i] << "\n";
+            for(auto p : this->pNum){
+                f << p << "\n";
             }
             f.close();
         }
@@ -297,8 +301,8 @@ class NumIons : public Sampler{
         std::ofstream fi ("nNum_" + this->filename + ".txt");
         if (fi.is_open())
         {
-            for(unsigned int i = 0; i < this->nNum.size(); i++){
-                fi << this->nNum[i] << "\n";
+            for(auto n : this->nNum){
+                fi << n << "\n";
             }
             fi.close();
         }

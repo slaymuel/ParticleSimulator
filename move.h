@@ -320,18 +320,22 @@ class GrandCanonical : public Move{
 
     void operator()(){
         //UNUSED(p);
-
+        std::vector< unsigned int > particles;
         if(ADD){
             
             auto [ind, qt] = s->particles.add_random(s->geo->_dh);
             this->q = qt;
-            std::vector< unsigned int > particles{ind};
+            particles.push_back(ind);
+
             this->move_callback(particles);
         }
+
         else{
             auto [ind, qt] = s->particles.remove_random();
             this->q = qt;
-            std::vector< unsigned int > particles{ind};
+            if(ind != -1){
+                particles.push_back(ind);
+            }
             this->move_callback(particles);        
         }
         this->attempted++;
@@ -345,13 +349,13 @@ class GrandCanonical : public Move{
             //printf("dE add %lf\n", dE);
             //Cation
             if(this->q > 0.0){
-                prob = this->pVolume / (s->particles.cTot + 1.0) * std::exp(this->cp - this->d * this->q - dE);
+                prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE); //N + 1 since s->particles.cTot is the new N + 1 state
                 this->acc = &this->pAcc;
                 this->pAtt++;
             }
             //Anion
             else{
-                prob = this->nVolume / (s->particles.aTot + 1.0) * std::exp(this->cp - this->d * this->q - dE);
+                prob = this->nVolume / s->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
             } 
@@ -361,13 +365,13 @@ class GrandCanonical : public Move{
             //printf("dE remove %lf\n", dE);
             //Cation
             if(this->q > 0.0){
-                prob = s->particles.cTot / this->pVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = (s->particles.cTot + 1) / this->pVolume * std::exp(this->d * this->q - this->cp - dE); //N since s->particles.cTot is the new N - 1 state
                 this->acc = &this->pAcc;
                 this->pAtt++;
             }
             //Anion
             else{
-                prob = s->particles.aTot / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = (s->particles.aTot + 1) / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
             }
