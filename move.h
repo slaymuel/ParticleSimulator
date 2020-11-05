@@ -541,14 +541,18 @@ class ChargeTransRand: public Move{
 
     void operator()(){
         //printf("Move\n");
+        std::vector< unsigned int > particles;
         int rand = 0;
-        do{
-            rand = Random::get_random(s->particles.tot);
-        } while(s->particles[rand]->q < 0.0);
-        
-        std::vector< unsigned int > particles = {s->particles[rand]->index};
-        this->s->particles[rand]->chargeTransRand();
+        if(s->particles.cTot > 0){
+            do{
+                rand = Random::get_random(s->particles.tot);
+            } while(s->particles[rand]->q < 0.0);
+            this->s->particles[rand]->chargeTransRand();
+            particles.push_back(s->particles[rand]->index);
+        }
         this->move_callback(particles);
+        
+
         this->attempted++;
     }
 
