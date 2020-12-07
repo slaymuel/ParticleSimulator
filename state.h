@@ -186,6 +186,7 @@ class State{
         if(this->dE != std::numeric_limits<double>::infinity()){
             for(auto e : this->energyFunc){
                 if(this->geo->volume != this->_old->geo->volume){
+                    // Is update really needed here?
                     e->update(this->_old->geo->d[0], this->_old->geo->d[1], this->_old->geo->d[2]);
                     e->initialize(this->_old->particles);
                 }
@@ -412,6 +413,13 @@ class State{
                 this->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
                 this->_old->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
                 break;
+
+            case 5:
+                printf("Creating Cuboid box with no PBC in z\n");
+                assert(args.size() == 3);
+                this->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
+                this->_old->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
+                break;
         }
 
     }
@@ -603,6 +611,35 @@ class State{
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2];
+                break;
+
+            case 13:
+                printf("\nAdding Ewald with vacuum slabs\n");
+                assert(args.size() == 6);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+
+                printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
+                this->geo->d[2] = 2.0 * args[1];
+                this->geo->dh[2] = 0.5 * this->geo->d[2]; 
+                this->_old->geo->d[2] = this->geo->d[2];
+                this->_old->geo->dh[2] = this->geo->dh[2]; 
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
+
+                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                EwaldLike::alpha = args[5];
+                printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
+                break;
+
+            case 14:
+                printf("\nAdding Ewald slab correction\n");
+                assert(args.size() == 0);
+
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
                 break;
 
             default:

@@ -1,6 +1,6 @@
 #include "particle.h"
 #include <vector>
-#include "geometry.h"
+//#include "geometry.h"
 #include "Faddeeva.h"
 
 /*
@@ -742,6 +742,49 @@ namespace EwaldLike{
         } 
     };
 
+
+
+
+
+
+
+
+
+
+
+
+    class SlabCorr{
+        private:
+        double dipoleMoment;
+        double fac;
+
+        public:
+
+        void set_box(double x, double y, double z){
+            this->fac = 2.0 * constants::PI / (x * y * z);
+        }
+
+        void initialize(Particles &particles){
+            dipoleMoment = 0.0;
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->dipoleMoment += particles[i]->q * particles[i]->pos[2];
+            }
+        }
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            for(auto o : _old){
+                this->dipoleMoment -= o->q * o->pos[2];
+            }
+
+            for(auto n : _new){
+                this->dipoleMoment += n->q * n->pos[2];
+            }
+        }
+
+        inline double operator()(){
+            return this->fac * this->dipoleMoment * this->dipoleMoment;
+        } 
+    };
 
 
 

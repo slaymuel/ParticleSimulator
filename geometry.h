@@ -51,34 +51,34 @@ class Cuboid : public Geometry{
         //assert(p->com.size() == 3);
 
         if(X){
-            if(p->com[0] >= this->dh[0] || p->com[0] <= -this->dh[0]){
+            if(p->com[0] >= this->_dh[0] || p->com[0] <= -this->_dh[0]){
                 return false;
             }
         }
         else{
-            if(p->com[0] + p->rf >= this->dh[0] || p->com[0] - p->rf <= -this->dh[0]){
+            if(p->com[0] + p->rf >= this->_dh[0] || p->com[0] - p->rf <= -this->_dh[0]){
                 return false;
             }               
         }
 
         if(Y){
-            if(p->com[1] >= this->dh[1] || p->com[1] <= -this->dh[1]){
+            if(p->com[1] >= this->_dh[1] || p->com[1] <= -this->_dh[1]){
                 return false;
             }
         }
         else{
-            if(p->com[1] + p->rf >= this->dh[1] || p->com[1] - p->rf <= -this->dh[1]){
+            if(p->com[1] + p->rf >= this->_dh[1] || p->com[1] - p->rf <= -this->_dh[1]){
                 return false;
             }
         }
 
         if(Z){
-            if(p->com[2] >= this->dh[2] || p->com[2] <= -this->dh[2]){
+            if(p->com[2] >= this->_dh[2] || p->com[2] <= -this->_dh[2]){
                 return false;
             }
         }
         else{
-            if(p->com[2] + p->rf >= this->dh[2] || p->com[2] - p->rf <= -this->dh[2]){
+            if(p->com[2] + p->rf >= this->_dh[2] || p->com[2] - p->rf <= -this->_dh[2]){
                 return false;
             }
         }
@@ -224,7 +224,7 @@ class Cuboid : public Geometry{
 
         Eigen::Vector3d v;
         v = Random::get_vector();
-        v << (dh[0] - x) * v[0], (dh[1] - y) * v[1], (dh[2] - z) * v[2];
+        v << (_dh[0] - x) * v[0], (_dh[1] - y) * v[1], (_dh[2] - z) * v[2];
         return v;
     }
 };

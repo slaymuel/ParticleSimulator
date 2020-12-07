@@ -15,6 +15,10 @@ class EnergyBase{
     public:
     Geometry *geo;
 
+    //is not used by ext - bad design
+    //should add one layer EnergyBase -> PairEnergy -> Pair
+    //where PairEnergy constains set_geo()
+    // EnergyBase -> External -> ExtEnergy
     void set_geo(Geometry* geo){
         this->geo = geo;
     }
