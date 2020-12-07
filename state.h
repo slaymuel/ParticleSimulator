@@ -322,7 +322,7 @@ class State{
         Eigen::Vector3d oldCom;
         Eigen::Vector3d oldPos;
         std::shared_ptr<Particle> p;
-
+        double step_rand;
         //Move particles to prevent overlap
         if(overlaps > 0){
             printf("\tRemoving overlaps.\n");
@@ -330,7 +330,8 @@ class State{
                 p = this->particles.random();
                 oldCom = p->com;
                 oldPos = p->pos;
-                p->translate(step);
+                step_rand = Random::get_random() * step;
+                p->translate(step_rand);
                 //this->geo->pbc(p);
                 if(!this->geo->is_inside(p) || this->overlap(p->index)){
                     p->com = oldCom;
