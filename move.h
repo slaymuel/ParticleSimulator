@@ -287,7 +287,7 @@ class SingleSwap : public Move{
 
 
 template <bool ADD>
-class GrandCanonical : public Move{
+class GrandCanonicalSingle : public Move{
 
     protected:
     double q;
@@ -301,13 +301,13 @@ class GrandCanonical : public Move{
 
     public:
 
-    GrandCanonical(double chemPot, double donnan, double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback),
+    GrandCanonicalSingle(double chemPot, double donnan, double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback),
                   d(donnan), cp(chemPot){
         if(ADD){
-            this->id = "GCAdd";
+            this->id = "GCAddSingle";
         }
         else{
-            this->id = "GCRem";
+            this->id = "GCRemSingle";
         }
         printf("\t%s\n", this->id.c_str());
         constants::cp = chemPot;
@@ -396,6 +396,177 @@ class GrandCanonical : public Move{
         return ss.str();
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <bool ADD>
+class GrandCanonical : public Move{
+
+    protected:
+    unsigned int valency;
+    double volume;
+    double cp;
+    double pVolume;
+    double nVolume;
+
+    public:
+
+    GrandCanonical(double chemPot, double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback), cp(chemPot){
+        if(ADD){
+            this->id = "GCAdd";
+        }
+        else{
+            this->id = "GCRem";
+        }
+        
+        constants::cp = chemPot;
+        this->pVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.pModel.rf);
+        this->nVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.nModel.rf);
+        this->valency = s->particles.pModel.q;
+
+        printf("\t%s\n", this->id.c_str());
+        printf("\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
+        printf("\tChemical potential: %.3lf", this->cp);
+        printf("\tWeight: %lf\n", this->weight);
+    }
+
+    void operator()(){
+        //UNUSED(p);
+        std::vector< unsigned int > particles;
+        if(ADD){
+            auto [ind, qt] = s->particles.add_random(s->geo->_dh, 1.0);
+            particles.push_back(ind);
+            for(int i = 0; i < this->valency; i++){
+                auto [ind2, qt2] = s->particles.add_random(s->geo->_dh, -1.0);
+                particles.push_back(ind2);
+            }
+        }
+        else{
+            std::vector< unsigned int > pt;
+            /*int di;
+            auto [ind, qt] = s->particles.remove_random(1.0);
+            particles.push_back(ind);
+            printf("removing: %i\n", ind);
+            pt.push_back(ind);
+            for(int i = 0; i < this->valency; i++){
+                di = 0;
+                auto [ind2, qt2] = s->particles.remove_random(-1.0);
+                for(int j = 0; j < particles.size(); j++){
+                    if(pt[j] <= ind2) di += 1;
+                    if(pt[j] == ind2) di += 1;
+                }
+                printf("removing: %i\n", ind2);
+                pt.push_back(ind2);
+                particles.push_back(ind2 + di);
+            }*/
+            int rand = 0;
+            if(s->particles.cTot > 0){
+                do{
+                    rand = Random::get_random(s->particles.tot);
+                } while(s->particles[rand]->q != s->particles.pModel.q);
+                particles.push_back(rand);
+            }
+
+
+            /*for(int i = 0; i < this->valency; i++){
+                if(s->particles.aTot > this->valency){
+                    do{
+                        rand = Random::get_random(s->particles.tot);
+                    } while(s->particles[rand]->q != s->particles.nModel.q && std::none_of(particles.begin(), particles.end(), [&](int val){return val==rand;}));
+                    particles.push_back(rand);
+                }
+            }*/
+            while(particles.size() < this->valency + 1){
+                do{
+                    rand = Random::get_random(s->particles.tot);
+                } while(s->particles[rand]->q != s->particles.nModel.q);
+
+                if(std::none_of(particles.begin(), particles.end(), [&](int val){return val==rand;})){
+                    particles.push_back(rand);   
+                }   
+            }
+            std::sort(particles.begin(), particles.end());
+            std::reverse(particles.begin(), particles.end());
+            for(auto p : particles){
+                //printf("%i\n", p);
+                s->particles.remove(p);
+            }
+            //printf("\n");
+        }
+
+        this->attempted++;
+        this->move_callback(particles);  
+    }
+
+    bool accept(double dE){
+        double prob;
+
+        // ADD
+        if(ADD){
+            double pFac = this->pVolume / s->particles.cTot;
+            double nFac = 1.0;
+            for(int i = 0; i < this->valency; i++){
+                nFac *= this->nVolume / s->particles.aTot;
+            }
+            
+            prob = pFac * nFac * std::exp((this->valency + 1) * this->cp - dE); 
+
+        }
+        // REMOVE
+        else{
+            double pFac = (s->particles.cTot + 1) / this->pVolume;
+            double nFac = 1.0;
+            for(int i = 0; i < this->valency; i++){
+                nFac *= (s->particles.aTot + 1) / this->nVolume ;
+            }
+            prob = pFac * nFac * std::exp(-(this->valency + 1.0) * this->cp - dE); 
+        }
+
+        if(prob >= Random::get_random()){
+            this->accepted += 1;
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+
+    std::string dump(){
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << " +: " << (double) this->accepted/ this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted<<") ";
+
+        return ss.str();
+    }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

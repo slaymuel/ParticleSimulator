@@ -250,14 +250,14 @@ class Particles{
 
 
 
-    std::tuple<unsigned int, double> add_random(std::vector<double> box, int type = 0){
+    std::tuple<unsigned int, double> add_random(std::vector<double> box, double type = 0.0){
         double rand = Random::get_random();
         double q;
         Eigen::Vector3d com;
         com = Random::random_pos_box(this->pModel.rf, box);
         if(type != 0) rand = type;
         //Add cation
-        if(rand < 0.5){
+        if(rand >= 0.5){
             this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b_min, this->pModel.b_max, "Na");
             q = this->pModel.q;
         }
@@ -312,6 +312,38 @@ class Particles{
         return {rand2, q};
     }
 
+
+    std::tuple<unsigned int, double> remove_random(double type){
+        double q;
+
+        int rand = Random::get_random(this->tot);
+
+        if(type > 0.0){
+            if(this->cTot > 0){
+                do{
+                    rand = Random::get_random(this->tot);
+                } while(this->particles[rand]->q != this->pModel.q);
+                q = this->particles[rand]->q;
+                this->remove(rand);
+            }
+            else{
+                rand = -1;
+            }
+        }
+        else{
+            if(this->aTot > 0){
+                do{
+                    rand = Random::get_random(this->tot);
+                } while(this->particles[rand]->q != this->nModel.q);
+                q = this->particles[rand]->q;
+                this->remove(rand);
+            }
+            else{
+                rand = -1;
+            }
+        }
+        return {rand, q};
+    }
 
 
     void remove(std::size_t index){

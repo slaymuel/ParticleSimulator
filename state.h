@@ -159,9 +159,11 @@ class State{
                 this->_old->particles.aTot = this->particles.aTot;
             }
         }
-
+        //std::sort(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
+        //std::reverse(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
         for(auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
+                //printf("removing %i from old\n", i);
                 this->_old->particles.remove(i);
             }
         }
@@ -197,7 +199,32 @@ class State{
         }
 
         //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
-        for(auto i : this->movedParticles){
+
+
+        if(this->particles.tot == this->_old->particles.tot){
+            for(auto i : this->movedParticles){
+                *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
+                //For SingleSwap move
+                this->particles.cTot = this->_old->particles.cTot;
+                this->particles.aTot = this->_old->particles.aTot;
+            }
+        }
+        else if(this->particles.tot > this->_old->particles.tot){   //Added particle
+            std::reverse(this->movedParticles.begin(), this->movedParticles.end());
+            for(auto i : this->movedParticles){
+                this->particles.remove(i);
+            }
+        }
+        else if(this->particles.tot < this->_old->particles.tot){   //Removed particle
+            //std::sort(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
+            std::reverse(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
+
+            for(auto i : this->_old->movedParticles){
+                //printf("adding back particle %i\n", i);
+                this->particles.add(this->_old->particles.particles[i], i);
+            }
+        }
+        /*for(auto i : this->movedParticles){
             if(this->particles.tot > _old->particles.tot){
                 //printf("\nReject: removing particle %i from current\n\n", i);
                 this->particles.remove(i);
@@ -217,7 +244,7 @@ class State{
                 this->particles.add(this->_old->particles.particles[i], i);
             }
 
-        }
+        }*/
 
         this->movedParticles.clear();
         this->_old->movedParticles.clear();
@@ -260,14 +287,8 @@ class State{
 
             E2 += (*e)( this->movedParticles, this->particles );
         }
-        /*
-        printf("particle %u has moved\n", this->movedParticles[0]);
-        std::cout << this->particles[this->movedParticles[0]]->pos << std::endl;
-        printf("from: \n");
-        std::cout << this->_old->particles[this->_old->movedParticles[0]]->pos << std::endl;
-        */
+
         this->dE = E2 - E1;
-        //printf("dE %lf %lf\n", E1, E2);
         return this->dE;
     }
 
@@ -285,7 +306,15 @@ class State{
         
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), 
                                             [this](unsigned int i){ return i < this->_old->particles.tot; });
+
         
+        /*for(auto p : this->_old->movedParticles){
+            printf("%i\n", p);
+        }
+        printf("\n");
+        for(auto p : this->movedParticles){
+            printf("%i\n", p);
+        }*/
         //printf("moved %u\n", this->movedParticles[0]);
         //printf("old moved %u\n", this->_old->movedParticles[0]);
         
@@ -461,6 +490,7 @@ class State{
 
                 EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 EwaldLike::alpha = args[4];
+                printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
                 break;
             
             case 3:
@@ -621,7 +651,7 @@ class State{
                 this->energyFunc.back()->set_cutoff(args[0]);
 
                 printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
-                this->geo->d[2] = 2.0 * args[1];
+                this->geo->d[2] = 2.0 * args[1] + this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
@@ -638,7 +668,7 @@ class State{
                 printf("\nAdding Ewald slab correction\n");
                 assert(args.size() == 0);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
 

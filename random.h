@@ -20,8 +20,8 @@ class Random{
     }
 
     inline static double get_random(){
-        return (*real_dist)(rand_gen);
-        //return ran2::get_random();
+        //return (*real_dist)(rand_gen);
+        return ran2::get_random();
     }
 
     inline static int get_random(int i){

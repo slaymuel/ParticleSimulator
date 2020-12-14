@@ -85,10 +85,10 @@ class Simulator{
                 moves.push_back(new Translate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 1:
-                moves.push_back(new GrandCanonical<true>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new GrandCanonicalSingle<true>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 2:
-                moves.push_back(new GrandCanonical<false>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                moves.push_back(new GrandCanonicalSingle<false>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             case 3:
                 moves.push_back(new Rotate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
@@ -116,6 +116,12 @@ class Simulator{
                 break;
             case 11:
                 moves.push_back(new WidomDeletion(i1, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
+            case 12:
+                moves.push_back(new GrandCanonical<true>(i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
+            case 13:
+                moves.push_back(new GrandCanonical<false>(i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
             default:
                 printf("Could not find move %i\n", i);
@@ -237,29 +243,23 @@ class Simulator{
             }
 
             /*                                "HALF TIME"                                  */
-            //Check energy drift etc
-            state.control();
-            state.advance();
             //Print progress
             std::cout << "\nIteration (macrostep): " << macro << std::endl;
 
             printf("Acceptance ratios: \n");
-            /*for(auto move : moves){
-                printf("%s %.1lf%% %i(%i) ", move->id.c_str(), (double)move->accepted / move->attempted * 100.0, move->attempted, move->accepted);
-            }*/
-
             for(auto move : moves){
                 std::cout << move->dump() << std::endl;
             }
             
-            printf("Total energy is: %lf, energy drift: %.15lf\n", state.energy, state.error);
+            printf("Total energy is: %lf, energy drift: %.15lf\n", state.cummulativeEnergy, state.error);
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
             printf("Box: %lf (%.15lf * %lf * %lf (%lf))\n", state.geo->volume, state.geo->_d[0], state.geo->_d[1], state.geo->_d[2], state.geo->d[2]);
-            //printf("Box: %lf * %lf * %lf\n", state.geo->d[0], state.geo->d[1], state.geo->d[2]);
-            //printf("Chemical potential: %lf\n\n", constants::cp);
             auto end = std::chrono::steady_clock::now();
             std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s per macrostep\n\n";
 
+            //Check energy drift etc
+            state.control();
+            state.advance();
             //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
             //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
             //   Sen kan simulator ha en map och leta på den variabeln
