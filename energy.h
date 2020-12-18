@@ -751,3 +751,109 @@ class Ellipsoid : public EnergyBase{
     void update(double x, double y, double z){}
     void initialize(Particles& particles){}
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename E>
+class Energy2D: public EnergyBase{
+
+    private:
+
+    E energy_func;  //energy functor
+
+    public:
+    Energy2D(double x, double y, double z){
+        energy_func.set_box(x, y, z);
+    }
+
+    double all2all(Particles& particles){
+        double reciprocal = 0.0, real = 0.0, self = 0.0, charge = 0.0, gE = 0.0, gEt = 0.0;
+        for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int j = 0; j < particles.tot; j++){
+                if(i == j) continue;
+                real += energy_func(particles.particles[i], particles.particles[j], this->geo->distance(particles[i]->pos, particles[j]->pos));
+            }  
+            charge += particles[i]->q;
+        }
+
+        for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int j = 0; j < particles.tot; j++){
+                //Include i=j term
+                reciprocal += energy_func.rec(particles[i], particles[j], this->geo->displacement(particles[i]->pos, particles[j]->pos));
+                gEt = energy_func.gE(particles[i]->q, particles[j]->q, this->geo->displacement(particles[i]->pos, particles[j]->pos));
+                gE += gEt;
+            }  
+        }
+
+        self = energy_func.get_self();
+        real *= 0.5;
+        //reciprocal *= 0.5;
+        //gE *= 0.5;
+        printf("real %lf\n", real * constants::lB);
+        printf("self %lf\n", self * constants::lB);
+        printf("reciprocal %lf\n", reciprocal * constants::lB);
+        printf("gE %lf\n", gE * constants::lB);
+        double energy = (real + reciprocal - gE - self);
+        //printf("Real energy: %.15lf\n", e);
+        return energy * constants::lB;
+    }
+
+    inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
+        double e = all2all(particles) / constants::lB;
+        return e * constants::lB;
+    }
+
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
+        double e = all2all(particles) / constants::lB;
+        return e * constants::lB;
+    }
+
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
+        double e = all2all(particles) / constants::lB;
+        return e * constants::lB;
+    }
+
+    inline double i2i(double& q1, double& q2, double&& dist){}
+
+    void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
+    void initialize(Particles& particles){
+        energy_func.initialize(particles);
+    }
+    void update(double x, double y, double z){}
+};

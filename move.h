@@ -520,9 +520,9 @@ class GrandCanonical : public Move{
             double pFac = this->pVolume / s->particles.cTot;
             double nFac = 1.0;
             for(int i = 0; i < this->valency; i++){
-                nFac *= this->nVolume / s->particles.aTot;
+                nFac *= this->nVolume / (s->particles.aTot - i);
             }
-            
+
             prob = pFac * nFac * std::exp((this->valency + 1) * this->cp - dE); 
 
         }
@@ -531,7 +531,7 @@ class GrandCanonical : public Move{
             double pFac = (s->particles.cTot + 1) / this->pVolume;
             double nFac = 1.0;
             for(int i = 0; i < this->valency; i++){
-                nFac *= (s->particles.aTot + 1) / this->nVolume ;
+                nFac *= (s->particles.aTot + 1 - i) / this->nVolume ;
             }
             prob = pFac * nFac * std::exp(-(this->valency + 1.0) * this->cp - dE); 
         }
@@ -549,7 +549,7 @@ class GrandCanonical : public Move{
         std::ostringstream ss;
         ss.precision(1);
         ss << std::fixed;
-        ss << "\t" << this->id << " +: " << (double) this->accepted/ this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted<<") ";
+        ss << "\t" << this->id << ": " << (double) this->accepted/ this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted<<") ";
 
         return ss.str();
     }

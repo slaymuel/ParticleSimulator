@@ -84,6 +84,8 @@
         "stack": "cpp",
         "core": "cpp",
         "lu": "cpp",
-        "__functional_03": "cpp"
+        "__functional_03": "cpp",
+        "strstream": "cpp",
+        "thread": "cpp"
     }
 }
