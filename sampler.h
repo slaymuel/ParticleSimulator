@@ -6,7 +6,7 @@
 class Sampler{
 
     public:
-    int samples = 0;
+    int samples = 1;
     int interval;
     std::string filename;
 
@@ -312,6 +312,451 @@ class NumIons : public Sampler{
     void close(){};
 };
 
+
+class Pressure : public Sampler{
+    private:
+
+    Eigen::Matrix3d pressureT = Eigen::Matrix3d::Zero();
+    double idP = 0.0, V, lZ;
+    int counter = 0;
+    std::vector<double> pressures;
+    public:
+
+    Pressure(int interval, double V, double lZ, std::string filename) : Sampler(interval){
+        this->filename = filename;
+        this->V = V;
+        this->lZ = lZ;
+        this->filename = "ptZ_" + filename;
+        pressures.resize(10000 / interval + 1, 0);
+    }
+
+    void sample(State& state){
+        Eigen::Vector3d force;
+        Eigen::Vector3d disp;
+        Eigen::Vector3d temp;
+        double press = 0.0;
+        /*for(int i = 0; i < state.particles.tot; i++){
+            force = Eigen::Vector3d::Zero();
+            for(auto e : state.energyFunc){
+                force += (*e).force(state.particles[i], state.particles);
+            }
+            std::cout << force << std::endl;
+        }*/
+
+        #pragma omp parallel for private(force, disp, temp) reduction(+:this->pressureT, press)
+        for(int i = 0; i < state.particles.tot; i++){
+            for(int j = i + 1; j < state.particles.tot; j++){
+                force = Eigen::Vector3d::Zero();
+                for(auto e : state.energyFunc){
+                    force += (*e).force(state.particles[i], state.particles[j]);
+                }
+                //printf("Force: ");
+                //std::cout << force << std::endl;
+                //std::cout << force.norm() / constants::lB << std::endl;
+                disp = state.geo->displacement(state.particles[i]->pos, state.particles[j]->pos);
+                this->pressureT(0, 0) += disp[0] * force[0];   this->pressureT(0, 1) += disp[0] * force[1];   this->pressureT(0, 2) += disp[0] * force[2];
+                this->pressureT(1, 0) += disp[1] * force[0];   this->pressureT(1, 1) += disp[1] * force[1];   this->pressureT(1, 2) += disp[1] * force[2];
+                this->pressureT(2, 0) += disp[2] * force[0];   this->pressureT(2, 1) += disp[2] * force[1];   this->pressureT(2, 2) += disp[2] * force[2];
+                press += disp[2] * force[2];
+
+                
+
+                
+                temp = state.particles[j]->pos;
+                temp[2] = math::sgn(state.particles[j]->pos[2]) * lZ - state.particles[j]->pos[2]; 
+                
+                force = Eigen::Vector3d::Zero();
+                for(auto e : state.energyFunc){
+                    force += (*e).force(state.particles[i]->pos, temp, state.particles[i]->q, -state.particles[j]->q);
+                }
+                disp = state.geo->displacement(state.particles[i]->pos, temp);
+                this->pressureT(0, 0) += disp[0] * force[0];   this->pressureT(0, 1) += disp[0] * force[1];   this->pressureT(0, 2) += disp[0] * force[2];
+                this->pressureT(1, 0) += disp[1] * force[0];   this->pressureT(1, 1) += disp[1] * force[1];   this->pressureT(1, 2) += disp[1] * force[2];
+                this->pressureT(2, 0) += disp[2] * force[0];   this->pressureT(2, 1) += disp[2] * force[1];   this->pressureT(2, 2) += disp[2] * force[2];
+                press += disp[2] * force[2];
+                
+            }
+        }
+        pressures[counter] = press / state.geo->volume;
+        this->idP += state.particles.tot / state.geo->volume;
+        this->samples++;
+        counter++;
+    }
+
+    void save(){
+        printf("Ideal pressure: %lf\n", idP / this->samples);
+        std::cout << "Pressure tensor:" << std::endl;
+        std::cout <<  this->pressureT * 1.0 / this->V * 1.0 / this->samples << std::endl;
+        std::cout << "Pressure in z: " << idP / this->samples + this->pressureT(2, 2) * 1.0 / this->V * 1.0 / this->samples << std::endl;
+
+        std::ofstream f (this->filename + ".txt", std::ios::app);
+        if (f.is_open())
+        {
+            for(int i = 0; i < counter; i++){
+                f << std::fixed << std::setprecision(10) << this->pressures[i] << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+        counter = 0;
+    }
+
+    void close(){};
+};
+
+
+class PressureV : public Sampler{
+    private:
+
+    double av = 0.0, dV, oldV, newV, dL, oldd, old_d;
+    std::vector<double> pressures;
+    int counter = 0;
+
+    public:
+
+    PressureV(int interval, double dL, double x, double y, double z, std::string filename) : Sampler(interval){
+        this->filename = filename;
+        this->oldV = x*y*z;
+        this->newV = x*y*(z+dL);
+        this->dV = this->newV - this->oldV;
+        //this->oldL = z;
+        this->dL = dL;
+        this->filename = "pV_" + filename;
+        pressures.resize(10000 / interval + 1, 0);
+        printf("\t ds: %lf\n", this->dL);
+    }
+
+    void sample(State& state){
+        bool fail = false;
+        double e1 = 0.0, e2 = 0.0;
+        oldd = state.geo->d[2];
+        old_d = state.geo->_d[2];
+
+        for(auto e : state.energyFunc){
+            e1 += (*e).all2all(state.particles);
+        }
+
+        state.geo->_d[2] += this->dL;
+        state.geo->_dh[2] = state.geo->_d[2] / 2.0;
+        state.geo->d[2] += this->dL;
+        state.geo->dh[2] = state.geo->d[2] / 2.0;
+        state.geo->volume = this->newV;
+
+        for(unsigned int i = 0; i < state.particles.tot; i++){
+            state.particles[i]->com[2] *= state.geo->d[2] / oldd;
+            state.particles[i]->pos = state.particles[i]->com + state.particles[i]->qDisp;
+            state.geo->pbc(state.particles[i]);
+            if(state.overlap(i)){
+                fail = true;
+            }
+        }
+
+        for(auto e : state.energyFunc){
+            //initialize reciprocal vectors again
+            (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            (*e).initialize(state.particles);
+            e2 += (*e).all2all(state.particles);
+        }
+
+        for(unsigned int i = 0; i < state.particles.tot; i++){
+            state.particles[i]->com[2] = state._old->particles[i]->com[2];
+            state.particles[i]->pos[2] = state._old->particles[i]->pos[2];
+        }
+
+        state.geo->_d[2] = old_d;
+        state.geo->_dh[2] = old_d / 2.0;
+        state.geo->d[2] = oldd;
+        state.geo->dh[2] = oldd / 2.0;
+        state.geo->volume = oldV;
+
+        for(auto e : state.energyFunc){
+            (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            (*e).initialize(state.particles);
+        }
+
+        if(!fail){
+            this->av += std::pow(1.0 + this->dV / state.geo->volume, state.particles.tot) * std::exp(-(e2 - e1));
+            this->pressures[counter] = 1.0 / this->dV * std::log(std::pow(1.0 + this->dV / state.geo->volume, state.particles.tot) * std::exp(-(e2 - e1)));
+            this->samples++;
+            counter++;
+        }
+    }
+
+    void save(){
+        printf("PressureV: %lf\n", 1.0 / this->dV * std::log(this->av / this->samples));
+        std::ofstream f (this->filename + ".txt", std::ios::app);
+        if (f.is_open())
+        {
+            for(int i = 0; i < counter; i++){
+                f << std::fixed << std::setprecision(10) << this->pressures[i] << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+
+        counter = 0;
+    }
+
+    void close(){};
+};
+
+
+
+
+
+
+
+class ForcePressure : public Sampler{
+    private:
+
+    double leftToRight;
+    double idP;
+    double V;
+    double rightToLeft;
+    double lZ;
+    int counter;
+    std::vector<double> leftForce;
+    std::vector<double> rightForce;
+
+    public:
+
+    ForcePressure(int interval, double V, double lZ, std::string filename) : Sampler(interval){
+        this->filename = "fp_" + filename;
+        this->V = V;
+        this->leftForce.resize(10000 / interval + 1, 0);
+        this->rightForce.resize(10000 / interval + 1, 0);
+        this->counter = 0;
+        this->lZ = lZ;
+        this->idP = 0.0;
+    }
+
+    void sample(State& state){
+        Eigen::Vector3d force;
+        Eigen::Vector3d disp;
+        Eigen::Vector3d temp;
+
+        rightToLeft = 0.0;
+        leftToRight = 0.0;
+        
+        //#pragma omp parallel for private(force, disp) reduction(+:leftToRight, +:rightToLeft)
+        for(int i = 0; i < state.particles.tot; i++){
+            for(int j = 0; j < state.particles.tot; j++){
+                if(i==j)
+                    continue;
+
+                int counter = 0;
+                for(auto e : state.energyFunc){
+                    if(state.particles[i]->pos[2] < 0.0 && state.particles[j]->pos[2] >= 0.0){
+                        ////Force on particle i from j
+                        force = (*e).force(state.particles[i], state.particles[j]);
+
+                        //temp is position of Image charge
+                        temp = state.particles[j]->pos;
+                        //lZ is length of C cell in z
+                        temp[2] = math::sgn(temp[2]) * lZ - temp[2]; 
+
+                        if(counter < 2){
+                            force += (*e).force(state.particles[i]->pos, temp, state.particles[i]->q, -state.particles[j]->q);
+                            rightToLeft += force[2];
+                        }
+                    }
+
+                    else if(state.particles[j]->pos[2] < 0.0 && state.particles[i]->pos[2] >= 0.0){
+                        //Force on particle j from i
+                        force = (*e).force(state.particles[j], state.particles[i]);
+                        temp = state.particles[i]->pos;
+                        temp[2] = math::sgn(temp[2]) * lZ - temp[2]; 
+
+                        if(counter < 2){
+                            force += (*e).force(state.particles[j]->pos, temp, state.particles[j]->q, -state.particles[i]->q);
+                            leftToRight += force[2];
+                        }
+                    }
+                    counter++;
+                }
+            }
+        }
+        this->leftForce[this->counter] = rightToLeft;
+        this->rightForce[this->counter] = leftToRight;
+        this->idP += state.particles.tot / state.geo->volume;
+        this->counter++;
+        this->samples++;
+    }
+
+    void save(){
+        printf("Ideal pressure: %lf\n", idP / this->samples);
+        std::cout << "RightToLeft: " << this->leftForce[this->counter - 1] / (80.0 * 80.0) << std::endl;
+        std::cout << "LeftToRight: " << this->rightForce[this->counter - 1] / (80.0 * 80.0) << std::endl;
+        /*std::cout << "Right to left pressure: " << rightToLeft / rightToLeftSamples << std::endl;
+        std::cout << "Right to left: " << rightToLeft / rightToLeftSamples << std::endl;
+        std::cout << "Left to right: " << leftToRight / leftToRightSamples << std::endl;*/
+
+        std::ofstream f (this->filename + ".txt", std::ios::app);
+        if (f.is_open())
+        {
+            for(unsigned int i = 0; i < this->leftForce.size(); i++){
+                f << std::fixed << std::setprecision(10) << this->samples - this->leftForce.size() + i << "\t" << leftForce[i] << "\t" << rightForce[i]  << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+
+        this->counter = 0;
+    }
+
+    void close(){};
+};
+
+
+
+
+
+
+
+class Force : public Sampler{
+    private:
+
+    Eigen::Vector3d force;
+
+    public:
+
+    Force(int interval, std::string filename) : Sampler(interval){
+        this->filename = "force_" + filename;
+    }
+
+    void sample(State& state){
+
+        //#pragma omp parallel for private(force, disp) reduction(+:leftToRight, +:rightToLeft)
+        for(int i = 0; i < state.particles.tot; i++){
+            force = Eigen::Vector3d::Zero();
+            for(int j = 0; j < state.particles.tot; j++){
+                if(i==j)
+                    continue;
+
+                for(auto e : state.energyFunc){
+                        //Force that points towards particle i
+                    force += (*e).force(state.particles[i], state.particles[j]);
+                }
+            }
+            std::cout << "Force is: " << force / constants::lB << std::endl;
+        }
+    }
+
+    void save(){}
+    void close(){};
+};
+
+
+
+
+
+
+
+
+
+
+class CliffPressure : public Sampler{
+    private:
+    double dL;
+    double rP = 0.0;
+    double lP = 0.0;
+    double area;
+    std::vector<double> pressures;
+    int counter = 0;
+
+    public:
+
+    CliffPressure(int interval, double dL, double xL, double yL, std::string filename) : Sampler(interval){
+        this->filename = "CliffP_" + filename;
+        this->dL = dL;
+        this->area = xL * yL;
+        this->pressures.resize(10000 / interval + 1, 0);
+    }
+
+    void sample(State& state){
+        bool fail = false;
+        double rPTemp = 0.0;
+        double lPTemp = 0.0;
+        // Move particles
+        for(int i = 0; i < state.particles.tot; i++){
+            if(state.particles[i]->com[2] > 0.0){
+                state.particles[i]->com[2] -= dL;
+                state.particles[i]->pos = state.particles[i]->com + state.particles[i]->qDisp;
+            }       
+        }
+        for(auto e : state.energyFunc){
+            //(*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            (*e).initialize(state.particles);
+            rPTemp += (*e).all2all(state.particles);
+        }
+        for(int i = 0; i < state.particles.tot; i++){
+            if(state.particles[i]->com[2] > 0.0){
+                state.particles[i]->com[2] = state._old->particles[i]->com[2];
+                state.particles[i]->pos = state._old->particles[i]->pos;
+            }
+        }
+        for(auto e : state.energyFunc){
+            //(*e).update(state.geo->d[0], state.geo->d[1], state.geo->_d[2]);
+            (*e).initialize(state.particles);
+        }
+
+        //Move right wall
+        double oldd = state.geo->d[2];
+        double old_d = state.geo->_d[2];
+        state.geo->_d[2] += this->dL;
+        state.geo->_dh[2] = 0.5*state.geo->_d[2];
+        state.geo->d[2] = 2.0 * state.geo->_d[2];
+        state.geo->dh[2] = 0.5*state.geo->d[2];
+        for(int i = 0; i < state.particles.tot; i++){
+            state.particles[i]->com[2] -= 0.5 * dL;
+            state.particles[i]->pos = state.particles[i]->com + state.particles[i]->qDisp;
+        }
+
+        for(auto e : state.energyFunc){
+            (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            (*e).initialize(state.particles);
+            lPTemp += (*e).all2all(state.particles);
+        }
+        for(int i = 0; i < state.particles.tot; i++){
+            state.particles[i]->com[2] = state._old->particles[i]->com[2];
+            state.particles[i]->pos[2] = state._old->particles[i]->pos[2];
+        }
+        state.geo->_d[2] = old_d;
+        state.geo->_dh[2] = 0.5*state.geo->_d[2];
+        state.geo->d[2] = oldd;
+        state.geo->dh[2] = 0.5*state.geo->d[2];
+        for(auto e : state.energyFunc){
+            (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
+            (*e).initialize(state.particles);
+        }
+
+        this->samples++;
+        this->rP += rPTemp;
+        this->lP += lPTemp;  
+        this->pressures[counter] = (rPTemp - lPTemp) / (this->dL * this->area);
+        counter++;
+    }
+
+    void save(){
+        std::cout << "rP: " << this->rP / (this->samples * this->dL * this->area) << std::endl;
+        std::cout << "lP: " << this->lP / (this->samples * this->dL * this->area) << std::endl;
+        std::cout << "Cliff pressure: " << (this->rP - this->lP) / (this->samples * this->dL * this->area) << std::endl;
+
+        std::ofstream f (this->filename + ".txt", std::ios::app);
+        if (f.is_open())
+        {
+            for(unsigned int i = 0; i < this->pressures.size(); i++){
+                f << std::fixed << std::setprecision(10) << this->samples - this->pressures.size() + i << "\t" << pressures[i] << "\n";
+            }
+            f.close();
+        }
+        else std::cout << "Unable to open file";
+
+        this->counter = 0;
+    }
+
+    void close(){};
+};
 
 
 }

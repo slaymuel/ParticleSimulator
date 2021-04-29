@@ -129,11 +129,11 @@ class Simulator{
         }
     }
 
-    void add_sampler(int i, int interval){
+    void add_sampler(int i, int interval, double ds = 0.05){
         switch(i){
             case 0:
                 printf("\nAdding z density sampler\n");
-                sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], 0.05, 
+                sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], ds, 
                                               this->state.geo->d[0], this->state.geo->d[1], interval, this->name));
                 break;
             case 1:
@@ -148,7 +148,7 @@ class Simulator{
 
             case 3:
                 printf("Adding charge distribution sampler\n");
-                sampler.push_back(new Samplers::QDist(4, 0.05, interval, this->name));
+                sampler.push_back(new Samplers::QDist(4, ds, interval, this->name));
                 break;
             case 4:
                 printf("Adding XDR trajectory sampler\n");
@@ -160,13 +160,33 @@ class Simulator{
                 break;
             case 6:
                 printf("\nAdding x density sampler\n");
-                sampler.push_back(new Samplers::Density(0, this->state.geo->_d[0], 0.05, 
+                sampler.push_back(new Samplers::Density(0, this->state.geo->_d[0], ds, 
                                               this->state.geo->d[1], this->state.geo->d[2], interval, this->name));
                 break;
             case 7:
                 printf("\nAdding y density sampler\n");
-                sampler.push_back(new Samplers::Density(1, this->state.geo->_d[1], 0.05, 
+                sampler.push_back(new Samplers::Density(1, this->state.geo->_d[1], ds, 
                                               this->state.geo->d[0], this->state.geo->d[2], interval, this->name));
+                break;
+            case 8:
+                printf("\nAdding virial pressure sampler\n");
+                sampler.push_back(new Samplers::Pressure(interval, this->state.geo->volume, this->state.geo->dh[2], this->name));
+                break;
+            case 9:
+                printf("\nAdding pressureV sampler\n");
+                sampler.push_back(new Samplers::PressureV(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->state.geo->_d[2], this->name));
+                break;
+            case 10:
+                printf("\nAdding ForcePressure sampler\n");
+                sampler.push_back(new Samplers::ForcePressure(interval, this->state.geo->volume, this->state.geo->dh[2], this->name));
+                break;
+            case 11:
+                printf("\nAdding Force sampler\n");
+                sampler.push_back(new Samplers::Force(interval, this->name));
+                break;
+            case 12:
+                printf("\nAdding Cliff pressure sampler\n");
+                sampler.push_back(new Samplers::CliffPressure(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->name));
                 break;
             default:
                 break;
@@ -342,7 +362,7 @@ PYBIND11_MODULE(mormon, m) {
         .def(py::init<double, double, std::string>())
         .def("run", &Simulator::run)
         .def("add_move", &Simulator::add_move, py::arg("i"), py::arg("dp"), py::arg("p"), py::arg("cp") = 0.0, py::arg("d") = 0.0)
-        .def("add_sampler", &Simulator::add_sampler)
+        .def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
         .def("set_temperature", &Simulator::set_temperature)
         .def("set_cp", &Simulator::set_cp)
         .def("finalize", &Simulator::finalize)

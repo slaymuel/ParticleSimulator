@@ -33,9 +33,7 @@ namespace math{
 
     template<typename T>
     inline auto norm(T x) -> double{
-        double norm = 0;
-
-        norm = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
+        double norm = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
         return std::sqrt(norm);
     }
 

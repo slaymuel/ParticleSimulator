@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.11.4 FATAL_ERROR)
+
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+
+project(mormon)
+
+
+add_link_options(-lstdc++ -O3 -ffast-math -Xpreprocessor -fopenmp -I/usr/local/include -L/usr/local/lib -lomp)
+add_compile_options(-O3 -march=native -ffast-math -D DEBUG -Wall -Xpreprocessor -fopenmp -I/usr/local/include -L/usr/local/lib -lomp)
+add_definitions(-DPY11)
+
+find_package( PkgConfig )
+pkg_check_modules( EIGEN3 REQUIRED eigen3 )
+include_directories( ${EIGEN3_INCLUDE_DIRS} ../mormon)
+
+add_subdirectory(../pybind11 ../pybind11/build)
+pybind11_add_module(mormon mormon.cpp Faddeeva.cpp xdrfile.c xdrfile_xtc.c xdrfile_trr.c)
+
+target_link_libraries(
+    mormon
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ran2.o
+)
+

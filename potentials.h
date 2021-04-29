@@ -16,6 +16,156 @@ class Coulomb{
     inline double operator()(const double& q1, const double& q2, const double& dist){
         return q1 * q2 / dist;
     }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
+    }
+};
+
+
+class LJ{
+    private:
+    const float k = constants::KB;
+    const float s = 2.0;
+    float s6 = s*s*s*s*s*s;
+    float s12 = s6*s6;
+
+    const float C = 4.0 * constants::PI * constants::VP * constants::D / (constants::EC * constants::EC) * 1e-10;
+
+    public:
+
+    inline double operator()(const double& q1, const double& q2, double& dist){
+        double d6 = dist*dist*dist*dist*dist*dist;
+
+        return 4.0 * k * (s12 / (d6 * d6) - s6 / d6) * C;
+    }
+
+    inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        double n = disp.norm();
+        double d6 = n*n*n*n*n*n;
+        force = 24.0 * k * (2.0 * s12 / (d6 * d6 * n) - s6 / (d6 * n)) * C * disp.normalized();
+        
+        return force;
+    }
+};
+
+
+class LJRep{
+    private:
+    const float s = 4.0;
+    float s6 = s*s*s*s*s*s;
+    float s12 = s6*s6;
+    float C;
+    float k;
+
+    public:
+
+    LJRep(){
+        this->k = 1.0; //constants::KB * constants::T;
+        //this->C = this->k * 4.0 * constants::PI * constants::VP * constants::D / (constants::EC * constants::EC) * 1e-10;
+        this->C = this->k / (constants::lB);
+    }
+    inline double operator()(const double& q1, const double& q2, double& dist){
+        double d6 = dist*dist*dist*dist*dist*dist;
+        
+        return C * s12 / (d6 * d6);
+    }
+
+    inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        double n = disp.norm();
+        double d6 = n*n*n*n*n*n;
+        force = -12.0 * C * s12 * s / (d6 * d6 * n) * disp.normalized();
+        
+        return force;
+    }
+};
+
+
+
+class LJWallRep{
+    private:
+    float k;
+    float zWall;
+
+    public:
+    void set_bounds(double x, double y, double z, double k){
+        this->zWall = 0.5 * z;
+        this->k = k;
+    }
+
+    inline double operator()(const double& q, const Eigen::Vector3d& p){
+        double energy;
+
+        //Left wall
+        double dist = p[2] + zWall;
+        double d6 = dist*dist*dist*dist*dist*dist;
+        energy =  1.0 / (d6 * d6);
+        //Right wall
+        dist = 2.0 * zWall - dist;
+        d6 = dist*dist*dist*dist*dist*dist;
+        energy += 1.0 / (d6 * d6);
+
+        return this->k * energy;
+    }
+
+    inline Eigen::Vector3d force(const double& q, const Eigen::Vector3d& p){
+        Eigen::Vector3d force;
+
+        //Left wall
+        double dist = p[2] + zWall;
+        double d6 = dist*dist*dist*dist*dist*dist;
+        force =  1.0 / (d6 * d6 * dist) * Eigen::Vector3d::UnitZ();
+        //Right wall
+        dist = 2.0 * zWall - dist;
+        d6 = dist*dist*dist*dist*dist*dist;
+        force -= 1.0 / (d6 * d6 * dist) * Eigen::Vector3d::UnitZ();
+
+        return -12.0 * this->k * force;
+    }
+};
+
+
+class ExpWallRep{
+    private:
+    float k;
+    float zWall;
+
+    public:
+    void set_bounds(double x, double y, double z, double k){
+        this->zWall = 0.5 * z;
+        this->k = k;
+    }
+
+    inline double operator()(const double& q, const Eigen::Vector3d& p){
+        double energy;
+
+        //Left wall
+        double dist = p[2] + zWall;
+        energy = std::exp(-dist);
+        //Right wall
+        dist = 2.0 * zWall - dist;
+        energy += std::exp(-dist);
+
+        return this->k * energy;
+    }
+
+    inline Eigen::Vector3d force(const double& q, const Eigen::Vector3d& p){
+        Eigen::Vector3d force;
+
+        //Left wall
+        double dist = p[2] + zWall;
+        double d6 = dist*dist*dist*dist*dist*dist;
+        force =  1.0 / (d6 * d6 * dist) * Eigen::Vector3d::UnitZ();
+        //Right wall
+        dist = 2.0 * zWall - dist;
+        d6 = dist*dist*dist*dist*dist*dist;
+        force -= 1.0 / (d6 * d6 * dist) * Eigen::Vector3d::UnitZ();
+
+        return -12.0 * this->k * force;
+    }
 };
 
 
@@ -32,6 +182,11 @@ class Harmonic{
     inline double operator()(const double& R, const double& dist){
         //printf("k: %lf dist: %lf\n", this->k, dist);
         return this->k * dist * dist;
+    }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
     }
 };
 
@@ -52,6 +207,11 @@ class FENE{
         if(dist * dist > this->Rsq) return 1e30;
         return -0.5 * this->k * this->Rsq * std::log(1.0 - dist * dist / this->Rsq);
     }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
+    }
 };
 
 
@@ -71,6 +231,11 @@ class Sture{
         if(dist * dist > this->Rsq) return 1e30;
         return this->k * this->Rsq * (this->Rsq / (this->Rsq - dist * dist) - 1.0);
     }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
+    }
 };
 
 
@@ -87,6 +252,11 @@ namespace Fanourgakis{
         inline double operator()(const double& q1, const double& q2, const double& dist){
             return q1 * q2 * (1.0 - 2.0 * dist / R + 2.0 * (dist / R) * (dist / R) * (dist / R) - (dist / R) * (dist / R) * 
                                                                                                   (dist / R) * (dist / R)) / dist;
+        }
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
         }
     };
 
@@ -130,6 +300,11 @@ namespace Fanourgakis{
         inline double operator()(){
             return -1.0 / R * this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
 
@@ -141,6 +316,10 @@ namespace Fanourgakis{
         inline double operator()(const double& q1, const double& q2, const double& dist){
             return q1 * q2 * (1.0 - 7.0 / 4.0 * dist / R + 21.0 / 4.0 * std::pow((dist / R), 5.0) - 
                    7.0 * std::pow((dist / R), 6.0) + 5.0 / 2.0 * std::pow((dist / R), 7.0)) / dist;
+        }
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
         }
     };
 
@@ -181,6 +360,11 @@ namespace Fanourgakis{
         inline double operator()(){
             return -7.0 / (8.0 * R) * this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 }
 
@@ -212,6 +396,11 @@ class Spline{
         }
 
         return value;
+    }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
     }
 };
 
@@ -255,6 +444,11 @@ class BSpline2D{
         }
 
         return energy;
+    }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
     }
 
 };
@@ -305,6 +499,20 @@ namespace EwaldLike{
             //printf("Real %.15lf\n", real);
             return real;    //tinfoil
         }
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d real;
+            real << 0.0, 0.0, 0.0;
+            double dist = disp.norm();
+
+            //Real force
+            real = disp / (dist * dist);
+            real *= 2.0 * std::sqrt(alpha / constants::PI) * std::exp(-alpha * dist*dist) + 1.0 / dist * math::erfc_x(std::sqrt(alpha) * dist);
+            /*printf("\nReal force: \n");
+            std::cout << q1 * q2 * real << std::endl;
+            printf("\n");*/
+            return q1 * q2 * real;
+        }
     };
 
 
@@ -337,6 +545,11 @@ namespace EwaldLike{
                 //printf("Real %.15lf\n", energy);
                 return energy * q1 * q2 / dist;
             }
+        }
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
         }
     };
 
@@ -563,6 +776,11 @@ namespace EwaldLike{
             //printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / this->volume, this->selfTerm);
             return energy * 2.0 * constants::PI / this->volume - this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
 
@@ -619,9 +837,9 @@ namespace EwaldLike{
                     for(int kz = -kM[2]; kz <= kM[2]; kz++){
 
                         factor = 1.0;
-                        if(kx > 0){
+                        /*if(kx > 0){
                             factor *= 2.0;
-                        }
+                        }*/
 
                         vec[0] = (2.0 * constants::PI * kx / this->xb);
                         vec[1] = (2.0 * constants::PI * ky / this->yb);
@@ -645,7 +863,7 @@ namespace EwaldLike{
                 }
             }
 
-            printf("\t Created %lu reciprocal lattice vectors\n", this->kVec.size());
+            //printf("\t Created %lu reciprocal lattice vectors\n", this->kVec.size());
 
             //Calculate norms
             for(unsigned int i = 0; i < kVec.size(); i++){
@@ -660,7 +878,7 @@ namespace EwaldLike{
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
             this->selfTerm *= alpha / sqrt(constants::PI);
-            printf("Self term is: %lf\n", this->selfTerm);
+            //printf("Self term is: %lf\n", this->selfTerm);
         }
 
 
@@ -741,6 +959,22 @@ namespace EwaldLike{
             //printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
             return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d rec = Eigen::Vector3d::Zero();
+            double kSq = 0.0;
+
+            //Reciprocal force
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                kSq = this->kNorm[k] * this->kNorm[k];
+                rec += this->kVec[k] / kSq * std::exp(-kSq / (4.0 * alpha)) * std::sin(this->kVec[k].dot(disp));
+            }
+            rec *= 4.0 * constants::PI / this->volume;
+            /*printf("\nReciprocal force: \n");
+            std::cout << q1*q2*rec << std::endl;
+            printf("\n");*/
+            return q1 * q2 * rec;
+        }
     };
 
 
@@ -925,6 +1159,11 @@ namespace EwaldLike{
             //printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
             return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
 
@@ -978,6 +1217,11 @@ namespace EwaldLike{
         inline double operator()(){
             return this->fac * this->dipoleMoment * this->dipoleMoment;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
     class SlabCorr2{
@@ -1011,6 +1255,11 @@ namespace EwaldLike{
         inline double operator()(){
             return this->fac * this->dipoleMoment.dot(this->dipoleMoment);
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
     class SlabCorr3{
@@ -1061,7 +1310,12 @@ namespace EwaldLike{
 
         inline double operator()(){
             return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb*this->zb / 12.0);
-        } 
+        }
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
 
@@ -1242,6 +1496,11 @@ namespace EwaldLike{
             
             return energy * constants::PI / (this->volume) - this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
 
@@ -1438,6 +1697,20 @@ namespace EwaldLike{
             }
             return energy * constants::PI / (this->volume) - this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d rec = Eigen::Vector3d::Zero();
+            double kSq = 0.0;
+
+            //Reciprocal force
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                kSq = this->kNorm[k] * this->kNorm[k];
+                rec += this->kVec[k] / (kSq) * std::exp(-kSq / (4.0 * alpha)) * 
+                        std::sin(this->kVec[k].dot(disp));
+            }
+            rec *= 4.0 * constants::PI / this->volume;
+            return q1 * q2 * rec;
+        }
     };
 
 
@@ -1599,6 +1872,11 @@ namespace EwaldLike{
             printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
             return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
         } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 
 
@@ -1756,6 +2034,11 @@ namespace EwaldLike{
             return energy * constants::lB;
         }
         */
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
     };
 }
 

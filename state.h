@@ -12,12 +12,13 @@
 class State{
     private:
 
-    std::shared_ptr<State> _old;
+    
     SplineData spline;
     //IO io;
     
     public:
 
+    std::shared_ptr<State> _old;
     int step = 0;
     double energy = 0.0, cummulativeEnergy = 0.0, dE = 0.0, error = 0.0;
     Particles particles;
@@ -724,6 +725,38 @@ class State{
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
 
+            case 19:
+                printf("\nAdding Repulsive Image Lennard-Jones\n");
+                assert(args.size() == 1);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<LJRep> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+                break;
+
+            case 20:
+                printf("\nAdding Repulsive wall Lennard-Jones\n");
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< ExternalEnergy<LJWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+                break;
+
+            case 21:
+                printf("\nAdding Lennard-Jones\n");
+                assert(args.size() == 1);
+                this->energyFunc.push_back( std::make_shared< PairEnergy<LJ> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+                break;
+
+            case 22:
+                printf("\nAdding Repulsive wall Exponential\n");
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< ExternalEnergy<ExpWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
+                break;
+                
             default:
                 printf("\nAdding Coulomb potential\n");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );
