@@ -68,6 +68,15 @@ class State{
                                     this->particles.particles[i]->b);
                 exit(1);
             }
+            if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
+                                                                this->particles.particles[i]->qDisp.norm()) > 1e-5){
+                printf("|Pos - com| is not equal to |qDisp|!\n");
+                exit(1);
+            }
+            if(this->particles.particles[i]->b > this->particles.particles[i]->b_max){
+                printf("Ooops, b is larger than b_max!\n");
+                exit(1);
+            }
             if(this->particles.particles[i]->pos != this->_old->particles.particles[i]->pos){
                 printf("current positions is not equal to old positions for particle %i.\n", i);
                 std::cout << this->particles.particles[i]->pos << std::endl;
@@ -270,10 +279,16 @@ class State{
                 return this->dE;
             }
         }
-
+        int counter = 0;
         for(auto e : this->energyFunc){
-            //stupid design
 
+            /*if(this->particles.tot > this->_old->particles.tot){
+                if(counter == 2){
+                    continue;
+                }
+            }*/
+
+            //stupid design
             e->geo = this->_old->geo;
 
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
@@ -288,6 +303,8 @@ class State{
             }
 
             E2 += (*e)( this->movedParticles, this->particles );
+
+            counter++;
         }
 
         this->dE = E2 - E1;
@@ -728,7 +745,7 @@ class State{
             case 19:
                 printf("\nAdding Repulsive Image Lennard-Jones\n");
                 assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< PairEnergy<LJRep> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJRep> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
@@ -744,7 +761,7 @@ class State{
             case 21:
                 printf("\nAdding Lennard-Jones\n");
                 assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< PairEnergy<LJ> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJ> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;

@@ -177,6 +177,139 @@ class PairEnergy : public EnergyBase{
 
 
 
+template <typename E>
+class PairEnergyCOM : public EnergyBase{
+
+    private:
+
+    E energy_func;  //energy functor
+
+    public:
+
+    double all2all(Particles& particles){
+        double e = 0.0;
+
+        //printf("all2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
+        #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+        for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int j = i + 1; j < particles.tot; j++){
+                //printf("distance %lf\n", this->geo->distance(particles[i]->pos, particles[j]->pos));
+                //printf("Indices: %u, %u\n", i, j);
+                e += i2i(particles[i]->q, particles[j]->q, this->geo->distance(particles[i]->com, particles[j]->com));
+            }  
+        }
+        //printf("Real energy: %.15lf\n", e);
+        return e;
+    }
+
+    inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
+        double e = 0.0;
+        
+        for (unsigned int i = 0; i < particles.tot; i++){
+            if (p->index == particles[i]->index) continue;
+            e += i2i(p->q, particles[i]->q, this->geo->distance(p->com, particles[i]->com));
+        }
+
+        return e;
+    }
+
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
+        //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
+        double e = 0.0;
+        // Need to fix this, not a nice solution (when volume move).........
+        if(p.size() == particles.tot){
+            e = all2all(particles);
+        }
+        else{
+            #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+            for(int i = 0; i < p.size(); i++){
+                //do instead i2all(s, particles);
+                e += i2all(particles.particles[p[i]], particles);
+            }
+
+            for(int i = 0; i < p.size(); i++){
+                for(int j = i + 1; j < p.size(); j++){
+                    e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->com, particles[p[j]]->com));
+                }
+            }
+        }
+
+        return e;
+    }
+
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
+        //printf("i2all geo: %lf %lf %lf\n", this->geo->dh[0], this->geo->dh[1], this->geo->dh[2]);
+        double e = 0.0;
+        // Need to fix this, not a nice solution.........
+        if(p.size() == particles.tot){
+            e = all2all(particles);
+        }
+        else{
+            #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+            for(int i = 0; i < p.size(); i++){
+                //do instead i2all(s, particles);
+                e += i2all(particles.particles[p[i]], particles);
+            }
+
+            for(int i = 0; i < p.size(); i++){
+                for(int j = i + 1; j < p.size(); j++){
+                    e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->com, particles[p[j]]->com));
+                }
+            }
+        }
+
+        return e;
+    }
+
+    inline double i2i(double& q1, double& q2, double&& dist){
+        if(dist <= this->cutoff){
+            return energy_func(q1, q2, dist);
+        }
+        else{
+            return 0.0;
+        }
+    }
+
+    void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
+    void initialize(Particles& particles){}
+    void update(double x, double y, double z){}
+
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force = Eigen::Vector3d::Zero();
+        for(unsigned int i = 0; i < particles.tot; i++){
+            if (p->index == particles[i]->index) continue;
+            force += energy_func.force(p->q, particles[i]->q, this->geo->displacement(p->com, particles[i]->com));
+        }
+        return force;
+    }
+
+    Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
+        //Eigen::Vector3d force;
+        //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
+        //return force;
+        return force(p1->com, p2->com, p1->q, p2->q);
+    }
+
+    Eigen::Vector3d force(Eigen::Vector3d pos1, Eigen::Vector3d pos2, double q1, double q2){
+        Eigen::Vector3d disp = this->geo->displacement(pos1, pos2);
+        if(disp.norm() <= this->cutoff){
+            return energy_func.force(q1, q2, disp);
+        }
+        else{
+            return Eigen::Vector3d::Zero();
+        }
+
+    }
+};
+
+
+
+
+
+
+
+
+
 
 
 template <typename E>
@@ -201,38 +334,31 @@ class ChargeWell : public EnergyBase{
 
     double all2all(Particles& particles){
         double e = 0.0;
-
         for(unsigned int i = 0; i < particles.tot; i++){
             e += this->i2i(particles[i]->r, this->geo->distance(particles[i]->pos, particles[i]->com));
         }
-
-        return e * constants::lB;
+        return e;
     }
 
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
-
         double e = this->i2i(p->r, this->geo->distance(p->pos, p->com));
-
         return e;
     }
 
     double operator()(std::vector< unsigned int >&& p, Particles& particles){
-
         double e = 0.0;
         for(auto s : p){
             e += i2all(particles.particles[s], particles);
         }
-
-        return e * constants::lB;
+        return e;
     }
 
     double operator()(std::vector< unsigned int >& p, Particles& particles){
-
         double e = 0.0;
         for(auto s : p){
             e += i2all(particles.particles[s], particles);
         }
-        return e * constants::lB;
+        return e;
     }
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
@@ -242,14 +368,14 @@ class ChargeWell : public EnergyBase{
     Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
         //Eigen::Vector3d force;
         //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
-        //return force * constants::lB;
+        //return force;
         return force(p1->pos, p2->pos, p1->q, p2->q);
     }
 
     Eigen::Vector3d force(Eigen::Vector3d pos1, Eigen::Vector3d pos2, double q1, double q2){
         Eigen::Vector3d force;
         force = energy_func.force(q1, q2, this->geo->displacement(pos1, pos2));
-        return force * constants::lB;
+        return force;
     }
 };
 

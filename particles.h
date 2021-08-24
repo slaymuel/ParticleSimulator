@@ -153,11 +153,26 @@ class Particles{
         //this->particles.back()->pos = this->positions.row(this->positions.rows() - 1);
 
         this->particles[this->tot]->com = com;
-        this->particles[this->tot]->b = b_min + (b_max - b_min) * Random::get_random();
-        this->particles[this->tot]->qDisp = Random::get_norm_vector();
-        this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.stableNormalized() * this->particles[this->tot]->b;
+        
+        
+        //this->particles[this->tot]->qDisp = Random::get_norm_vector();
+
+        //this->particles[this->tot]->b = b_min + (b_max - b_min) * Random::get_random();
+        //this->particles[this->tot]->qDisp = Random::get_random_vector(1.0);
+        //this->particles[this->tot]->qDisp = this->particles[this->tot]->qDisp.normalized() * this->particles[this->tot]->b;
+
+        this->particles[this->tot]->qDisp = Random::get_random_vector(b_max);
+        this->particles[this->tot]->b = this->particles[this->tot]->qDisp.norm();
+        //std::cout << this->particles[this->tot]->b << std::endl;
+        /*if(q > 0){
+            this->particles[this->tot]->b = Random::get_random_from_distribution();
+        }
+        else{
+            this->particles[this->tot]->b = 0.0;
+        }*/
+
         this->particles[this->tot]->pos = this->particles[this->tot]->com + this->particles[this->tot]->qDisp;
-        //std::cout << this->particles[tot]->pos << " " << std::endl;
+        
 
         this->particles[this->tot]->q = q;
         this->particles[this->tot]->b_min = b_min;
@@ -254,16 +269,18 @@ class Particles{
         double rand = Random::get_random();
         double q;
         Eigen::Vector3d com;
-        com = Random::random_pos_box(this->pModel.rf, box);
+        
         if(type != 0) rand = type;
         //Add cation
         if(rand >= 0.5){
+            com = Random::random_pos_box(this->pModel.rf, box);
             this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b_min, this->pModel.b_max, "Na");
             q = this->pModel.q;
         }
 
         //Add anion
         else{
+            com = Random::random_pos_box(this->nModel.rf, box);
             this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b_min, this->nModel.b_max, "Cl");
             q = this->nModel.q;
         }

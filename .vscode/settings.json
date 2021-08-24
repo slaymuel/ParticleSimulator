@@ -86,6 +86,14 @@
         "lu": "cpp",
         "__functional_03": "cpp",
         "strstream": "cpp",
-        "thread": "cpp"
-    }
+        "thread": "cpp",
+        "cholesky": "cpp",
+        "eigenvalues": "cpp",
+        "geometry": "cpp",
+        "householder": "cpp",
+        "jacobi": "cpp",
+        "qr": "cpp",
+        "svd": "cpp"
+    },
+    "python.pythonPath": "/usr/local/bin/python3"
 }

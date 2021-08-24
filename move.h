@@ -320,13 +320,13 @@ class GrandCanonicalSingle : public Move{
 
     void operator()(){
         //UNUSED(p);
+        
         std::vector< unsigned int > particles;
         if(ADD){
             
             auto [ind, qt] = s->particles.add_random(s->geo->_dh);
             this->q = qt;
             particles.push_back(ind);
-
             this->move_callback(particles);
         }
 
@@ -699,6 +699,60 @@ class ChargeTrans: public Move{
 
 
 
+class ChargeTranslate: public Move{
+
+    public:
+
+    ChargeTranslate(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+        this->id = "qTranslate";
+        printf("\t%s\n", this->id.c_str());
+        printf("\tStepsize: %lf\n", step);
+        printf("\tWeight: %lf\n", this->weight);
+    }
+
+
+    void operator()(){
+        int rand = 0;
+        do{
+            rand = Random::get_random(s->particles.tot);
+        } while(s->particles[rand]->q < 0.0);
+        
+        std::vector< unsigned int > particles = {s->particles[rand]->index};
+        this->s->particles[rand]->chargeTranslate(this->stepSize);
+
+        this->s->particles[rand]->qDisp = this->s->geo->displacement(this->s->particles[rand]->pos, this->s->particles[rand]->com);
+        this->s->particles[rand]->b = this->s->particles[rand]->qDisp.norm();
+
+        this->move_callback(particles);
+        this->attempted++;
+    }
+
+    bool accept(double dE){
+        bool ret = false;
+
+        if(exp(-dE) >= Random::get_random() || dE < 0.0){
+            ret = true;
+            this->accepted++;
+         } 
+         else{
+            ret = false;
+            this->rejected++;
+         }
+
+        return ret;
+    }
+
+    std::string dump(){
+        std::ostringstream ss;
+        ss.precision(1);
+        ss << std::fixed;
+        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+        return ss.str();
+    }
+};
+
+
+
 class ChargeTransRand: public Move{
 
     public:
@@ -718,7 +772,11 @@ class ChargeTransRand: public Move{
             do{
                 rand = Random::get_random(s->particles.tot);
             } while(s->particles[rand]->q < 0.0);
+
             this->s->particles[rand]->chargeTransRand();
+            //this->s->particles[rand]->qDisp = this->s->geo->displacement(this->s->particles[rand]->pos, this->s->particles[rand]->com);
+            //this->s->particles[rand]->b = this->s->particles[rand]->qDisp.norm();
+            
             particles.push_back(s->particles[rand]->index);
         }
         this->move_callback(particles);

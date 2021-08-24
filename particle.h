@@ -35,28 +35,48 @@ class Particle{
         this->com[1] += step * v[1];
         this->com[2] += step * v[2];
 
-        this->pos = this->qDisp + this->com;
+        this->pos = this->com + this->qDisp;
     };
 
+    void chargeTranslate(double step){
+        Eigen::Vector3d v = Random::get_vector();
+        this->pos[0] += step * v[0];
+        this->pos[1] += step * v[1];
+        this->pos[2] += step * v[2];
+    };
 
     void chargeTrans(double step){
-        Eigen::Vector3d v = Random::get_norm_vector();
+        /*Eigen::Vector3d v = Random::get_norm_vector();
+        this->qDisp += step * v * Random::get_random();
 
-        this->qDisp += step * v;
-        if(this->qDisp.norm() > this->r){
-            this->qDisp = this->qDisp.normalized() * this->r;
-        }
         this->b = this->qDisp.norm();
 
-        this->pos = this->qDisp + this->com;
+        this->pos = this->qDisp + this->com;*/
+
+        Eigen::Vector3d v = Random::get_vector();
+        this->pos[0] += step * v[0];
+        this->pos[1] += step * v[1];
+        this->pos[2] += step * v[2];
     };
 
 
     void chargeTransRand(){
-        this->qDisp = Random::get_norm_vector();
-        this->qDisp = this->qDisp * (this->b_min + (this->b_max - this->b_min) * Random::get_random());
+        
+        //this->b = this->b_min + (this->b_max - this->b_min) * Random::get_random();
+        //this->qDisp = Random::get_random_vector(1.0);
+        //this->qDisp = this->qDisp.normalized() * this->b;
+
+        //this->qDisp = Random::get_norm_vector();
+        //this->qDisp *= (this->b_min + (this->b_max - this->b_min) * Random::get_random());
+        
+        this->qDisp = Random::get_random_vector(this->b_max);
         this->b = this->qDisp.norm();
-        this->pos = this->qDisp + this->com;
+
+        //this->qDisp = Random::get_random_vector(0.5);
+        //this->qDisp *= 2.0 * this->b_max;
+        //this->b = this->qDisp.norm();
+
+        this->pos = this->com + this->qDisp;
     };
 
 

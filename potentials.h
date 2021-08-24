@@ -26,26 +26,24 @@ class Coulomb{
 
 class LJ{
     private:
-    const float k = constants::KB;
-    const float s = 2.0;
+    const float k = 1.0;
+    const float s = 4.0;
     float s6 = s*s*s*s*s*s;
     float s12 = s6*s6;
-
-    const float C = 4.0 * constants::PI * constants::VP * constants::D / (constants::EC * constants::EC) * 1e-10;
 
     public:
 
     inline double operator()(const double& q1, const double& q2, double& dist){
         double d6 = dist*dist*dist*dist*dist*dist;
 
-        return 4.0 * k * (s12 / (d6 * d6) - s6 / d6) * C;
+        return 4.0 * k * (s12 / (d6 * d6) - s6 / d6);
     }
 
     inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
         Eigen::Vector3d force;
         double n = disp.norm();
         double d6 = n*n*n*n*n*n;
-        force = 24.0 * k * (2.0 * s12 / (d6 * d6 * n) - s6 / (d6 * n)) * C * disp.normalized();
+        force = 24.0 * k * (2.0 * s12 / (d6 * d6 * n) - s6 / (d6 * n)) * disp.normalized();
         
         return force;
     }
@@ -57,27 +55,24 @@ class LJRep{
     const float s = 4.0;
     float s6 = s*s*s*s*s*s;
     float s12 = s6*s6;
-    float C;
     float k;
 
     public:
 
     LJRep(){
         this->k = 1.0; //constants::KB * constants::T;
-        //this->C = this->k * 4.0 * constants::PI * constants::VP * constants::D / (constants::EC * constants::EC) * 1e-10;
-        this->C = this->k / (constants::lB);
     }
     inline double operator()(const double& q1, const double& q2, double& dist){
         double d6 = dist*dist*dist*dist*dist*dist;
         
-        return C * s12 / (d6 * d6);
+        return this->k * s12 / (d6 * d6);
     }
 
     inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
         Eigen::Vector3d force;
         double n = disp.norm();
         double d6 = n*n*n*n*n*n;
-        force = -12.0 * C * s12 * s / (d6 * d6 * n) * disp.normalized();
+        force = -12.0 * this->k * s12 * s / (d6 * d6 * n) * disp.normalized();
         
         return force;
     }
@@ -228,7 +223,8 @@ class Sture{
     }
 
     inline double operator()(const double& R, const double& dist){
-        if(dist * dist > this->Rsq) return 1e30;
+        if(dist * dist >= this->Rsq) return 10e250;//std::numeric_limits<double>::infinity();
+
         return this->k * this->Rsq * (this->Rsq / (this->Rsq - dist * dist) - 1.0);
     }
 

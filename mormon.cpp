@@ -123,6 +123,9 @@ class Simulator{
             case 13:
                 moves.push_back(new GrandCanonical<false>(i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
                 break;
+            case 14:
+                moves.push_back(new ChargeTranslate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                break;
             default:
                 printf("Could not find move %i\n", i);
                 break;
