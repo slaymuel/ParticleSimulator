@@ -211,6 +211,32 @@ class FENE{
 
 
 
+
+class Jan{
+    private:
+    double k, R;
+
+    public:
+    void set_k(double k, double R){
+        this->k = k;
+        this->R = R;
+        printf("\tForce constant is (k): %lf, R is: %lf\n", this->k, R);
+    }
+
+    inline double operator()(const double& R, const double& dist){
+        double sq = (this->R - dist) * (this->R - dist);
+        return this->k * dist * dist * (this->R * this->R / sq);
+    }
+
+    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        return force;
+    }
+};
+
+
+
+
 class Sture{
     private:
     double k, Rsq;
