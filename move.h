@@ -490,14 +490,16 @@ class GrandCanonical : public Move{
                     particles.push_back(rand);
                 }
             }*/
-            while(particles.size() < this->valency + 1){
-                do{
-                    rand = Random::get_random(s->particles.tot);
-                } while(s->particles[rand]->q != s->particles.nModel.q);
+            if(s->particles.aTot > 0){
+                while(particles.size() < this->valency + 1){
+                    do{
+                        rand = Random::get_random(s->particles.tot);
+                    } while(s->particles[rand]->q != s->particles.nModel.q);
 
-                if(std::none_of(particles.begin(), particles.end(), [&](int val){return val==rand;})){
-                    particles.push_back(rand);   
-                }   
+                    if(std::none_of(particles.begin(), particles.end(), [&](int val){return val==rand;})){
+                        particles.push_back(rand);   
+                    }   
+                }
             }
             std::sort(particles.begin(), particles.end());
             std::reverse(particles.begin(), particles.end());

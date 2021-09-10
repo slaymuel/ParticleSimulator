@@ -26,12 +26,15 @@ class Coulomb{
 
 class LJ{
     private:
-    const float k = 1.0;
-    const float s = 4.0;
-    float s6 = s*s*s*s*s*s;
-    float s12 = s6*s6;
+    const double s = 5.0;
+    double s6 = s*s*s*s*s*s;
+    double s12 = s6*s6;
+    double k = 1.0;
 
     public:
+    void set_k(double k, double R){
+        this->k = k;
+    }
 
     inline double operator()(const double& q1, const double& q2, double& dist){
         double d6 = dist*dist*dist*dist*dist*dist;
@@ -49,13 +52,46 @@ class LJ{
     }
 };
 
+class LJST{
+    private:
+    const double s = 5.0;
+
+    double k = 1.0;
+    double shift;
+    double s6 = s*s*s*s*s*s;
+    double s12 = s6*s6;
+
+    public:
+    void set_k(double k, double R){
+        this->shift = 0.0;
+        this->k = k;
+        this->shift = (*this)(1.0, 1.0, R);
+        printf("\tShift: %lf", this->shift);
+    }
+
+    inline double operator()(const double& q1, const double& q2, double& dist){
+        double d6 = dist*dist*dist*dist*dist*dist;
+
+        return 4.0 * k * (s12 / (d6 * d6) - s6 / d6) - this->shift;
+    }
+
+    inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
+        Eigen::Vector3d force;
+        double n = disp.norm();
+        double d6 = n*n*n*n*n*n;
+        force = 24.0 * k * (2.0 * s12 / (d6 * d6 * n) - s6 / (d6 * n)) * disp.normalized();
+        
+        return force;
+    }
+};
+
 
 class LJRep{
     private:
-    const float s = 4.0;
-    float s6 = s*s*s*s*s*s;
-    float s12 = s6*s6;
-    float k;
+    const double s = 4.0;
+    double s6 = s*s*s*s*s*s;
+    double s12 = s6*s6;
+    double k;
 
     public:
 
@@ -82,8 +118,8 @@ class LJRep{
 
 class LJWallRep{
     private:
-    float k;
-    float zWall;
+    double k;
+    double zWall;
 
     public:
     void set_bounds(double x, double y, double z, double k){

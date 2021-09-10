@@ -185,6 +185,10 @@ class PairEnergyCOM : public EnergyBase{
     E energy_func;  //energy functor
 
     public:
+    PairEnergyCOM(double k, double R){
+        energy_func.set_k(k, R);
+    }
+    PairEnergyCOM(){}
 
     double all2all(Particles& particles){
         double e = 0.0;

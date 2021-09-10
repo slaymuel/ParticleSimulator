@@ -760,8 +760,8 @@ class State{
 
             case 21:
                 printf("\nAdding Lennard-Jones\n");
-                assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJ> >() );
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJ> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
@@ -779,6 +779,13 @@ class State{
                 this->energyFunc.push_back( std::make_shared< ChargeWell<Jan> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
+                break;
+            case 24:
+                printf("\nAdding trancated and shifted LJ\n");
+                assert(args.size() == 2);
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJST> >(args[0], args[1]) );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[1]);
                 break;
             default:
                 printf("\nAdding Coulomb potential\n");
