@@ -781,11 +781,17 @@ class State{
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
             case 24:
-                printf("\nAdding trancated and shifted LJ\n");
+                printf("\nAdding truncated and shifted LJ\n");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJST> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[1]);
+                break;
+            case 25:
+                printf("\nAdding Ewald charge correction\n");
+                assert(args.size() == 0);
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::ChargeCorr> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2]) );
+                this->energyFunc.back()->set_geo(this->geo);
                 break;
             default:
                 printf("\nAdding Coulomb potential\n");

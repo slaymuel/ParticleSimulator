@@ -46,6 +46,14 @@ class Particles{
         return subset;
     }
 
+
+    std::vector< std::shared_ptr<Particle> > get_subset(unsigned int i){
+        std::vector< std::shared_ptr<Particle> > subset;
+        subset.push_back(this->particles[i]);
+        return subset;
+    }
+
+
     std::shared_ptr<Particle> random(){
         //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
         //std::sample

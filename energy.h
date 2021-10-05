@@ -612,7 +612,10 @@ class ExtEnergy : public EnergyBase{
         energy_func.set_box(x, y, z);
     }
 
-    double i2all(std::shared_ptr<Particle> p, Particles& particles){ return 0.0; }
+    double i2all(std::shared_ptr<Particle> p, Particles& particles){ 
+        return energy_func();
+    }
+
     double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){ return 0.0; }
 
     double all2all(Particles& particles){

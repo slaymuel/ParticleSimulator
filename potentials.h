@@ -1282,6 +1282,49 @@ namespace EwaldLike{
         }
     };
 
+
+
+    class ChargeCorr{
+        private:
+        double volume2;
+        double totCharge;
+
+        public:
+
+        void set_box(double x, double y, double z){
+            this->volume2 = 2.0 * x * y * z;
+        }
+
+        void initialize(Particles &particles){
+            this->totCharge = 0.0;
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->totCharge += particles[i]->q;
+            }
+        }
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            for(auto o : _old){
+                this->totCharge -= o->q;
+            }
+
+            for(auto n : _new){
+                this->totCharge += n->q;
+            }
+        }
+
+        inline double operator()(){
+            return -this->totCharge * this->totCharge / (volume2 * alpha * alpha);
+        } 
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d force;
+            return force;
+        }
+    };
+
+
+
+
     class SlabCorr2{
         private:
         Eigen::Vector3d dipoleMoment;

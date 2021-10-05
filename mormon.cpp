@@ -191,6 +191,10 @@ class Simulator{
                 printf("\nAdding Cliff pressure sampler\n");
                 sampler.push_back(new Samplers::CliffPressure(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->name));
                 break;
+            case 13:
+                printf("\nAdding Modified Widom sampler\n");
+                sampler.push_back(new Samplers::ModifiedWidom(interval, this->name));
+                break;
             default:
                 break;
         }

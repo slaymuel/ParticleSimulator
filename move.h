@@ -926,7 +926,7 @@ class WidomInsertion : public Move{
     }
 
     void operator()(){      
-        auto [ind, qt] = s->particles.add_random(s->geo->_dh);
+        auto [ind, qt] = s->particles.add_random(s->geo->_dh, 2.0);
         this->q = qt;
         std::vector< unsigned int > particles{ind};
         this->move_callback(particles);
