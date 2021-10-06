@@ -788,8 +788,8 @@ class ModifiedWidom: public Sampler{
         qDisp << 0.0, 0.0, 0.0;
 
         startExt = -state.energyFunc[1]->i2all(state.particles[state.particles.tot - 1], state.particles);
-
-        state.particles.add(com, com, qDisp, state.particles.pModel.r, state.particles.pModel.rf, state.particles.pModel.q, state.particles.pModel.b, 0.0, 0.0, "WIDOM_PARTICLE");
+        startExt -= state.energyFunc[2]->i2all(state.particles[state.particles.tot - 1], state.particles);
+        state.particles.add(com, com, qDisp, state.particles.pModel.r, state.particles.pModel.rf, state.particles.pModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
         for(int scale = 0; scale < 10; scale++){
             elDE = startExt;
             srDE = 0.0;
@@ -801,9 +801,11 @@ class ModifiedWidom: public Sampler{
                 e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
                 if(k < 3){
                     elDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+                    //printf("%i %lf\n", k, elDE);
                 }
                 else{
                     srDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+                    //printf("srDe %lf\n", srDE);
                 }
                 empty = {};
                 e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
@@ -823,7 +825,7 @@ class ModifiedWidom: public Sampler{
 
 
         com = state.geo->random_pos(state.particles.nModel.r);
-        state.particles.add(com, com, qDisp, state.particles.nModel.r, state.particles.nModel.rf, state.particles.nModel.q, state.particles.nModel.b, 0.0, 0.0, "WIDOM_PARTICLE");
+        state.particles.add(com, com, qDisp, state.particles.nModel.r, state.particles.nModel.rf, state.particles.nModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
         
         for(int scale = 0; scale < 10; scale++){
             elDE = startExt;
@@ -858,11 +860,11 @@ class ModifiedWidom: public Sampler{
     }
 
     void save(){
-        float integralP = 0.0;
+        double integralP = 0.0;
         for(int i = 0; i < 10; i++){
             integralP += (nomP[i] / this->pSamples) / (denomP[i] / this->pSamples) * 0.1;
         }
-        float integralN = 0.0;
+        double integralN = 0.0;
         for(int i = 0; i < 10; i++){
             integralN += (nomN[i] / this->nSamples) / (denomN[i] / this->nSamples) * 0.1;
         }

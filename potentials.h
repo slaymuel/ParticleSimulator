@@ -1313,7 +1313,7 @@ namespace EwaldLike{
         }
 
         inline double operator()(){
-            return -this->totCharge * this->totCharge / (volume2 * alpha * alpha);
+            return - constants::PI * this->totCharge * this->totCharge / (volume2 * alpha * alpha);
         } 
 
         inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
@@ -1401,11 +1401,13 @@ namespace EwaldLike{
             for(auto o : _old){
                 this->dipoleMoment -= o->q * o->pos[2];
                 this->qs -= o->q * o->pos[2] * o->pos[2];
+                this->totQ -= o->q;
             }
 
             for(auto n : _new){
                 this->dipoleMoment += n->q * n->pos[2];
                 this->qs += n->q * n->pos[2] * n->pos[2];
+                this->totQ += n->q;
             }
         }
 
