@@ -525,7 +525,7 @@ class GrandCanonical : public Move{
                 nFac *= this->nVolume / (s->particles.aTot - i);
             }
 
-            prob = pFac * nFac * std::exp((this->valency + 1) * this->cp - dE); 
+            prob = pFac * nFac * std::exp((this->valency + 1.0) * this->cp - dE); 
 
         }
         // REMOVE

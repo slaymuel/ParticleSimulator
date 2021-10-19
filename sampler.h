@@ -763,16 +763,17 @@ class CliffPressure : public Sampler{
 
 class ModifiedWidom: public Sampler{
     private:
-    std::vector<double> nomP{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    std::vector<double> denomP{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> nomP{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> denomP{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     double facP = 0.0;
 
-    std::vector<double> nomN{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
-    std::vector<double> denomN{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> nomN{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> denomN{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
     double facN = 0.0;
 
     int pSamples = 0;
     int nSamples = 0;
+    int elecStart = 3;
     public:
 
     ModifiedWidom(int interval, std::string filename) : Sampler(interval){
@@ -782,75 +783,115 @@ class ModifiedWidom: public Sampler{
     }
 
     void sample(State& state){
-        double elDE = 0.0, srDE = 0.0, startExt;
-        Eigen::Vector3d com = state.geo->random_pos(state.particles.pModel.r);
+        double elDE = 0.0, startExt;
+        Eigen::Vector3d com = state.geo->random_pos(state.particles.pModel.rf);
         Eigen::Vector3d qDisp;
         qDisp << 0.0, 0.0, 0.0;
 
         startExt = -state.energyFunc[1]->i2all(state.particles[state.particles.tot - 1], state.particles);
         startExt -= state.energyFunc[2]->i2all(state.particles[state.particles.tot - 1], state.particles);
+
+        //Add cation
         state.particles.add(com, com, qDisp, state.particles.pModel.r, state.particles.pModel.rf, state.particles.pModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
-        for(int scale = 0; scale < 10; scale++){
+        /////////////////////////////////////////////////////////////// Energy of inserting a full cation ///////////////////////////////////////////////////////////////////////////
+        double sElDE = startExt;
+        double sSrDE = 0.0;
+        int k = 0;
+        for(auto e : state.energyFunc){
+            std::vector< std::shared_ptr<Particle> > empty = {};
+            e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
+            if(k < elecStart){
+                sElDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+                //printf("%i %lf\n", k, elDE);
+            }
+            else{
+                sSrDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+                //printf("srDe %lf\n", srDE);
+            }
+            empty = {};
+            e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
+            k++;
+        }    
+        sElDE *= constants::lB;
+        ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
+        for(int scale = 1; scale <= 10; scale++){
             elDE = startExt;
-            srDE = 0.0;
-            state.particles.particles[state.particles.tot - 1]->q = ((double) scale * 0.1 + 0.1) * state.particles.pModel.q;
+            state.particles.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.pModel.q;
             
             int k = 0;
             for(auto e : state.energyFunc){
                 std::vector< std::shared_ptr<Particle> > empty = {};
                 e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
-                if(k < 3){
+                if(k < elecStart){
                     elDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
                     //printf("%i %lf\n", k, elDE);
-                }
-                else{
-                    srDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
-                    //printf("srDe %lf\n", srDE);
                 }
                 empty = {};
                 e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
                 k++;
             }    
             elDE *= constants::lB;
-            nomP[scale] += 1.0 / ((double) scale * 0.1 + 0.1) * elDE * std::exp(-(srDE + elDE));
-            denomP[scale] += std::exp(-(srDE + elDE));
+            //nomP[scale] += 1.0 / ((double) (scale - 1) * 0.1 + 0.1) * elDE * std::exp(-(sSrDE + elDE));
+            nomP[scale] += sElDE * std::exp(-(sSrDE + elDE));
+            //std::cout << 1.0 / ((double) (scale - 1) * 0.1 + 0.1) * elDE << " " << sElDE << std::endl;
+            denomP[scale] += std::exp(-(sSrDE + elDE));
         }
-        
+        nomP[0] += elDE * std::exp(-sSrDE);
+        denomP[0] += std::exp(-sSrDE);
         //if(!state.overlap(state.particles.tot - 1)){
-            facP += std::exp(-srDE);
+            facP += std::exp(-sSrDE);
         //}
         pSamples++;
 
         state.particles.remove(state.particles.tot - 1);
 
-
-        com = state.geo->random_pos(state.particles.nModel.r);
+        /////////////////////////////////////////////////////////////////////////////// Anion /////////////////////////////////////////////////////////////////////////////////////
+        com = state.geo->random_pos(state.particles.nModel.rf);
+        sElDE = startExt;
+        sSrDE = 0.0;
+        k = 0;
         state.particles.add(com, com, qDisp, state.particles.nModel.r, state.particles.nModel.rf, state.particles.nModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
-        
-        for(int scale = 0; scale < 10; scale++){
+        /////////////////////////////////////////////////////////////// Calculate full addition energy /////////////////////////////////////////////////////////////////////////////
+        for(auto e : state.energyFunc){
+            std::vector< std::shared_ptr<Particle> > empty = {};
+            e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
+            if(k < elecStart){
+                sElDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+                //printf("%i %lf\n", k, elDE);
+            }
+            else{
+                sSrDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+                //printf("srDe %lf\n", srDE);
+            }
+            empty = {};
+            e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
+            k++;
+        }   
+        sElDE *= constants::lB;
+        ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
+        for(int scale = 1; scale <= 10; scale++){
             elDE = startExt;
-            srDE = 0.0;
-            state.particles.particles[state.particles.tot - 1]->q = ((double) scale * 0.1 + 0.1) * state.particles.nModel.q;
+            state.particles.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.nModel.q;
             int k = 0;
             for(auto e : state.energyFunc){
                 std::vector< std::shared_ptr<Particle> > empty = {};
                 e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
-                if(k < 3){
+                if(k < elecStart){
                     elDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
-                }
-                else{
-                    srDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
                 }
                 empty = {};
                 e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
                 k++;
             }  
             elDE *= constants::lB;
-            nomN[scale] += 1.0 / ((double) scale * 0.1 + 0.1) * elDE * std::exp(-(srDE + elDE));
-            denomN[scale] += std::exp(-(srDE + elDE));  
+            nomN[scale] += sElDE * std::exp(-(sSrDE + elDE));
+            denomN[scale] += std::exp(-(sSrDE + elDE));  
         }
+        nomN[0] += elDE * std::exp(-sSrDE);
+        denomN[0] += std::exp(-sSrDE);
+
         //if(!state.overlap(state.particles.tot - 1)){
-            facN += std::exp(-srDE);
+            facN += std::exp(-sSrDE);
         //}
         nSamples++;
         
@@ -861,15 +902,22 @@ class ModifiedWidom: public Sampler{
 
     void save(){
         double integralP = 0.0;
-        for(int i = 0; i < 10; i++){
-            integralP += (nomP[i] / this->pSamples) / (denomP[i] / this->pSamples) * 0.1;
+        for(int i = 0; i <= 10; i++){
+            integralP += (nomP[i] / this->pSamples) / (denomP[i] / this->pSamples) * 1.0 / 11.0;
         }
         double integralN = 0.0;
-        for(int i = 0; i < 10; i++){
-            integralN += (nomN[i] / this->nSamples) / (denomN[i] / this->nSamples) * 0.1;
+        for(int i = 0; i <= 10; i++){
+            integralN += (nomN[i] / this->nSamples) / (denomN[i] / this->nSamples) * 1.0 / 11.0;
         }
+
+
+        double sumP = 0.5 * (nomP[0] / this->pSamples) / (denomP[0] / this->pSamples) + 0.5 * (nomP[10] / this->pSamples) / (denomP[10] / this->pSamples);
+        double sumN = 0.5 * (nomN[0] / this->nSamples) / (denomN[0] / this->nSamples) + 0.5 * (nomN[10] / this->nSamples) / (denomN[10] / this->nSamples);
+
         printf("MW + sr: %lf el %lf tot %lf\n", -std::log(this->facP / this->pSamples), integralP, -std::log(this->facP / this->pSamples) + integralP);
         printf("MW - sr: %lf el %lf tot %lf\n", -std::log(this->facN / this->nSamples), integralN, -std::log(this->facN / this->nSamples) + integralN);
+        printf("MWSum + el: %lf tot %lf\n", sumP, -std::log(this->facP / this->pSamples) + sumP);
+        printf("MWSum - el: %lf tot %lf\n", sumN, -std::log(this->facN / this->nSamples) + sumN);
     }
 
     void close(){};
