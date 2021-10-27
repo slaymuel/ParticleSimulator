@@ -352,12 +352,14 @@ class GrandCanonicalSingle : public Move{
                 prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE); //N + 1 since s->particles.cTot is the new N + 1 state
                 this->acc = &this->pAcc;
                 this->pAtt++;
+                //printf("Add + %lf\n", dE);
             }
             //Anion
             else{
                 prob = this->nVolume / s->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
+                //printf("Add - %lf\n", dE);
             } 
         }
         // REMOVE
@@ -368,18 +370,21 @@ class GrandCanonicalSingle : public Move{
                 prob = (s->particles.cTot + 1) / this->pVolume * std::exp(this->d * this->q - this->cp - dE); //N since s->particles.cTot is the new N - 1 state
                 this->acc = &this->pAcc;
                 this->pAtt++;
+                //printf("Remove + %lf\n", dE);
             }
             //Anion
             else{
                 prob = (s->particles.aTot + 1) / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
+                //printf("Remove - %lf\n", dE);
             }
         }
 
         if(prob >= Random::get_random()){
             *(this->acc) += 1;
             return true;
+            //return false;
         }
         else{
             return false;

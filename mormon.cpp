@@ -195,6 +195,10 @@ class Simulator{
                 printf("\nAdding Modified Widom sampler\n");
                 sampler.push_back(new Samplers::ModifiedWidom(interval, this->name));
                 break;
+            case 14:
+                printf("\nAdding Modified Widom Coulomb sampler\n");
+                sampler.push_back(new Samplers::ModifiedWidomCoulomb(interval, this->name));
+                break;
             default:
                 break;
         }

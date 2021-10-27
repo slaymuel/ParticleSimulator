@@ -774,6 +774,7 @@ class ModifiedWidom: public Sampler{
     int pSamples = 0;
     int nSamples = 0;
     int elecStart = 3;
+
     public:
 
     ModifiedWidom(int interval, std::string filename) : Sampler(interval){
@@ -922,6 +923,193 @@ class ModifiedWidom: public Sampler{
 
     void close(){};
 };
+
+
+
+
+
+
+
+
+
+
+class ModifiedWidomCoulomb: public Sampler{
+    private:
+    std::vector<double> nomP{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> denomP{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    double facP = 0.0;
+
+    std::vector<double> nomN{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    std::vector<double> denomN{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    double facN = 0.0;
+
+    int pSamples = 0;
+    int nSamples = 0;
+    int elecStart = 3;
+
+    std::shared_ptr<EnergyBase> e;
+    public:
+
+    ModifiedWidomCoulomb(int interval, std::string filename) : Sampler(interval){
+        this->filename = filename;
+        this->e = std::make_shared< PairEnergy<Coulomb> >();
+        
+        e->set_cutoff(120.0);
+
+        printf("Modified widom sampler");
+    }
+
+    void sample(State& state){
+        e->set_geo(state.geo);
+        double elDE = 0.0;
+        Eigen::Vector3d com = state.geo->random_pos(state.particles.pModel.rf);
+        Eigen::Vector3d qDisp;
+        qDisp << 0.0, 0.0, 0.0;
+
+        //Add cation
+        state.particles.add(com, com, qDisp, state.particles.pModel.r, state.particles.pModel.rf, state.particles.pModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
+        /////////////////////////////////////////////////////////////// Energy of inserting a full cation ///////////////////////////////////////////////////////////////////////////
+        double sElDE = 0.0;
+        double sSrDE = 0.0;
+        int k = 0;
+
+        for(int l = 0; l < state.particles.tot - 1; l++){
+            state.particles.particles[l]->q *= (1.0 - state.particles.particles[l]->q / (state.particles.tot - 1));
+        }
+        sElDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
+        for(int l = 0; l < state.particles.tot - 1; l++){
+            state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+        }
+        for(auto e1 : state.energyFunc){
+
+            std::vector< std::shared_ptr<Particle> > empty = {};
+            e1->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
+            if(k >= elecStart){
+                sSrDE += e1->i2all(state.particles[state.particles.tot - 1], state.particles);
+                //printf("srDe %lf\n", srDE);
+            }
+            empty = {};
+            e1->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
+            k++;
+        }    
+        sElDE *= constants::lB;
+        ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
+        for(int scale = 1; scale <= 10; scale++){
+            double lambda = ((double) (scale - 1.0) * 0.1 + 0.1);
+            state.particles.particles[state.particles.tot - 1]->q = lambda * state.particles.pModel.q;
+            for(int l = 0; l < state.particles.tot - 1; l++){
+                state.particles.particles[l]->q *= (1.0 - state.particles.particles[l]->q * lambda / (state.particles.tot - 1));
+            }
+
+            std::vector< std::shared_ptr<Particle> > empty = {};
+            e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
+            elDE = e->i2all(state.particles[state.particles.tot - 1], state.particles);
+            empty = {};
+            e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
+            elDE *= constants::lB;
+
+            //nomP[scale] += 1.0 / ((double) (scale - 1) * 0.1 + 0.1) * elDE * std::exp(-(sSrDE + elDE));
+            nomP[scale] += sElDE * std::exp(-(sSrDE + elDE));
+            //std::cout << 1.0 / ((double) (scale - 1) * 0.1 + 0.1) * elDE << " " << sElDE << std::endl;
+            denomP[scale] += std::exp(-(sSrDE + elDE));
+
+            for(int l = 0; l < state.particles.tot - 1; l++){
+                state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+            }
+        }
+        nomP[0] += elDE * std::exp(-sSrDE);
+        denomP[0] += std::exp(-sSrDE);
+        //if(!state.overlap(state.particles.tot - 1)){
+            facP += std::exp(-sSrDE);
+        //}
+        pSamples++;
+
+        state.particles.remove(state.particles.tot - 1);
+
+        /////////////////////////////////////////////////////////////////////////////// Anion /////////////////////////////////////////////////////////////////////////////////////
+        com = state.geo->random_pos(state.particles.nModel.rf);
+        sElDE = 0.0;
+        sSrDE = 0.0;
+        k = 0;
+        state.particles.add(com, com, qDisp, state.particles.nModel.r, state.particles.nModel.rf, state.particles.nModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
+        /////////////////////////////////////////////////////////////// Calculate full addition energy /////////////////////////////////////////////////////////////////////////////
+        for(int l = 0; l < state.particles.tot - 1; l++){
+            state.particles.particles[l]->q *= (1.0 + state.particles.particles[l]->q / (state.particles.tot - 1));
+        }
+        sElDE = e->i2all(state.particles[state.particles.tot - 1], state.particles);
+        for(int l = 0; l < state.particles.tot - 1; l++){
+            state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+        }
+        for(auto e1 : state.energyFunc){
+            std::vector< std::shared_ptr<Particle> > empty = {};
+            e1->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
+            if(k >= elecStart){
+                sSrDE += e1->i2all(state.particles[state.particles.tot - 1], state.particles);
+                //printf("srDe %lf\n", srDE);
+            }
+            empty = {};
+            e1->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
+            k++;
+        }   
+        sElDE *= constants::lB;
+        ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
+        for(int scale = 1; scale <= 10; scale++){
+            double lambda = ((double) (scale - 1) * 0.1 + 0.1);
+            state.particles.particles[state.particles.tot - 1]->q = lambda * state.particles.nModel.q;
+            for(int l = 0; l < state.particles.tot - 1; l++){
+                state.particles.particles[l]->q *= (1.0 + state.particles.particles[l]->q * lambda / (state.particles.tot - 1));
+            }
+
+            std::vector< std::shared_ptr<Particle> > empty = {};
+            e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
+            elDE = e->i2all(state.particles[state.particles.tot - 1], state.particles);
+            empty = {};
+            e->update( state.particles.get_subset(state.particles.tot - 1), std::move(empty) );
+
+            elDE *= constants::lB;
+            nomN[scale] += sElDE * std::exp(-(sSrDE + elDE));
+            denomN[scale] += std::exp(-(sSrDE + elDE));  
+       
+            for(int l = 0; l < state.particles.tot - 1; l++){
+                state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+            }
+        }
+        nomN[0] += elDE * std::exp(-sSrDE);
+        denomN[0] += std::exp(-sSrDE);
+
+        //if(!state.overlap(state.particles.tot - 1)){
+            facN += std::exp(-sSrDE);
+        //}
+        nSamples++;
+        
+        state.particles.remove(state.particles.tot - 1);
+
+        this->samples++;
+    }
+
+    void save(){
+        double integralP = 0.0;
+        for(int i = 0; i <= 10; i++){
+            integralP += (nomP[i] / this->pSamples) / (denomP[i] / this->pSamples) * 1.0 / 11.0;
+        }
+        double integralN = 0.0;
+        for(int i = 0; i <= 10; i++){
+            integralN += (nomN[i] / this->nSamples) / (denomN[i] / this->nSamples) * 1.0 / 11.0;
+        }
+
+
+        double sumP = 0.5 * (nomP[0] / this->pSamples) / (denomP[0] / this->pSamples) + 0.5 * (nomP[10] / this->pSamples) / (denomP[10] / this->pSamples);
+        double sumN = 0.5 * (nomN[0] / this->nSamples) / (denomN[0] / this->nSamples) + 0.5 * (nomN[10] / this->nSamples) / (denomN[10] / this->nSamples);
+
+        printf("MW + sr: %lf el %lf tot %lf\n", -std::log(this->facP / this->pSamples), integralP, -std::log(this->facP / this->pSamples) + integralP);
+        printf("MW - sr: %lf el %lf tot %lf\n", -std::log(this->facN / this->nSamples), integralN, -std::log(this->facN / this->nSamples) + integralN);
+        printf("MWSum + el: %lf tot %lf\n", sumP, -std::log(this->facP / this->pSamples) + sumP);
+        printf("MWSum - el: %lf tot %lf\n", sumN, -std::log(this->facN / this->nSamples) + sumN);
+    }
+
+    void close(){};
+};
+
 
 
 

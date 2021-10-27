@@ -737,7 +737,7 @@ class State{
             case 18:
                 printf("\nAdding Ewald slab correction3\n");
                 assert(args.size() == 0);
-
+                printf("\tBox size in z is: %lf\n", this->geo->d[2]);
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr3> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;

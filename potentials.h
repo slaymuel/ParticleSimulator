@@ -1412,7 +1412,9 @@ namespace EwaldLike{
         }
 
         inline double operator()(){
+            //printf("dip: %lf, Q: %lf, Q2: %lf\n", this->fac * this->dipoleMoment * this->dipoleMoment , this->fac * this->totQ*this->qs, this->fac * this->totQ*this->totQ * this->zb*this->zb / 12.0);
             return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb*this->zb / 12.0);
+            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs);
         }
 
         inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
