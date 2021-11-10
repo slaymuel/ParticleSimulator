@@ -161,8 +161,8 @@ class LJWallRep{
 
 class ExpWallRep{
     private:
-    float k;
-    float zWall;
+    double k;
+    double zWall;
 
     public:
     void set_bounds(double x, double y, double z, double k){
@@ -921,8 +921,6 @@ namespace EwaldLike{
                 }
             }
 
-            //printf("\t Created %lu reciprocal lattice vectors\n", this->kVec.size());
-
             //Calculate norms
             for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
@@ -961,7 +959,6 @@ namespace EwaldLike{
                 }
                 this->rkVec.push_back(rho);
             }
-            //printf("\tEwald initialization Complete\n");
         }
 
         inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
@@ -1015,8 +1012,11 @@ namespace EwaldLike{
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
             //printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
+
             return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
+            //return energy * 2.0 * constants::PI / (this->volume);
         } 
+
 
         inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
             Eigen::Vector3d rec = Eigen::Vector3d::Zero();
@@ -1034,6 +1034,278 @@ namespace EwaldLike{
             return q1 * q2 * rec;
         }
     };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class LongChargedVacuum{
+        private:
+        std::vector<double> resFac, kNorm;
+        std::vector< Eigen::Vector3d > kVec;
+        std::vector< std::complex<double> > rkVec;
+        double volume, selfTerm, xb, yb, zb;
+        double resFacSum;
+        double tauSum;
+        double totCharge;
+        double C1;
+        double C2;
+        double facC1;
+
+        public:
+
+        void set_box(double x, double y, double z){
+            this->xb = x;
+            this->yb = y;
+            this->zb = z;
+            this->volume = x * y * z;
+            //printf("Setting volume in energy to: %lf\n", this->volume);
+        }
+
+        void set_kvectors(){
+            this->kVec.clear();
+            this->resFac.clear();
+            this->kNorm.clear();
+            this->resFacSum = 0.0;
+            this->tauSum = 0.0;
+
+            double k2 = 0;
+
+            //printf("Setting up k-vectors\n");
+            //printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+
+            //get k-vectors
+            double factor = 1;
+            Eigen::Vector3d vec;
+            //printf("Calculating k-vectors");
+            //printf("%lf %lf %lf\n", this->xb, this->yb, this->zb);
+            for(int kx = -kM[0]; kx <= kM[0]; kx++){
+                for(int ky = -kM[1]; ky <= kM[1]; ky++){
+                    for(int kz = -kM[2]; kz <= kM[2]; kz++){
+
+                        factor = 1.0;
+                        /*if(kx > 0){
+                            factor *= 2.0;
+                        }*/
+
+                        vec[0] = (2.0 * constants::PI * kx / this->xb);
+                        vec[1] = (2.0 * constants::PI * ky / this->yb);
+                        vec[2] = (2.0 * constants::PI * kz / this->zb);
+                        k2 = math::dot(vec, vec);
+
+                        if(fabs(k2) > 1e-12) {
+                            if(spherical){
+                                if(kx * kx + ky * ky + kz * kz < kMax * kMax){
+                                    this->kVec.push_back(vec);
+                                    this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                                }
+                            }
+
+                            else{
+                                this->kVec.push_back(vec);
+                                this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+
+                                this->resFacSum += factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2;
+                            }
+                        }
+                    }
+                }
+            }
+            //double nNorm = std::sqrt(kx * this->xb * kx * this->xb  + ky * this->yb * ky * this->yb + kz * this->zb * kz * this->zb);
+            this->tauSum += constants::PI / (alpha * alpha * this->volume) + 2.0 * alpha / std::sqrt(constants::PI) - 4.0 * constants::PI / this->volume * resFacSum;
+            //printf("\t Created %lu reciprocal lattice vectors\n", this->kVec.size());
+            printf("\tTauSum: %lf\n", this->tauSum);
+            //Calculate norms
+            for(unsigned int i = 0; i < kVec.size(); i++){
+                this->kNorm.push_back(math::norm(kVec[i]));
+            }
+        }
+
+        void set_self(Particles &particles){
+            this->selfTerm = 0.0;
+            this->totCharge = 0.0;
+
+            for(unsigned int i = 0; i < particles.tot; i++){
+                this->selfTerm += particles[i]->q * particles[i]->q;
+                this->totCharge += particles[i]->q;
+            }
+            this->selfTerm *= alpha / sqrt(constants::PI);
+            //printf("Self term is: %lf\n", this->selfTerm);
+        }
+
+
+        void initialize(Particles &particles){
+            set_kvectors();
+            set_self(particles);
+            this->rkVec.clear();
+
+            std::complex<double> rho;
+            std::complex<double> rk;
+            std::complex<double> charge;
+
+            //#pragma omp parallel for private(rk_new, rk_old)
+            for(unsigned int k = 0; k < kVec.size(); k++){
+                rho = 0;
+                for(unsigned int i = 0; i < particles.tot; i++){
+                    rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
+                    rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
+                    charge = particles[i]->q;
+                    rk = rk * charge;
+                    rho += rk;
+                }
+                this->rkVec.push_back(rho);
+            }
+
+            C2 = 0.0;
+            facC1 = -this->totCharge / (this->xb * this->yb) * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + constants::PI * this->totCharge / (this->xb * this->yb) * 80.0;
+            //facC1 = (-0.5*this->totCharge -0.5*this->totCharge) * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + 2.0 * constants::PI * (-0.5*this->totCharge * (-0.5*this->zb) - 0.5*this->totCharge * (-0.5*this->zb));
+            double fac1 = 0.0;
+            double fac2 = 0.0;
+            for(unsigned int i = 0; i < particles.tot; i++){
+                //C1 += particles[i]->q * facC1;
+                fac2 -= 2.0 * constants::PI / this->volume * particles[i]->q * particles[i]->q * resFacSum;
+                for(unsigned int j = i + 1; j < particles.tot; j++){
+                    fac1 += particles[i]->q * particles[j]->q * (this->tauSum - constants::PI / (alpha * alpha * this->volume));
+                }
+            }
+            //printf("fac1 %lf\n", fac1);
+            printf("\tcharge %lf\n", this->totCharge);
+            printf("\tfacC1 %lf\n", facC1);
+            C1 = this->totCharge * facC1;
+            C2 = fac1 + fac2;
+            printf("\tC2 %lf\n", C2);
+            
+            printf("\tC1 %lf\n", C1);
+            //printf("\tEwald initialization Complete\n");
+        }
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            std::complex<double> rk_new;
+            std::complex<double> rk_old;
+
+            //Particle has been added
+            if(_old.empty()){
+                for(auto n : _new){
+                    this->selfTerm += n->q * n->q * alpha / std::sqrt(constants::PI);
+
+                    //C2 += (n->q * this->totCharge * this->tauSum - 2.0 * constants::PI / this->volume * n->q * n->q * resFacSum);
+                    C2 += (n->q * this->totCharge * (this->tauSum - constants::PI / (alpha * alpha * this->volume)) - 2.0 * constants::PI / this->volume * n->q * n->q * resFacSum);
+                    //facC1 = -this->totCharge / (this->xb * this->yb) * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + constants::PI * this->totCharge / (this->xb * this->yb) * 80.0;
+                    
+                    this->totCharge += n->q;
+                    facC1 = -this->totCharge / (this->xb * this->yb) * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + constants::PI * this->totCharge / (this->xb * this->yb) * 80.0;
+                    //C1 += n->q * facC1;
+                    C1 = this->totCharge * facC1;
+                }
+            }
+            else{
+                for(auto o : _old){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[2] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        rk_old.imag(std::sin(dot));
+                        rk_old.real(std::cos(dot));
+
+                        this->rkVec[k] -= rk_old * o->q;
+                    }
+                }
+            }
+            //Particle has been removed
+            if(_new.empty()){
+                for(auto o : _old){
+                    this->selfTerm -= o->q * o->q * alpha / std::sqrt(constants::PI);
+                    
+                    //facC1 = -1.0 / this->totCharge * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + constants::PI * 1.0 / this->totCharge * this->zb;
+                    //C1 -= o->q * facC1;
+                    this->totCharge -= o->q;
+                    facC1 = -this->totCharge / (this->xb * this->yb) * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + constants::PI * this->totCharge / (this->xb * this->yb) * 80.0;
+                    C1 = this->totCharge * facC1;
+                    //C1 -= o->q * facC1;
+                    
+                    
+                    //C2 -= (o->q * this->totCharge * this->tauSum - 2.0 * constants::PI / this->volume * o->q * o->q * resFacSum);
+                    C2 -= (o->q * this->totCharge * (this->tauSum - constants::PI / (alpha * alpha * this->volume)) - 2.0 * constants::PI / this->volume * o->q * o->q * resFacSum);
+                }
+            }
+            else{
+                for(auto n : _new){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[2] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        rk_new.imag(std::sin(dot));
+                        rk_new.real(std::cos(dot));
+
+                        this->rkVec[k] += rk_new * n->q;
+                    }
+                }
+            }
+
+            //C1 = -this->totCharge * (this->xb * this->yb * this->tauSum + 2.0 * constants::PI * this->zb / 6.0) + 2.0 * constants::PI * this->totCharge * this->zb;
+        }
+
+
+        inline double operator()(){
+            double energy = 0.0;
+
+            #pragma omp parallel for reduction(+:energy)
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                    energy += std::norm(this->rkVec[k]) * this->resFac[k];
+            }
+            //printf("Reciprocal: %.15lf\n", energy * 2.0 * constants::PI / (this->volume));
+            //std::cout << "C1: " << C1 << std::endl;
+            //std::cout << "C2: " << C2 << std::endl;
+            //return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm + C2 + C1;
+            return energy * 2.0 * constants::PI / (this->volume) + C2 + C1;
+        } 
+
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d rec = Eigen::Vector3d::Zero();
+            double kSq = 0.0;
+
+            //Reciprocal force
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                kSq = this->kNorm[k] * this->kNorm[k];
+                rec += this->kVec[k] / kSq * std::exp(-kSq / (4.0 * alpha)) * std::sin(this->kVec[k].dot(disp));
+            }
+            rec *= 4.0 * constants::PI / this->volume;
+            /*printf("\nReciprocal force: \n");
+            std::cout << q1*q2*rec << std::endl;
+            printf("\n");*/
+            return q1 * q2 * rec;
+        }
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1363,34 +1635,42 @@ namespace EwaldLike{
         }
     };
 
+
+
     class SlabCorr3{
         private:
         double dipoleMoment;
+        double surfaceCharge;
         double totQ;
         double qs;
         double fac;
         double xb;
         double yb;
         double zb;
+        double volume;
         public:
 
         void set_box(double x, double y, double z){
             this->xb = x;
             this->yb = y;
             this->zb = z;
-            this->fac = 2.0 * constants::PI / (x * y * z);
+            volume = x * y * z;
+            this->fac = 2.0 * constants::PI / volume;
         }
 
         void initialize(Particles &particles){
             this->dipoleMoment = 0.0;
             this->totQ = 0.0;
             this->qs = 0.0;
+            this->surfaceCharge = 0.0;
 
             for(unsigned int i = 0; i < particles.tot; i++){
                 this->dipoleMoment += particles[i]->q * particles[i]->pos[2];
                 this->totQ += particles[i]->q;
+                this->surfaceCharge -= particles[i]->q;
                 this->qs += particles[i]->q * particles[i]->pos[2] * particles[i]->pos[2];
             }
+            //this->surfaceCharge *= 0.5;
             printf("\tdip: %lf\n", this->dipoleMoment);
             printf("\ttotQ: %lf\n", this->totQ);
             printf("\tqs: %lf\n", this->qs);
@@ -1413,8 +1693,16 @@ namespace EwaldLike{
 
         inline double operator()(){
             //printf("dip: %lf, Q: %lf, Q2: %lf\n", this->fac * this->dipoleMoment * this->dipoleMoment , this->fac * this->totQ*this->qs, this->fac * this->totQ*this->totQ * this->zb*this->zb / 12.0);
-            return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb*this->zb / 12.0);
+            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb*this->zb / 12.0);
+            //return this->fac * (this->dipoleMoment * this->dipoleMoment + this->surfaceCharge*this->qs - this->surfaceCharge*this->surfaceCharge * this->zb*this->zb / 12.0);
+            
+            //printf("slabcorr %lf\n", this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs));
+            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb * this->zb / 12.0) - constants::PI * this->totQ*this->totQ / (2.0 * alpha * alpha * this->volume);
+            //return this->fac * this->dipoleMoment * this->dipoleMoment - constants::PI * this->totQ*this->totQ / (2.0 * alpha * alpha * this->volume);
+            return this->fac * this->dipoleMoment * this->dipoleMoment;
+            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs) - constants::PI * this->totQ*this->totQ / (2.0 * alpha * alpha * this->volume);
             //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs);
+            //return this->fac * this->dipoleMoment * this->dipoleMoment + 4.0 * constants::PI * this->surfaceCharge * this->dipoleMoment + 2.0 * constants::PI * this->surfaceCharge * this->surfaceCharge * this->xb * this->yb * 30.0;
         }
 
         inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){

@@ -619,7 +619,6 @@ class ExtEnergy : public EnergyBase{
     double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){ return 0.0; }
 
     double all2all(Particles& particles){
-        //printf("Rec energy: %.15lf\n", energy_func());
         return energy_func() * constants::lB;
     }
 
@@ -664,6 +663,178 @@ class ExtEnergy : public EnergyBase{
         return force * constants::lB;
     }
 };
+
+
+
+
+
+
+
+
+
+
+template <typename E, typename G>
+class ExplicitWallChargeExtEnergy : public EnergyBase{
+
+    private:
+    E longRange;  //energy functor
+    G shortRange;  //energy functor
+    double totalCharge;
+    std::vector< std::shared_ptr<Particle> > wallCharges;
+    int numOfCellsX;
+    int numOfCellsY;
+
+    public:
+    ExplicitWallChargeExtEnergy(double x, double y, double z){
+        longRange.set_box(x, y, z);
+    }
+
+    double i2all(std::shared_ptr<Particle> p, Particles& particles){ 
+        double e = 0.0;
+        
+        for (unsigned int i = 0; i < wallCharges.size(); i++){
+            e += i2i(p->q, wallCharges[i]->q, this->geo->distance(p->pos, wallCharges[i]->pos));
+        }
+
+        return e;
+    }
+
+    inline double i2i(double& q1, double& q2, double&& dist){
+        if(dist <= this->cutoff){
+            return shortRange(q1, q2, dist);
+        }
+        else{
+            return 0.0;
+        }
+    }
+
+    double all2all(Particles& particles){
+        double e = 0.0;
+        //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+        for(unsigned int i = 0; i < particles.tot; i++){
+            e += i2all(particles[i], particles); 
+        }
+
+        for (unsigned int i = 0; i < wallCharges.size(); i++){
+            for (unsigned int j = i + 1; j < wallCharges.size(); j++){
+                e += i2i(wallCharges[i]->q, wallCharges[j]->q, this->geo->distance(wallCharges[i]->pos, wallCharges[j]->pos));
+            }
+        }
+
+        return (longRange() + e) * constants::lB;
+    }
+
+    double operator()(std::vector< unsigned int >&& p, Particles& particles){
+        double e = 0.0;
+
+        for(int i = 0; i < p.size(); i++){
+            e += i2all(particles.particles[p[i]], particles);
+        }
+
+        return (longRange() + e) * constants::lB;
+    }
+
+    double operator()(std::vector< unsigned int >& p, Particles& particles){
+        double e = 0.0;
+
+        for(int i = 0; i < p.size(); i++){
+            e += i2all(particles.particles[p[i]], particles);
+        }
+
+        return (longRange() + e) * constants::lB;
+    }
+
+    void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){
+        bool gcStep = false;
+        if(_old.empty()){
+            for(auto n : _new){
+                this->totalCharge += n->q;
+            }
+            gcStep = true;
+        }
+        else if(_new.empty()){
+            for(auto o : _old){
+                this->totalCharge -= o->q;
+            }
+            gcStep = true;
+        }
+        
+        if(gcStep){
+            SetCharges(this->totalCharge / (2.0 * (double) (this->numOfCellsX * this->numOfCellsY)));
+        }
+
+        longRange.update(_old, _new);
+    }
+
+    void SetCharges(float chargeFactor){
+        for (unsigned int i = 0; i < wallCharges.size(); i++){
+            wallCharges[i]->q = -1.0 * chargeFactor;
+        }
+    }
+
+    void update(double x, double y, double z){
+        longRange.set_box(x, y, z);
+    }
+
+    void initialize(Particles& particles){
+        this->numOfCellsX = 10;
+        this->numOfCellsY = 10;
+
+        double cellSizeX = (double)this->numOfCellsX / this->geo->d[0];
+        double cellSizeY = (double)this->numOfCellsY / this->geo->d[1];
+
+        this->totalCharge = 0.0;
+        wallCharges.clear();
+        for(int i = 0; i < particles.tot; i++){
+            this->totalCharge += particles[i]->q;
+        }
+
+        for(int i = 0; i < this->numOfCellsX; i++){
+            for(int j = 0; j < this->numOfCellsY; j++){
+                Eigen::Vector3d pos((double)i * cellSizeX + 0.5 * cellSizeX, (double)j * cellSizeY + 0.5 * cellSizeY, this->geo->_d[2] + 0.5 * particles.pModel.r);
+                wallCharges.push_back(std::make_shared<Particle>());
+                wallCharges.back()->pos = pos;
+                //wallCharges.back()->q = -1.0 * chargeFactor;
+                wallCharges.push_back(std::make_shared<Particle>());
+                wallCharges.back()->pos = pos;
+                wallCharges.back()->pos[2] = -this->geo->_d[2] - 0.5 * particles.pModel.r;
+                //wallCharges.back()->q = -1.0 * chargeFactor;
+            }
+        }
+
+        SetCharges(this->totalCharge / (2.0 * (double) (this->numOfCellsX * this->numOfCellsY)));
+
+        longRange.initialize(particles);
+        std::vector< std::shared_ptr<Particle> > empty = {};
+        longRange.update(empty, wallCharges);
+    }
+
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force = Eigen::Vector3d::Zero();
+        for(unsigned int i = 0; i < particles.tot; i++){
+            if (p->index == particles[i]->index) continue;
+            force += longRange.force(p->q, particles[i]->q, this->geo->displacement(p->pos, particles[i]->pos));
+        }
+        return force * constants::lB;
+    }
+
+    Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
+        Eigen::Vector3d force;
+        force = longRange.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
+        return force * constants::lB;
+    }
+
+    Eigen::Vector3d force(Eigen::Vector3d pos1, Eigen::Vector3d pos2, double q1, double q2){
+        Eigen::Vector3d force;
+        force = longRange.force(q1, q2, this->geo->displacement(pos1, pos2));
+        return force * constants::lB;
+    }
+};
+
+
+
+
+
 
 
 

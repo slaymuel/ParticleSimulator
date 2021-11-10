@@ -282,6 +282,8 @@ class Particles{
         //Add cation
         if(rand >= 0.5){
             com = Random::random_pos_box(this->pModel.rf, box);
+            //Eigen::Vector3d com;
+            //com << 18.0, 23.0, 34.0;
             this->add(com, this->pModel.r, this->pModel.rf, this->pModel.q, this->pModel.b_min, this->pModel.b_max, "Na");
             q = this->pModel.q;
         }
