@@ -35,6 +35,10 @@ class Particles{
         return particles[index];
     }
 
+    unsigned int size(){
+        return particles.size();
+    }
+
     std::vector< std::shared_ptr<Particle> > get_subset(std::vector<unsigned int> &ps){
         std::vector< std::shared_ptr<Particle> > subset;
 

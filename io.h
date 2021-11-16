@@ -1,3 +1,5 @@
+#pragma once
+
 #include "particles.h"
 
 
@@ -27,12 +29,13 @@ class IO{
     }
 
         //Write xyz file
-   static  void to_xyz(std::string fileName, Particles& p, std::vector<double> d){
+        template<typename T>
+   static  void to_xyz(std::string fileName, T& p, std::vector<double> d){
         std::ofstream f (fileName + ".xyz");
         if (f.is_open())
         {
-            f << p.tot << "\n\n";
-            for(unsigned int i = 0; i < p.tot; i++){
+            f << p.size() << "\n\n";
+            for(unsigned int i = 0; i < p.size(); i++){
 
                 f << std::fixed << std::setprecision(3) << p[i]->name << " " <<  p[i]->pos[0] << " " << p[i]->pos[1] << " " << p[i]->pos[2] << "\n";
             }
@@ -44,8 +47,8 @@ class IO{
         std::ofstream fq (fileName + "_com.xyz");
         if (fq.is_open())
         {
-            fq << p.tot << "\n\n";
-            for(unsigned int i = 0; i < p.tot; i++){
+            fq << p.size() << "\n\n";
+            for(unsigned int i = 0; i < p.size(); i++){
 
                 fq << std::fixed << std::setprecision(3) << p[i]->name << " " <<  p[i]->com[0] << " " << p[i]->com[1] << " " << p[i]->com[2] << "\n";
             }

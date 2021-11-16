@@ -3,7 +3,7 @@
 #include "particle.h"
 #include "particles.h"
 #include "geometry.h"
-
+#include "io.h"
 
 class EnergyBase{
 
@@ -680,9 +680,12 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
     E longRange;  //energy functor
     G shortRange;  //energy functor
     double totalCharge;
+    double prevTotalCharge;
     std::vector< std::shared_ptr<Particle> > wallCharges;
     int numOfCellsX;
     int numOfCellsY;
+    double wall2wall;
+    double particles2wall;
 
     public:
     ExplicitWallChargeExtEnergy(double x, double y, double z){
@@ -695,7 +698,6 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
         for (unsigned int i = 0; i < wallCharges.size(); i++){
             e += i2i(p->q, wallCharges[i]->q, this->geo->distance(p->pos, wallCharges[i]->pos));
         }
-
         return e;
     }
 
@@ -709,58 +711,60 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
     }
 
     double all2all(Particles& particles){
-        double e = 0.0;
         //#pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
-        for(unsigned int i = 0; i < particles.tot; i++){
-            e += i2all(particles[i], particles); 
-        }
-
+        double w2w = 0.0;
         for (unsigned int i = 0; i < wallCharges.size(); i++){
             for (unsigned int j = i + 1; j < wallCharges.size(); j++){
-                e += i2i(wallCharges[i]->q, wallCharges[j]->q, this->geo->distance(wallCharges[i]->pos, wallCharges[j]->pos));
+                w2w += i2i(wallCharges[i]->q, wallCharges[j]->q, this->geo->distance(wallCharges[i]->pos, wallCharges[j]->pos));
+            }
+        }
+        
+        double p2w = 0.0;
+        for (unsigned int i = 0; i < wallCharges.size(); i++){
+            for(unsigned int j = 0; j < particles.tot; j++){
+                p2w += i2i(particles[j]->q, wallCharges[i]->q, this->geo->distance(particles[j]->pos, wallCharges[i]->pos));
             }
         }
 
-        return (longRange() + e) * constants::lB;
+        /*std::cout << "rec: " << longRange(this->totalCharge) << std::endl;
+        std::cout << "w2w " << this->totalCharge * this->totalCharge * this->wall2wall << std::endl;
+        std::cout << "p2w: " << this->totalCharge * this->particles2wall << std::endl;
+        std::cout << "tc: " << this->totalCharge << std::endl;*/
+        return (longRange(this->totalCharge) + this->totalCharge * this->totalCharge * this->wall2wall + this->totalCharge * this->particles2wall) * constants::lB;
     }
 
     double operator()(std::vector< unsigned int >&& p, Particles& particles){
-        double e = 0.0;
-
-        for(int i = 0; i < p.size(); i++){
-            e += i2all(particles.particles[p[i]], particles);
-        }
-
-        return (longRange() + e) * constants::lB;
+        return (longRange(this->totalCharge) + this->wall2wall * this->totalCharge * this->totalCharge + this->particles2wall * this->totalCharge) * constants::lB;
     }
 
     double operator()(std::vector< unsigned int >& p, Particles& particles){
-        double e = 0.0;
-
-        for(int i = 0; i < p.size(); i++){
-            e += i2all(particles.particles[p[i]], particles);
-        }
-
-        return (longRange() + e) * constants::lB;
+        return (longRange(this->totalCharge) + this->wall2wall * this->totalCharge * this->totalCharge + this->particles2wall * this->totalCharge) * constants::lB;
     }
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){
-        bool gcStep = false;
         if(_old.empty()){
             for(auto n : _new){
                 this->totalCharge += n->q;
             }
-            gcStep = true;
         }
-        else if(_new.empty()){
+        else{
+            for(auto o : _old){
+                for (unsigned int i = 0; i < wallCharges.size(); i++){
+                    this->particles2wall -= i2i(o->q, wallCharges[i]->q, this->geo->distance(o->pos, wallCharges[i]->pos));
+                }
+            }
+        }
+        if(_new.empty()){
             for(auto o : _old){
                 this->totalCharge -= o->q;
             }
-            gcStep = true;
         }
-        
-        if(gcStep){
-            SetCharges(this->totalCharge / (2.0 * (double) (this->numOfCellsX * this->numOfCellsY)));
+        else{
+            for(auto n : _new){
+                for (unsigned int i = 0; i < wallCharges.size(); i++){
+                    this->particles2wall += i2i(n->q, wallCharges[i]->q, this->geo->distance(n->pos, wallCharges[i]->pos));
+                }
+            }
         }
 
         longRange.update(_old, _new);
@@ -777,36 +781,55 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
     }
 
     void initialize(Particles& particles){
-        this->numOfCellsX = 10;
-        this->numOfCellsY = 10;
+        this->numOfCellsX = 8;
+        this->numOfCellsY = 8;
 
-        double cellSizeX = (double)this->numOfCellsX / this->geo->d[0];
-        double cellSizeY = (double)this->numOfCellsY / this->geo->d[1];
+        double cellSizeX = this->geo->d[0] / ( (double)this->numOfCellsX );
+        double cellSizeY = this->geo->d[1] / ( (double)this->numOfCellsY );
 
         this->totalCharge = 0.0;
         wallCharges.clear();
         for(int i = 0; i < particles.tot; i++){
             this->totalCharge += particles[i]->q;
         }
+        this->prevTotalCharge = this->totalCharge;
 
-        for(int i = 0; i < this->numOfCellsX; i++){
-            for(int j = 0; j < this->numOfCellsY; j++){
-                Eigen::Vector3d pos((double)i * cellSizeX + 0.5 * cellSizeX, (double)j * cellSizeY + 0.5 * cellSizeY, this->geo->_d[2] + 0.5 * particles.pModel.r);
+        for(int i = -this->numOfCellsX / 2; i < this->numOfCellsX / 2; i++){
+            for(int j = -this->numOfCellsY / 2; j < this->numOfCellsY / 2; j++){
+                Eigen::Vector3d pos((double)i * cellSizeX + 0.5 * cellSizeX, (double)j * cellSizeY + 0.5 * cellSizeY, 0.5 * this->geo->_d[2] + particles.pModel.r);
+
                 wallCharges.push_back(std::make_shared<Particle>());
                 wallCharges.back()->pos = pos;
-                //wallCharges.back()->q = -1.0 * chargeFactor;
+                wallCharges.back()->com = pos;
+                wallCharges.back()->name = "wc";
+
                 wallCharges.push_back(std::make_shared<Particle>());
                 wallCharges.back()->pos = pos;
-                wallCharges.back()->pos[2] = -this->geo->_d[2] - 0.5 * particles.pModel.r;
-                //wallCharges.back()->q = -1.0 * chargeFactor;
+                wallCharges.back()->pos[2] = -0.5 * this->geo->_d[2] - particles.pModel.r;
+                wallCharges.back()->com = pos;
+                wallCharges.back()->name = "wc";
             }
         }
 
-        SetCharges(this->totalCharge / (2.0 * (double) (this->numOfCellsX * this->numOfCellsY)));
+        SetCharges(1.0 / wallCharges.size());
+
+        IO::to_xyz("wallcharges", wallCharges, this->geo->d);
 
         longRange.initialize(particles);
-        std::vector< std::shared_ptr<Particle> > empty = {};
-        longRange.update(empty, wallCharges);
+        longRange.add_wall(wallCharges);
+
+        this->wall2wall = 0.0;
+        for (unsigned int i = 0; i < wallCharges.size(); i++){
+            for (unsigned int j = i + 1; j < wallCharges.size(); j++){
+                this->wall2wall += i2i(wallCharges[i]->q, wallCharges[j]->q, this->geo->distance(wallCharges[i]->pos, wallCharges[j]->pos));
+            }
+        }
+        this->particles2wall = 0.0;
+        for (unsigned int i = 0; i < wallCharges.size(); i++){
+            for(unsigned int j = 0; j < particles.tot; j++){
+                this->particles2wall += i2i(particles[j]->q, wallCharges[i]->q, this->geo->distance(particles[j]->pos, wallCharges[i]->pos));
+            }
+        }
     }
 
     Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
@@ -830,6 +853,27 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
         return force * constants::lB;
     }
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

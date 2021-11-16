@@ -45,7 +45,7 @@ class State{
         for(auto e : this->energyFunc){
             //printf("Before initialize: %.10lf\n", e->all2all(this->particles));
             if(this->step % 100 == 0){
-                //e->initialize(this->particles);
+                e->initialize(this->particles);
             }
             //printf("After initialize: %.10lf\n", e->all2all(this->particles));
             this->energy += e->all2all(this->particles);
@@ -325,27 +325,6 @@ class State{
         
         std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), 
                                             [this](unsigned int i){ return i < this->_old->particles.tot; });
-
-        
-        /*for(auto p : this->_old->movedParticles){
-            printf("%i\n", p);
-        }
-        printf("\n");
-        for(auto p : this->movedParticles){
-            printf("%i\n", p);
-        }*/
-        //printf("moved %u\n", this->movedParticles[0]);
-        //printf("old moved %u\n", this->_old->movedParticles[0]);
-        
-        /*if(!this->movedParticles.empty()){                                  
-            for(auto i : ps){
-                geo->pbc(this->particles[i]);
-            }
-        }*/
-        /*if(this->movedParticles.empty() && this->_old->movedParticles.empty()){
-            printf("Error both are empty");
-            exit(1);
-        }*/
 
         for(auto p : this->movedParticles){
             geo->pbc(this->particles[p]);
@@ -815,7 +794,7 @@ class State{
                 printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
                 break;
             case 27:
-                printf("\nAdding Ewald with vacuum slabs and excplicit wall charges\n");
+                printf("\nAdding Long range Ewald with vacuum slabs and excplicit wall charges\n");
                 assert(args.size() == 6);
 
                 printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
@@ -824,16 +803,21 @@ class State{
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
 
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< ExplicitWallChargeExtEnergy <EwaldLike::LongWithExplicitWallCharges, EwaldLike::Short> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
-
-                this->energyFunc.push_back( std::make_shared< ExplicitWallChargeExtEnergy <EwaldLike::Long, EwaldLike::Short> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
-                this->energyFunc.back()->set_geo(this->geo);
-
+                
                 EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 EwaldLike::alpha = args[5];
                 printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
+                break;
+            case 28:
+                printf("\nAdding Real part of Ewald with vacuum slabs\n");
+                assert(args.size() == 1);
+
+                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.back()->set_geo(this->geo);
+                this->energyFunc.back()->set_cutoff(args[0]);
                 break;
             default:
                 printf("\nAdding Coulomb potential\n");

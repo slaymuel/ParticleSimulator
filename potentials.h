@@ -927,18 +927,18 @@ namespace EwaldLike{
             }
         }
 
-        void set_self(Particles &particles){
+        template<typename T>
+        void set_self(T &particles){
             this->selfTerm = 0.0;
 
-            for(unsigned int i = 0; i < particles.tot; i++){
+            for(unsigned int i = 0; i < particles.size(); i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
             this->selfTerm *= alpha / sqrt(constants::PI);
-            //printf("Self term is: %lf\n", this->selfTerm);
         }
 
-
-        void initialize(Particles &particles){
+        template<typename T>
+        void initialize(T &particles){
             set_kvectors();
             set_self(particles);
             this->rkVec.clear();
@@ -950,7 +950,7 @@ namespace EwaldLike{
             //#pragma omp parallel for private(rk_new, rk_old)
             for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0;
-                for(unsigned int i = 0; i < particles.tot; i++){
+                for(unsigned int i = 0; i < particles.size(); i++){
                     rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
                     rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
@@ -1034,6 +1034,250 @@ namespace EwaldLike{
             return q1 * q2 * rec;
         }
     };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    class LongWithExplicitWallCharges{
+        private:
+        std::vector<double> resFac, kNorm;
+        std::vector< Eigen::Vector3d > kVec;
+        std::vector< std::complex<double> > rkVec, rkVecWall;
+        double volume, selfTerm, selfTermWall, xb, yb, zb;
+
+        public:
+
+        void set_box(double x, double y, double z){
+            this->xb = x;
+            this->yb = y;
+            this->zb = z;
+            this->volume = x * y * z;
+            //printf("Setting volume in energy to: %lf\n", this->volume);
+        }
+
+        void set_kvectors(){
+            this->kVec.clear();
+            this->resFac.clear();
+            this->kNorm.clear();
+
+            double k2 = 0;
+
+            //printf("Setting up k-vectors\n");
+            //printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+
+            //get k-vectors
+            double factor = 1;
+            Eigen::Vector3d vec;
+            //printf("Calculating k-vectors");
+            //printf("%lf %lf %lf\n", this->xb, this->yb, this->zb);
+            for(int kx = -kM[0]; kx <= kM[0]; kx++){
+                for(int ky = -kM[1]; ky <= kM[1]; ky++){
+                    for(int kz = -kM[2]; kz <= kM[2]; kz++){
+
+                        factor = 1.0;
+                        /*if(kx > 0){
+                            factor *= 2.0;
+                        }*/
+
+                        vec[0] = (2.0 * constants::PI * kx / this->xb);
+                        vec[1] = (2.0 * constants::PI * ky / this->yb);
+                        vec[2] = (2.0 * constants::PI * kz / this->zb);
+                        k2 = math::dot(vec, vec);
+
+                        if(fabs(k2) > 1e-12) {
+                            if(spherical){
+                                if(kx * kx + ky * ky + kz * kz < kMax * kMax){
+                                    this->kVec.push_back(vec);
+                                    this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                                }
+                            }
+
+                            else{
+                                this->kVec.push_back(vec);
+                                this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
+                            }
+                        }
+                    }
+                }
+            }
+
+            //Calculate norms
+            for(unsigned int i = 0; i < kVec.size(); i++){
+                this->kNorm.push_back(math::norm(kVec[i]));
+            }
+        }
+
+        template<typename T>
+        void set_self(T &particles){
+            this->selfTerm = 0.0;
+
+            for(unsigned int i = 0; i < particles.size(); i++){
+                this->selfTerm += particles[i]->q * particles[i]->q;
+            }
+            this->selfTerm *= alpha / sqrt(constants::PI);
+        }
+
+        template<typename T>
+        void initialize(T &particles){
+            set_kvectors();
+            set_self(particles);
+            this->rkVec.clear();
+
+            std::complex<double> rho;
+            std::complex<double> rk;
+            std::complex<double> charge;
+
+            //#pragma omp parallel for private(rk_new, rk_old)
+            for(unsigned int k = 0; k < kVec.size(); k++){
+                rho = 0;
+                for(unsigned int i = 0; i < particles.size(); i++){
+                    rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
+                    rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
+                    charge = particles[i]->q;
+                    rk = rk * charge;
+                    rho += rk;
+                }
+                this->rkVec.push_back(rho);
+            }
+        }
+
+        template<typename T>
+        void add_wall(T &particles){
+            std::complex<double> rho;
+            std::complex<double> rk;
+            std::complex<double> charge;
+            this->rkVecWall.clear();
+
+            this->selfTermWall = 0.0;
+            for(unsigned int i = 0; i < particles.size(); i++){
+                this->selfTermWall += particles[i]->q * particles[i]->q * alpha / sqrt(constants::PI);;
+            }
+
+            //#pragma omp parallel for private(rk_new, rk_old)
+            for(unsigned int k = 0; k < kVec.size(); k++){
+                rho = 0;
+                for(unsigned int i = 0; i < particles.size(); i++){
+                    rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
+                    rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
+                    charge = particles[i]->q;
+                    rk = rk * charge;
+                    rho += rk;
+                }
+                this->rkVecWall.push_back(rho);
+            }
+        }
+
+        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+            std::complex<double> rk_new;
+            std::complex<double> rk_old;
+
+            if(_old.empty()){
+                for(auto n : _new){
+                    this->selfTerm += n->q * n->q * alpha / std::sqrt(constants::PI);
+                }
+            }
+            else{
+                for(auto o : _old){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[2] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        rk_old.imag(std::sin(dot));
+                        rk_old.real(std::cos(dot));
+
+                        this->rkVec[k] -= rk_old * o->q;
+                    }
+                }
+            }
+            if(_new.empty()){
+                for(auto o : _old){
+                    this->selfTerm -= o->q * o->q * alpha / std::sqrt(constants::PI);
+                }
+            }
+            else{
+                for(auto n : _new){
+
+                    #pragma omp parallel for private(rk_new, rk_old) if(kM[2] > 8)
+                    for(unsigned int k = 0; k < kVec.size(); k++){
+                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        rk_new.imag(std::sin(dot));
+                        rk_new.real(std::cos(dot));
+
+                        this->rkVec[k] += rk_new * n->q;
+                    }
+                }
+            }
+        }
+
+
+
+        inline double operator()(double factor){
+            double energy = 0.0;
+
+            #pragma omp parallel for reduction(+:energy)
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                    energy += std::norm(this->rkVec[k] + this->rkVecWall[k] * factor) * this->resFac[k];
+            }
+
+            return energy * 2.0 * constants::PI / (this->volume) - (this->selfTerm + this->selfTermWall * factor * factor);
+        } 
+
+
+        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+            Eigen::Vector3d rec = Eigen::Vector3d::Zero();
+            double kSq = 0.0;
+
+            //Reciprocal force
+            for(unsigned int k = 0; k < this->kVec.size(); k++){
+                kSq = this->kNorm[k] * this->kNorm[k];
+                rec += this->kVec[k] / kSq * std::exp(-kSq / (4.0 * alpha)) * std::sin(this->kVec[k].dot(disp));
+            }
+            rec *= 4.0 * constants::PI / this->volume;
+            /*printf("\nReciprocal force: \n");
+            std::cout << q1*q2*rec << std::endl;
+            printf("\n");*/
+            return q1 * q2 * rec;
+        }
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
