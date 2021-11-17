@@ -781,8 +781,8 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
     }
 
     void initialize(Particles& particles){
-        this->numOfCellsX = 8;
-        this->numOfCellsY = 8;
+        this->numOfCellsX = 16;
+        this->numOfCellsY = 16;
 
         double cellSizeX = this->geo->d[0] / ( (double)this->numOfCellsX );
         double cellSizeY = this->geo->d[1] / ( (double)this->numOfCellsY );
@@ -796,17 +796,17 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
 
         for(int i = -this->numOfCellsX / 2; i < this->numOfCellsX / 2; i++){
             for(int j = -this->numOfCellsY / 2; j < this->numOfCellsY / 2; j++){
-                Eigen::Vector3d pos((double)i * cellSizeX + 0.5 * cellSizeX, (double)j * cellSizeY + 0.5 * cellSizeY, 0.5 * this->geo->_d[2] + particles.pModel.r);
+                Eigen::Vector3d pos((double)i * cellSizeX + 0.5 * cellSizeX, (double)j * cellSizeY + 0.5 * cellSizeY, 0.5 * this->geo->_d[2] + particles.pModel.rf);
 
                 wallCharges.push_back(std::make_shared<Particle>());
                 wallCharges.back()->pos = pos;
-                wallCharges.back()->com = pos;
+                wallCharges.back()->com = wallCharges.back()->pos;
                 wallCharges.back()->name = "wc";
 
                 wallCharges.push_back(std::make_shared<Particle>());
                 wallCharges.back()->pos = pos;
-                wallCharges.back()->pos[2] = -0.5 * this->geo->_d[2] - particles.pModel.r;
-                wallCharges.back()->com = pos;
+                wallCharges.back()->pos[2] = -0.5 * this->geo->_d[2] - particles.pModel.rf;
+                wallCharges.back()->com = wallCharges.back()->pos;
                 wallCharges.back()->name = "wc";
             }
         }

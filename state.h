@@ -826,7 +826,6 @@ class State{
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;   
         }
-        
     }
 
     void load_spline(std::vector<double> aKnots, std::vector<double> bKnots, std::vector<double >controlPoints){
