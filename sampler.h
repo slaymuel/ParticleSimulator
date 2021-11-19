@@ -789,7 +789,7 @@ class ModifiedWidom: public Sampler{
         Eigen::Vector3d qDisp;
         qDisp << 0.0, 0.0, 0.0;
 
-        startExt = -state.energyFunc[1]->i2all(state.particles[state.particles.tot - 1], state.particles);
+        startExt = -state.energyFunc[0]->i2all(state.particles[state.particles.tot - 1], state.particles);
         startExt -= state.energyFunc[2]->i2all(state.particles[state.particles.tot - 1], state.particles);
 
         //Add cation

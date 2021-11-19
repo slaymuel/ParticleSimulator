@@ -770,7 +770,7 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
         longRange.update(_old, _new);
     }
 
-    void SetCharges(float chargeFactor){
+    void SetCharges(double chargeFactor){
         for (unsigned int i = 0; i < wallCharges.size(); i++){
             wallCharges[i]->q = -1.0 * chargeFactor;
         }
