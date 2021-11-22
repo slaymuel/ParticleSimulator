@@ -698,6 +698,8 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
         for (unsigned int i = 0; i < wallCharges.size(); i++){
             e += i2i(p->q, wallCharges[i]->q, this->geo->distance(p->pos, wallCharges[i]->pos));
         }
+        std::cout << "calling i2all on explicit!!" << std::endl;
+        exit(1);
         return e;
     }
 
