@@ -4,16 +4,16 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
 project(mormon LANGUAGES CXX C Fortran)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
 
 enable_testing()
-
 add_subdirectory(src)
 
-add_executable(ran2_test tests/ran2_test.cpp)
-target_link_libraries(ran2.test PRIVATE random)
+add_executable(ran2_test ${CMAKE_CURRENT_LIST_DIR}/tests/ran2_test.cpp)
+
+target_link_libraries(ran2_test PRIVATE random)
 
 add_test(
 	NAME python_ewald3d_energy_test
@@ -25,4 +25,8 @@ add_test(
         COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/hw_energy_test.py --checkpoint ${CMAKE_CURRENT_SOURCE_DIR}/tests/hw_energy_test.cp
 )
 
+add_test(
+  NAME ran2_test
+  COMMAND $<TARGET_FILE:ran2_test>
+)
 
