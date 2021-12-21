@@ -1,9 +1,8 @@
 #pragma once
 
-#include <vector>
-#include "particles.h"
-#include <limits>
-//#include <math.h>
+#define UNUSED(x) (void)(x)
+
+#include "aux_math.h"
 #include "geometry.h"
 #include "energy.h"
 #include "potentials.h"
@@ -722,7 +721,7 @@ class State{
                 break;
 
             case 19:
-                printf("\nAdding Repulsive Image Lennard-Jones\n");
+                printf("\nAdding Repulsive Lennard-Jones\n");
                 assert(args.size() == 1);
                 this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJRep> >() );
                 this->energyFunc.back()->set_geo(this->geo);

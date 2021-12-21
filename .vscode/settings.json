@@ -93,7 +93,10 @@
         "householder": "cpp",
         "jacobi": "cpp",
         "qr": "cpp",
-        "svd": "cpp"
+        "svd": "cpp",
+        "future": "cpp",
+        "regex": "cpp"
     },
-    "python.pythonPath": "/usr/local/bin/python3"
+    "python.pythonPath": "/usr/local/bin/python3",
+    "cmake.configureOnOpen": true
 }

@@ -20,7 +20,7 @@ class Random{
     static void initialize(){
 
         real_dist = std::make_unique< std::uniform_real_distribution<double> >(0.0, 1.0);
-        create_CDF("pqDist_ideal.txt");
+        //create_CDF("pqDist_ideal.txt");
     }
 
     static void create_CDF(std::string filename){
@@ -64,7 +64,7 @@ class Random{
                 return customVals[i][0];
             }
         }
-
+        return -1.0;
     }
 
     inline static double get_random(){
@@ -94,11 +94,6 @@ class Random{
         return v;
     }
 
-    //inline static Eigen::Vector3d get_random_vector(){
-    //    Eigen::Vector3d a((double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen), (double)(*real_dist)(rand_gen));
-    //    return a;
-    //}
-
     struct get_vector{
         inline operator Eigen::Vector3d(){
             Eigen::Vector3d v(get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0);
@@ -118,16 +113,6 @@ class Random{
             double z = get_random() * 2.0 - 1.0;
             Eigen::Vector3d v(std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z);
             
-           /*
-            double theta = 2.0 * constants::PI * get_random();
-            double phi = std::acos(1.0 - 2.0 * get_random());
-            Eigen::Vector3d v(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
-            */
-           /*
-            double theta = std::acos(2.0 * get_random() - 1.0) - 0.5 * constants::PI;
-            double phi = 2.0 * constants::PI * get_random();
-            Eigen::Vector3d v(cos(phi) * cos(theta), sin(phi) * cos(theta), sin(theta));
-            */
             return v;
         }
         
@@ -137,32 +122,8 @@ class Random{
             double z = get_random() * 2.0 - 1.0;
             std::vector<double> v = {std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z};
             
-           /*
-            double theta = std::acos(2.0 * get_random() - 1.0) - 0.5 * constants::PI;
-            double phi = 2.0 * constants::PI * get_random();
-            std::vector<double> v = {cos(phi) * cos(theta), sin(phi) * cos(theta), sin(theta)};
-            */
             return v;
         }
-        /*
-        inline operator Eigen::Vector3d(){
-            Eigen::Vector3d v(get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0);
-            while(v.norm() > 1.0){
-                v << get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0;
-            }
-            return v;
-        }
-
-        inline operator std::vector<double>(){
-            std::vector<double> v = {get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0, get_random() * 2.0 - 1.0};
-            while(std::sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2])  > 1.0){
-                v[0] = get_random() * 2.0 - 1.0;
-                v[1] = get_random() * 2.0 - 1.0;
-                v[2] = get_random() * 2.0 - 1.0;
-            }
-            return v;
-        }
-        */
     };
 };
 

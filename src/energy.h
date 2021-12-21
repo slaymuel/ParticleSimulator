@@ -4,6 +4,7 @@
 #include "particles.h"
 #include "geometry.h"
 #include "io.h"
+#include "constants.h"
 
 class EnergyBase{
 
@@ -128,7 +129,7 @@ class PairEnergy : public EnergyBase{
         return e * constants::lB;
     }
 
-    inline double i2i(double& q1, double& q2, double&& dist){
+    inline double i2i(const double& q1, const double& q2, const double&& dist){
         if(dist <= this->cutoff){
             return energy_func(q1, q2, dist);
         }
@@ -265,7 +266,7 @@ class PairEnergyCOM : public EnergyBase{
         return e;
     }
 
-    inline double i2i(double& q1, double& q2, double&& dist){
+    inline double i2i(const double& q1, const double& q2, const double&& dist){
         if(dist <= this->cutoff){
             return energy_func(q1, q2, dist);
         }
@@ -327,7 +328,7 @@ class ChargeWell : public EnergyBase{
         energy_func.set_k(k, R);
     }
 
-    inline double i2i(double& r, double&& dist){
+    inline double i2i(const double& r, const double&& dist){
         if(dist <= this->cutoff){
             return energy_func(r, dist);
         }
@@ -368,7 +369,12 @@ class ChargeWell : public EnergyBase{
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
     void initialize(Particles& particles){}
     void update(double x, double y, double z){}
-    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){}
+
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force;
+        return force;
+    }
+
     Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
         //Eigen::Vector3d force;
         //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
@@ -398,7 +404,7 @@ class ExternalEnergy : public EnergyBase{
         energy_func.set_bounds(x, y, z, k);
     }
 
-    inline double i2i(double& q, Eigen::Vector3d& disp){
+    inline double i2i(const double& q, const Eigen::Vector3d& disp){
         return energy_func(q, disp);
     }
 
@@ -563,7 +569,7 @@ class PairEnergyWithRep : public EnergyBase{
         return e * constants::lB;
     }
 
-    inline double i2i(double& q1, double& q2, double&& dist){
+    inline double i2i(const double& q1, const double& q2, const double&& dist){
         if(dist <= this->cutoff){
             return energy_func(q1, q2, dist);
         }
@@ -575,7 +581,10 @@ class PairEnergyWithRep : public EnergyBase{
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
     void update(double x, double y, double z){}
     void initialize(Particles& particles){}
-    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){}
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force;
+        return force;
+    }
     Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
         //Eigen::Vector3d force;
         //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
@@ -616,7 +625,7 @@ class ExtEnergy : public EnergyBase{
         return energy_func();
     }
 
-    double i2i(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){ return 0.0; }
+    double i2i(const std::shared_ptr<Particle> p1, const std::shared_ptr<Particle> p2){ return 0.0; }
 
     double all2all(Particles& particles){
         return energy_func() * constants::lB;
@@ -703,7 +712,7 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
         return e;
     }
 
-    inline double i2i(double& q1, double& q2, double&& dist){
+    inline double i2i(const double& q1, const double& q2, const double&& dist){
         if(dist <= this->cutoff){
             return shortRange(q1, q2, dist);
         }
@@ -925,7 +934,7 @@ class ImgEnergy : public EnergyBase{
     }
 
 
-    inline double i2i(double q1, double q2, double&& dist){
+    inline double i2i(const double q1, const double q2, const double&& dist){
         if(dist <= this->cutoff){
             return energy_func(q1, q2, dist);
         }
@@ -1164,7 +1173,7 @@ class MIHalfwald : public EnergyBase{
     }
 
 
-    inline double i2i(double q1, double q2, double&& dist){
+    inline double i2i(const double q1, const double q2, const double&& dist){
         if(dist <= this->cutoff){
             return energy_func(q1, q2, dist);
         }
@@ -1258,7 +1267,10 @@ class MIHalfwald : public EnergyBase{
     void initialize(Particles& particles){
         UNUSED(particles);
     }
-    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){}
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force;
+        return force;
+    }
     Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
         //Eigen::Vector3d force;
         //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
@@ -1336,7 +1348,7 @@ class Ellipsoid : public EnergyBase{
         return e * constants::lB;
     }
 
-    inline double i2i(double q1, double q2, Eigen::Vector3d disp){
+    inline double i2i(const double q1, const double q2, const Eigen::Vector3d& disp){
         double a = 50.0, b = 50.0, c = 25.0;
         if(disp[0] * disp[0] / (a * a) + disp[1] * disp[1] / (b * b) + disp[2] * disp[2] / (c * c) <= 1.0){
             return energy_func(q1, q2, disp);
@@ -1349,7 +1361,10 @@ class Ellipsoid : public EnergyBase{
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
     void update(double x, double y, double z){}
     void initialize(Particles& particles){}
-    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){}
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force;
+        return force;
+    }
     Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
         //Eigen::Vector3d force;
         //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));
@@ -1435,14 +1450,17 @@ class Energy2D: public EnergyBase{
         return e * constants::lB;
     }
 
-    inline double i2i(double& q1, double& q2, double&& dist){}
+    inline double i2i(const double& q1, const double& q2, const double&& dist){}
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
     void initialize(Particles& particles){
         energy_func.initialize(particles);
     }
     void update(double x, double y, double z){}
-    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){}
+    Eigen::Vector3d force(std::shared_ptr<Particle> p, Particles& particles){
+        Eigen::Vector3d force;
+        return force;
+    }
     Eigen::Vector3d force(std::shared_ptr<Particle> p1, std::shared_ptr<Particle> p2){
         //Eigen::Vector3d force;
         //force = energy_func.force(p1->q, p2->q, this->geo->displacement(p1->pos, p2->pos));

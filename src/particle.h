@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Eigen/Dense>
+#include "random.h"
+
+using Vector3 = Eigen::Block<Eigen::MatrixXd, 1, 3>;
 
 class Particle{
 

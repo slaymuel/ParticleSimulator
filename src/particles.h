@@ -1,33 +1,29 @@
 #pragma once
 
-#include <Eigen/Dense>
-#include <vector>
-#include "particle.h"
-#include <chrono>
-#include <iostream>
-#include <fstream>
-#include <iomanip>
 #include <tuple>
 #include <map>
-//#include "../libxdrfile/include/xdrfile_xtc.h"
+
+#include "particle.h"
 
 class Particles{
     private:
- 
 
     public:
     bool setPModel = false;
     bool setNModel = false;
-    //Eigen::MatrixXd positions;
+    Eigen::MatrixXd positions;
     Particle pModel;
     Particle nModel;
     std::vector< std::shared_ptr<Particle> > particles, cations, anions;
     std::vector<int> movedParticles;
     unsigned int cTot = 0, aTot = 0, tot = 0;
 
-    //Eigen::MatrixXd get_subset(int sr, int fr){
-    //    return this->positions.block(sr, 0, fr, 3);
-    //}
+    Eigen::MatrixXd get_subset(int sr, int fr){
+        return this->positions.block(sr, 0, fr, 3);
+    }
+    Eigen::MatrixXd get_particle_pos(int index){
+        return this->positions.row(index);
+    }
 
     Particles(){}
 
@@ -35,11 +31,16 @@ class Particles{
         return particles[index];
     }
 
-    unsigned int size(){
+    const std::shared_ptr<Particle> operator[](std::size_t index) const{
+        return particles[index];
+    }
+
+
+    unsigned int size() const{
         return particles.size();
     }
 
-    std::vector< std::shared_ptr<Particle> > get_subset(std::vector<unsigned int> &ps){
+    std::vector< std::shared_ptr<Particle> > get_subset(std::vector<unsigned int> &ps) const{
         std::vector< std::shared_ptr<Particle> > subset;
 
         //std::vector<Particle> subset(ps.size(), 0);
@@ -51,14 +52,14 @@ class Particles{
     }
 
 
-    std::vector< std::shared_ptr<Particle> > get_subset(unsigned int i){
+    std::vector< std::shared_ptr<Particle> > get_subset(unsigned int i) const{
         std::vector< std::shared_ptr<Particle> > subset;
         subset.push_back(this->particles[i]);
         return subset;
     }
 
 
-    std::shared_ptr<Particle> random(){
+    std::shared_ptr<Particle> random() const{
         //https://stackoverflow.com/questions/6942273/how-to-get-a-random-element-from-a-c-container
         //std::sample
 

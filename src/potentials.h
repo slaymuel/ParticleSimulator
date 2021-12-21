@@ -1,6 +1,5 @@
-#include "particle.h"
-#include <vector>
-//#include "geometry.h"
+#pragma once
+
 #include "Faddeeva.h"
 
 /*
@@ -36,7 +35,7 @@ class LJ{
         this->k = k;
     }
 
-    inline double operator()(const double& q1, const double& q2, double& dist){
+    inline double operator()(const double& q1, const double& q2, const double& dist){
         double d6 = dist*dist*dist*dist*dist*dist;
 
         return 4.0 * k * (s12 / (d6 * d6) - s6 / d6);
@@ -69,13 +68,13 @@ class LJST{
         printf("\tShift: %lf", this->shift);
     }
 
-    inline double operator()(const double& q1, const double& q2, double& dist){
+    inline double operator()(const double& q1, const double& q2, const double& dist){
         double d6 = dist*dist*dist*dist*dist*dist;
 
         return 4.0 * k * (s12 / (d6 * d6) - s6 / d6) - this->shift;
     }
 
-    inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
+    inline Eigen::Vector3d force(const double& q1, const double& q2, const Eigen::Vector3d disp){
         Eigen::Vector3d force;
         double n = disp.norm();
         double d6 = n*n*n*n*n*n;
@@ -98,13 +97,13 @@ class LJRep{
     LJRep(){
         this->k = 1.0; //constants::KB * constants::T;
     }
-    inline double operator()(const double& q1, const double& q2, double& dist){
+    inline double operator()(const double& q1, const double& q2, const double& dist){
         double d6 = dist*dist*dist*dist*dist*dist;
         
         return this->k * s12 / (d6 * d6);
     }
 
-    inline Eigen::Vector3d force(double& q1, double& q2, Eigen::Vector3d disp){
+    inline Eigen::Vector3d force(const double& q1, const double& q2, const Eigen::Vector3d disp){
         Eigen::Vector3d force;
         double n = disp.norm();
         double d6 = n*n*n*n*n*n;
@@ -215,7 +214,7 @@ class Harmonic{
         return this->k * dist * dist;
     }
 
-    inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+    inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
         Eigen::Vector3d force;
         return force;
     }
@@ -300,7 +299,7 @@ class Sture{
 
 
 namespace Fanourgakis{
-    double R;
+    static double R;
 
     class SP2{
         private:
@@ -331,7 +330,7 @@ namespace Fanourgakis{
 
 
 
-        void initialize(Particles &particles){
+        void initialize(const Particles &particles){
             this->selfTerm = 0.0;
 
             for(unsigned int i = 0; i < particles.tot; i++){
@@ -340,7 +339,7 @@ namespace Fanourgakis{
             printf("Self term: %lf\n", this->selfTerm);
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             if(_old.empty()){
                 for(auto n : _new){
                     this->selfTerm += n->q * n->q;
@@ -359,7 +358,7 @@ namespace Fanourgakis{
             return -1.0 / R * this->selfTerm;
         } 
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d force;
             return force;
         }
@@ -375,7 +374,7 @@ namespace Fanourgakis{
             return q1 * q2 * (1.0 - 7.0 / 4.0 * dist / R + 21.0 / 4.0 * std::pow((dist / R), 5.0) - 
                    7.0 * std::pow((dist / R), 6.0) + 5.0 / 2.0 * std::pow((dist / R), 7.0)) / dist;
         }
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d force;
             return force;
         }
@@ -393,14 +392,14 @@ namespace Fanourgakis{
 
 
 
-        void initialize(Particles &particles){
+        void initialize(const Particles &particles){
             this->selfTerm = 0.0;
             for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             if(_old.empty()){
                 for(auto n : _new){
                     this->selfTerm += n->q * n->q;
@@ -419,7 +418,7 @@ namespace Fanourgakis{
             return -7.0 / (8.0 * R) * this->selfTerm;
         } 
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d force;
             return force;
         }
@@ -485,12 +484,12 @@ class BSpline2D{
     }
 
 
-    inline double operator()(const double& q1, const double& q2, Eigen::Vector3d& disp){
+    inline double operator()(const double& q1, const double& q2, const Eigen::Vector3d& disp){
         return q1 * q2 * get_energy(disp);
     }
 
 
-    inline double get_energy(Eigen::Vector3d& disp){
+    inline double get_energy(const Eigen::Vector3d& disp){
         double energy = 0.0;
         int max = std::sqrt(controlPoints.size());
         double p = std::sqrt(disp[0] * disp[0] + disp[1] * disp[1]);
@@ -530,14 +529,14 @@ class BSpline2D{
 
 
 namespace EwaldLike{
-    double alpha = 0.0;
-    double kMax = 0.0;
-    std::vector<int> kM;
-    double R;
-    double eta;
-    bool spherical;
+    static double alpha = 0.0;
+    static double kMax = 0.0;
+    static std::vector<int> kM;
+    static double R;
+    static double eta;
+    static bool spherical;
 
-    void set_km(std::vector<int> v){
+    static void set_km(std::vector<int> v){
         kM = v;
     }
 
@@ -558,7 +557,7 @@ namespace EwaldLike{
             return real;    //tinfoil
         }
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d real;
             real << 0.0, 0.0, 0.0;
             double dist = disp.norm();
@@ -605,7 +604,7 @@ namespace EwaldLike{
             }
         }
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d force;
             return force;
         }
@@ -636,7 +635,7 @@ namespace EwaldLike{
         }
 
 
-        void initialize(Particles &particles){
+        void initialize(const Particles &particles){
             double k2 = 0;
 
 
@@ -774,7 +773,7 @@ namespace EwaldLike{
 
 
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
 
@@ -931,14 +930,14 @@ namespace EwaldLike{
         void set_self(T &particles){
             this->selfTerm = 0.0;
 
-            for(unsigned int i = 0; i < particles.size(); i++){
+            for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
             this->selfTerm *= alpha / sqrt(constants::PI);
         }
 
         template<typename T>
-        void initialize(T &particles){
+        void initialize(const T &particles){
             set_kvectors();
             set_self(particles);
             this->rkVec.clear();
@@ -950,7 +949,7 @@ namespace EwaldLike{
             //#pragma omp parallel for private(rk_new, rk_old)
             for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0;
-                for(unsigned int i = 0; i < particles.size(); i++){
+                for(unsigned int i = 0; i < particles.tot; i++){
                     rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
                     rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
@@ -961,7 +960,7 @@ namespace EwaldLike{
             }
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
 
@@ -1018,7 +1017,7 @@ namespace EwaldLike{
         } 
 
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d rec = Eigen::Vector3d::Zero();
             double kSq = 0.0;
 
@@ -1124,7 +1123,6 @@ namespace EwaldLike{
                 }
             }
 
-            //Calculate norms
             for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
             }
@@ -1134,14 +1132,14 @@ namespace EwaldLike{
         void set_self(T &particles){
             this->selfTerm = 0.0;
 
-            for(unsigned int i = 0; i < particles.size(); i++){
+            for(unsigned int i = 0; i < particles.tot; i++){
                 this->selfTerm += particles[i]->q * particles[i]->q;
             }
             this->selfTerm *= alpha / sqrt(constants::PI);
         }
 
         template<typename T>
-        void initialize(T &particles){
+        void initialize(const T &particles){
             set_kvectors();
             set_self(particles);
             this->rkVec.clear();
@@ -1153,7 +1151,7 @@ namespace EwaldLike{
             //#pragma omp parallel for private(rk_new, rk_old)
             for(unsigned int k = 0; k < kVec.size(); k++){
                 rho = 0;
-                for(unsigned int i = 0; i < particles.size(); i++){
+                for(unsigned int i = 0; i < particles.tot; i++){
                     rk.imag(std::sin(math::dot(particles[i]->pos, kVec[k])));
                     rk.real(std::cos(math::dot(particles[i]->pos, kVec[k])));
                     charge = particles[i]->q;
@@ -1165,7 +1163,7 @@ namespace EwaldLike{
         }
 
         template<typename T>
-        void add_wall(T &particles){
+        void add_wall(const T &particles){
             std::complex<double> rho;
             std::complex<double> rk;
             std::complex<double> charge;
@@ -1190,7 +1188,7 @@ namespace EwaldLike{
             }
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
 
@@ -1234,7 +1232,7 @@ namespace EwaldLike{
 
 
 
-        inline double operator()(double factor){
+        inline double operator()(const double factor){
             double energy = 0.0;
 
             #pragma omp parallel for reduction(+:energy)
@@ -1380,7 +1378,7 @@ namespace EwaldLike{
             }
         }
 
-        void set_self(Particles &particles){
+        void set_self(const Particles &particles){
             this->selfTerm = 0.0;
             this->totCharge = 0.0;
 
@@ -1393,7 +1391,7 @@ namespace EwaldLike{
         }
 
 
-        void initialize(Particles &particles){
+        void initialize(const Particles &particles){
             set_kvectors();
             set_self(particles);
             this->rkVec.clear();
@@ -1438,7 +1436,7 @@ namespace EwaldLike{
             //printf("\tEwald initialization Complete\n");
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
 
@@ -1520,7 +1518,7 @@ namespace EwaldLike{
         } 
 
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d rec = Eigen::Vector3d::Zero();
             double kSq = 0.0;
 
@@ -1902,7 +1900,7 @@ namespace EwaldLike{
             this->fac = 2.0 * constants::PI / volume;
         }
 
-        void initialize(Particles &particles){
+        void initialize(const Particles &particles){
             this->dipoleMoment = 0.0;
             this->totQ = 0.0;
             this->qs = 0.0;
@@ -1921,7 +1919,7 @@ namespace EwaldLike{
             printf("\tb corr: %lf\n", constants::PI * this->totQ*this->totQ / (2.0 * alpha*alpha * this->xb*this->yb*this->zb));
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             for(auto o : _old){
                 this->dipoleMoment -= o->q * o->pos[2];
                 this->qs -= o->q * o->pos[2] * o->pos[2];
@@ -2176,7 +2174,7 @@ namespace EwaldLike{
 
 
 
-        void initialize(Particles &particles){
+        void initialize(const Particles &particles){
             double k2 = 0;
 
             printf("Setting up ewald\n");
@@ -2263,7 +2261,7 @@ namespace EwaldLike{
             printf("\tEwald initialization Complete\n");
         }
 
-        inline void update(std::vector< std::shared_ptr<Particle> >& _old, std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
             Eigen::Vector3d temp;
@@ -2335,7 +2333,7 @@ namespace EwaldLike{
             return energy * constants::PI / (this->volume) - this->selfTerm;
         } 
 
-        inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
+        inline Eigen::Vector3d force(const double q1, const double q2, const Eigen::Vector3d disp){
             Eigen::Vector3d rec = Eigen::Vector3d::Zero();
             double kSq = 0.0;
 
@@ -2624,7 +2622,6 @@ namespace EwaldLike{
         }
 
         double rec(std::shared_ptr<Particle>  p1, std::shared_ptr<Particle>  p2, Eigen::Vector3d dispVec){
-            double zDist = std::abs(dispVec[2]);
             double reciprocal = this->get_reciprocal(p1, p2, dispVec);
             return p1->q * p2->q * constants::PI/(2.0 * this->xb * this->yb) * reciprocal;
         }

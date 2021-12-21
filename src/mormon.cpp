@@ -1,68 +1,67 @@
-#define UNUSED(x) (void)(x)
+#ifdef TRACK_MEMORY
+    #include "memory_tracker.h"
+#endif
 
-#include <random>
-#include "random.h"
-#include <assert.h>
-#include "constants.h"
-#include <iostream>
+#ifdef PY11
+    #include <pybind11/pybind11.h>
+    #include <pybind11/stl.h>
+    namespace py = pybind11;
+#endif
+
+#ifdef TIMERS
+    #define TIMEIT Timer timer(__FUNCTION__);
+#else
+    #define TIMEIT;
+#endif
 
 #ifdef _OPENMP
-#include <omp.h>
+    #include <omp.h>
 #endif
 
-#include "aux_math.h"
+#include "pch.h"
+
+#include "random.h"
+#include "particles.h"
 #include "state.h"
-#include "particle.h"
+//#include <source_location>
+
 #include "move.h"
-#include <functional>
-#include <chrono>
 #include "sampler.h"
-#include <algorithm>
 #include "comparators.h"
 #include "io.h"
-#ifdef PY11
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include "timer.h"
 
-namespace py = pybind11;
-#endif
 
 
 
 class Simulator{
     
     private:
-    std::vector<Particle*> ps;
+    //Name will be used for output files
+    std::string name;
     std::vector<double> mWeights;
     std::vector<double>::iterator wIt;
     std::vector<Move*> moves;
-    std::vector<Sampler*> sampler;
+    std::vector<Samplers::SamplerBase*> sampler;
 
-    /* State callback after move */
-    //std::function< void(std::vector< unsigned int >) > move_callback 
-    //            = std::bind(&State::move_callback, &state, std::placeholders::_1);
-    std::string name;
 
     public:
     State state;
     Simulator(double Dielec, double T, std::string name){
-        //Set some constants
-        constants::D = Dielec;
-        constants::T = T; 
-        constants::lB = constants::C * (1.0 / (Dielec * T));
+        constants::set(T, Dielec);
+
         this->name = name;
-        Random::initialize();
 
         #ifdef _OPENMP
-        printf("\nOpenMP is ENABLED with %i threads.\n\n", omp_get_num_procs());
+            printf("\nOpenMP is ENABLED with %i threads.\n\n", omp_get_num_procs());
         #else
-        printf("\nOpenMP is DISABLED\n");
+            printf("\nOpenMP is DISABLED\n");
         #endif
 
         #ifdef DEBUG
-        printf("Debug mode is ENABLED\n");
+            printf("Debug mode is ENABLED\n");
         #else
-        printf("Debug mode is DISABLED\n");
+            printf("Debug mode is DISABLED\n");
         #endif
         printf("\n");
     }
@@ -71,7 +70,6 @@ class Simulator{
         constants::T = T; 
         constants::lB = constants::C * (1.0 / (constants::D * T));
     }
-    
     void set_cp(double cp){
         constants::cp = cp;
     }
@@ -246,18 +244,15 @@ class Simulator{
                                                                 << std::endl;
 
         for(unsigned int macro = 0; macro < macroSteps; macro++){
-            //printf("Macro\n");
-            auto start = std::chrono::steady_clock::now();
+            TIMEIT;
             for(unsigned int micro = 0; micro <= microSteps; micro++){
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
                 (*moves[wIt - mWeights.begin()])();
-                //printf("accepting\n");
+
                 if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
-                    //printf("saving\n");
                     state.save();
                 }
                 else{
-                    //printf("reverting\n");
                     state.revert();
                 }
 
@@ -285,9 +280,11 @@ class Simulator{
             printf("Total energy is: %lf, energy drift: %.15lf\n", state.cummulativeEnergy, state.error);
             printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
             printf("Box: %lf (%.15lf * %lf * %lf (%lf))\n", state.geo->volume, state.geo->_d[0], state.geo->_d[1], state.geo->_d[2], state.geo->d[2]);
-            auto end = std::chrono::steady_clock::now();
-            std::cout << (double) std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() / 1000.0 << "s per macrostep\n\n";
 
+            #ifdef TRACK_MEMORY
+                std::cout << "Total allocated memory: " << allocationData.GetCurrentUsage() << std::endl << std::endl;
+            #endif
+            
             //Check energy drift etc
             state.control();
             state.advance();
@@ -338,7 +335,7 @@ int main(){
     //sim->state.set_energy(9, {0.00425});
 
     //sim->state.particles.create(378, 378, 1.0, -1.0 , 2.5, 2.5, 2.5, 2.5, 0.0, 0.0);
-    sim->state.particles.read_cp(infile);
+    //sim->state.load_cp(infile);
     //sim->state.particles.set_models(std::vector<double>{1.0, -1.0}, std::vector<double>{2.5, 2.5}, std::vector<double>{2.5, 2.5},
     //                                std::vector<double>{0.0, 0.0}, std::vector<std::string>{"Na", "Cl"});
     sim->add_move(0, 0.12, 0.49);
