@@ -57,6 +57,7 @@ Eigen::Vector3d Random::random_pos_box(double rf, std::vector<double> box){
     Eigen::Vector3d v;
     v = get_vector();
     v << box[0] * v[0], box[1] * v[1], (box[2] - rf) * v[2];
+    //Named RVO
     return v;
 }
 

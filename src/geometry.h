@@ -48,8 +48,6 @@ class Cuboid : public Geometry{
 
 
     bool is_inside(std::shared_ptr<Particle>& p){
-        //assert(p->com.size() == 3);
-
         if(X){
             if(p->com[0] >= this->_dh[0] || p->com[0] <= -this->_dh[0]){
                 return false;

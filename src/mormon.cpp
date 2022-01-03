@@ -46,10 +46,13 @@ class Simulator{
 
 
     public:
+    
     State state;
+
     Simulator(double Dielec, double T, std::string name){
         constants::set(T, Dielec);
-
+        Move::state = &state;
+        
         this->name = name;
 
         #ifdef _OPENMP
@@ -75,54 +78,74 @@ class Simulator{
     }
 
 
-    void add_move(int i, double i1, double i2, double i3 = 0.0, double i4 = 0.0){
+    void add_move(int i, std::vector<double> args){
     //dp = i1, p = i2, cp = i3, d = i4
         printf("\nAdding move:\n");
         switch(i){
             case 0:
-                moves.push_back(new Translate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                                            //step, w
+                moves.push_back(new Translate(args[1], args[0]));
                 break;
             case 1:
-                moves.push_back(new GrandCanonicalSingle<true>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 3);
+                                                                //cp, d, w
+                moves.push_back(new GrandCanonicalSingle<true>(args[1], args[2], args[0]));
                 break;
             case 2:
-                moves.push_back(new GrandCanonicalSingle<false>(i3, i4, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 3);
+                moves.push_back(new GrandCanonicalSingle<false>(args[1], args[2], args[0]));
                 break;
             case 3:
-                moves.push_back(new Rotate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                                            //step, w
+                moves.push_back(new Rotate(args[0], args[1]));
                 break;
             case 4:
-                moves.push_back(new Swap(i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 1);
+                moves.push_back(new Swap(args[0]));
                 break;
             case 5:
-                moves.push_back(new SingleSwap(i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 1);
+                moves.push_back(new SingleSwap(args[0]));
                 break;
             case 6:
-                moves.push_back(new VolumeMove(i1, i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 3);
+                                            //step, press, v, w
+                moves.push_back(new VolumeMove(args[0], args[2], args[1]));
                 break;
             case 7:
-                moves.push_back(new ChargeTrans(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                moves.push_back(new ChargeTrans(args[0], args[1]));
                 break;
             case 8:
-                moves.push_back(new ChargeTransRand(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                moves.push_back(new ChargeTransRand(args[0], args[1]));
                 break;
             case 9:
-                moves.push_back(new Cluster(i1, i2, i3, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 3);
+                moves.push_back(new Cluster(args[0], args[1], args[2]));
                 break;
             case 10:
-                moves.push_back(new WidomInsertion(i1, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 1);
+                moves.push_back(new WidomInsertion(args[0]));
                 break;
             case 11:
-                moves.push_back(new WidomDeletion(i1, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 1);
+                moves.push_back(new WidomDeletion(args[0]));
                 break;
             case 12:
-                moves.push_back(new GrandCanonical<true>(i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                                                        //chempot, w
+                moves.push_back(new GrandCanonical<true>(args[1], args[0]));
                 break;
             case 13:
-                moves.push_back(new GrandCanonical<false>(i3, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                moves.push_back(new GrandCanonical<false>(args[1], args[0]));
                 break;
             case 14:
-                moves.push_back(new ChargeTranslate(i1, i2, &state, std::bind(&State::move_callback, &state, std::placeholders::_1)));
+                assert(args.size() == 2);
+                moves.push_back(new ChargeTranslate(args[0], args[1]));
                 break;
             default:
                 printf("Could not find move %i\n", i);
@@ -369,7 +392,7 @@ PYBIND11_MODULE(mormon, m) {
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<double, double, std::string>())
         .def("run", &Simulator::run)
-        .def("add_move", &Simulator::add_move, py::arg("i"), py::arg("dp"), py::arg("p"), py::arg("cp") = 0.0, py::arg("d") = 0.0)
+        .def("add_move", &Simulator::add_move)
         .def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
         .def("set_temperature", &Simulator::set_temperature)
         .def("set_cp", &Simulator::set_cp)

@@ -41,12 +41,10 @@ class State{
         #endif
         
         this->energy = 0.0;
-        for(auto e : this->energyFunc){
-            //printf("Before initialize: %.10lf\n", e->all2all(this->particles));
+        for(auto& e : this->energyFunc){
             if(this->step % 100 == 0){
                 e->initialize(this->particles);
             }
-            //printf("After initialize: %.10lf\n", e->all2all(this->particles));
             this->energy += e->all2all(this->particles);
         }
 
@@ -133,12 +131,12 @@ class State{
     void finalize(std::string name){
         printf("\nFinalizing simulation: %s.\n", name.c_str());
         // Set up old system
-        for(std::shared_ptr<Particle> p : this->particles.particles){
+        for(auto p : this->particles.particles){
             _old->particles.add(p);
         }
 
         //Calculate the initial energy of the system
-        for(auto e : this->energyFunc){
+        for(auto& e : this->energyFunc){
             e->initialize(particles);
             printf("energy: %lf\n", e->all2all(this->particles));
             this->energy += e->all2all(this->particles);
@@ -150,7 +148,7 @@ class State{
     void reset_energy(){
         this->energy = 0.0;
 
-        for(auto e : this->energyFunc){
+        for(const auto& e : this->energyFunc){
             this->energy += e->all2all(this->particles);
         }
 
@@ -158,7 +156,7 @@ class State{
     }
 
     void save(){
-        for(auto i : this->movedParticles){
+        for(const auto i : this->movedParticles){
             if(this->particles.tot > this->_old->particles.tot){
                 this->_old->particles.add(this->particles.particles[i]);
             }
@@ -169,9 +167,8 @@ class State{
                 this->_old->particles.aTot = this->particles.aTot;
             }
         }
-        //std::sort(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
-        //std::reverse(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
-        for(auto i : this->_old->movedParticles){
+
+        for(const auto i : this->_old->movedParticles){
             if(this->particles.tot < this->_old->particles.tot){
                 //printf("removing %i from old\n", i);
                 this->_old->particles.remove(i);
@@ -196,7 +193,7 @@ class State{
     void revert(){
         //Set moved partiles in current state equal to previous state
         if(this->dE != std::numeric_limits<double>::infinity()){
-            for(auto e : this->energyFunc){
+            for(auto& e : this->energyFunc){
                 if(this->geo->volume != this->_old->geo->volume){
                     // Is update really needed here?
                     e->update(this->_old->geo->d[0], this->_old->geo->d[1], this->_old->geo->d[2]);
@@ -208,11 +205,8 @@ class State{
             }
         }
 
-        //printf("p1 %.8lf %.8lf %.8lf\n", this->particles[0]->com[0], this->particles[0]->com[1], this->particles[0]->com[2]);
-
-
         if(this->particles.tot == this->_old->particles.tot){
-            for(auto i : this->movedParticles){
+            for(const auto i : this->movedParticles){
                 *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
                 //For SingleSwap move
                 this->particles.cTot = this->_old->particles.cTot;
@@ -221,40 +215,17 @@ class State{
         }
         else if(this->particles.tot > this->_old->particles.tot){   //Added particle
             std::reverse(this->movedParticles.begin(), this->movedParticles.end());
-            for(auto i : this->movedParticles){
+            for(const auto i : this->movedParticles){
                 this->particles.remove(i);
             }
         }
         else if(this->particles.tot < this->_old->particles.tot){   //Removed particle
-            //std::sort(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
             std::reverse(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
 
-            for(auto i : this->_old->movedParticles){
-                //printf("adding back particle %i\n", i);
+            for(const auto i : this->_old->movedParticles){
                 this->particles.add(this->_old->particles.particles[i], i);
             }
         }
-        /*for(auto i : this->movedParticles){
-            if(this->particles.tot > _old->particles.tot){
-                //printf("\nReject: removing particle %i from current\n\n", i);
-                this->particles.remove(i);
-            }
-            else if(this->particles.tot == this->_old->particles.tot){
-                //printf("\nAssuming normal move\n");
-                *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
-                //For SingleSwap move
-                this->particles.cTot = this->_old->particles.cTot;
-                this->particles.aTot = this->_old->particles.aTot;
-            }
-        }
-    
-        for(auto i : this->_old->movedParticles){
-            if(this->particles.tot < this->_old->particles.tot){
-                //printf("\nRevert: adding back particle %i to current\n", i);
-                this->particles.add(this->_old->particles.particles[i], i);
-            }
-
-        }*/
 
         this->movedParticles.clear();
         this->_old->movedParticles.clear();
@@ -270,26 +241,19 @@ class State{
 
     //Get energy different between *this and old state
     double get_energy_change(){
-        double E1 = 0.0, E2 = 0.0;
+        auto E1 = 0.0, E2 = 0.0;
         //auto start = std::chrono::steady_clock::now();
-        for(auto p : this->movedParticles){
+        for(const auto p : this->movedParticles){
             if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(p)){
                 this->dE = std::numeric_limits<double>::infinity();
                 return this->dE;
             }
         }
-        int counter = 0;
-        for(auto e : this->energyFunc){
-
-            /*if(this->particles.tot > this->_old->particles.tot){
-                if(counter == 2){
-                    continue;
-                }
-            }*/
-
+        auto counter = 0;
+        for(auto& e : this->energyFunc){
             //stupid design
             e->geo = this->_old->geo;
-            //std::cout << "old " << counter << " " << (*e)( this->_old->movedParticles, this->_old->particles ) << std::endl;
+
             E1 += (*e)( this->_old->movedParticles, this->_old->particles );
 
             e->geo = this->geo;
@@ -300,7 +264,7 @@ class State{
             else{
                 e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
             }
-            //std::cout << "new " << counter << " " << (*e)( this->movedParticles, this->particles ) << std::endl;
+
             E2 += (*e)( this->movedParticles, this->particles );
 
             counter++;
@@ -313,8 +277,6 @@ class State{
 
     //Called after move - set movedParticles
     void move_callback(std::vector< unsigned int > ps){  
-        //this->movedParticles.insert(std::end(movedParticles), std::begin(ps), std::end(ps));
-
         //If a particle is removed, this->movedparticles is empty. 
         //If particle is added this->_old->particles is empty
         if(this->particles.tot >= this->_old->particles.tot){
@@ -385,7 +347,7 @@ class State{
 
 
 
-    bool overlap(std::size_t i){
+    bool overlap(std::size_t i) const{
         for(auto p : this->particles.particles){
             if(p->index == i) continue;
 
@@ -396,7 +358,7 @@ class State{
         return false;
     }
 
-    int get_overlaps(){
+    int get_overlaps() const{
         int count = 0;
         for(auto p : this->particles.particles){
             (this->overlap(p->index)) ? count++ : 0;

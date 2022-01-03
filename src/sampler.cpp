@@ -57,7 +57,7 @@ void Samplers::Energy::sample(State &state){
 void Samplers::Energy::save(){
     std::ofstream f (this->filename);
     if (f.is_open()){
-        for(auto e : energies){
+        for(const auto& e : energies){
             f << std::fixed << std::setprecision(15) << e << "\n";
         }
         f.close();
@@ -245,7 +245,7 @@ void Samplers::Pressure::sample(State& state){
     double press = 0.0;
     /*for(int i = 0; i < state.particles.tot; i++){
         force = Eigen::Vector3d::Zero();
-        for(auto e : state.energyFunc){
+        for(auto& e : state.energyFunc){
             force += (*e).force(state.particles[i], state.particles);
         }
         std::cout << force << std::endl;
@@ -255,7 +255,7 @@ void Samplers::Pressure::sample(State& state){
     for(int i = 0; i < state.particles.tot; i++){
         for(int j = i + 1; j < state.particles.tot; j++){
             force = Eigen::Vector3d::Zero();
-            for(auto e : state.energyFunc){
+            for(const auto& e : state.energyFunc){
                 force += (*e).force(state.particles[i], state.particles[j]);
             }
             //printf("Force: ");
@@ -274,7 +274,7 @@ void Samplers::Pressure::sample(State& state){
             temp[2] = math::sgn(state.particles[j]->pos[2]) * lZ - state.particles[j]->pos[2]; 
             
             force = Eigen::Vector3d::Zero();
-            for(auto e : state.energyFunc){
+            for(const auto& e : state.energyFunc){
                 force += (*e).force(state.particles[i]->pos, temp, state.particles[i]->q, -state.particles[j]->q);
             }
             disp = state.geo->displacement(state.particles[i]->pos, temp);
@@ -324,7 +324,7 @@ void Samplers::PressureV::sample(State& state){
     oldd = state.geo->d[2];
     old_d = state.geo->_d[2];
 
-    for(auto e : state.energyFunc){
+    for(const auto& e : state.energyFunc){
         e1 += (*e).all2all(state.particles);
     }
 
@@ -343,7 +343,7 @@ void Samplers::PressureV::sample(State& state){
         }
     }
 
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         //initialize reciprocal vectors again
         (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
         (*e).initialize(state.particles);
@@ -361,7 +361,7 @@ void Samplers::PressureV::sample(State& state){
     state.geo->dh[2] = oldd / 2.0;
     state.geo->volume = oldV;
 
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
         (*e).initialize(state.particles);
     }
@@ -414,7 +414,7 @@ void Samplers::ForcePressure::sample(State& state){
                 continue;
 
             int counter = 0;
-            for(auto e : state.energyFunc){
+            for(const auto& e : state.energyFunc){
                 if(state.particles[i]->pos[2] < 0.0 && state.particles[j]->pos[2] >= 0.0){
                     ////Force on particle i from j
                     force = (*e).force(state.particles[i], state.particles[j]);
@@ -493,7 +493,7 @@ void Samplers::Force::sample(State& state){
             if(i==j)
                 continue;
 
-            for(auto e : state.energyFunc){
+            for(const auto& e : state.energyFunc){
                     //Force that points towards particle i
                 force += (*e).force(state.particles[i], state.particles[j]);
             }
@@ -527,7 +527,7 @@ void Samplers::CliffPressure::sample(State& state){
             state.particles[i]->pos = state.particles[i]->com + state.particles[i]->qDisp;
         }       
     }
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         //(*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
         (*e).initialize(state.particles);
         rPTemp += (*e).all2all(state.particles);
@@ -538,7 +538,7 @@ void Samplers::CliffPressure::sample(State& state){
             state.particles[i]->pos = state._old->particles[i]->pos;
         }
     }
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         //(*e).update(state.geo->d[0], state.geo->d[1], state.geo->_d[2]);
         (*e).initialize(state.particles);
     }
@@ -555,7 +555,7 @@ void Samplers::CliffPressure::sample(State& state){
         state.particles[i]->pos = state.particles[i]->com + state.particles[i]->qDisp;
     }
 
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
         (*e).initialize(state.particles);
         lPTemp += (*e).all2all(state.particles);
@@ -568,7 +568,7 @@ void Samplers::CliffPressure::sample(State& state){
     state.geo->_dh[2] = 0.5*state.geo->_d[2];
     state.geo->d[2] = oldd;
     state.geo->dh[2] = 0.5*state.geo->d[2];
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         (*e).update(state.geo->d[0], state.geo->d[1], state.geo->d[2]);
         (*e).initialize(state.particles);
     }
@@ -630,7 +630,7 @@ void Samplers::ModifiedWidom::sample(State& state){
     double sElDE = startExt;
     double sSrDE = 0.0;
     int k = 0;
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         std::vector< std::shared_ptr<Particle> > empty = {};
         e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
         if(k < elecStart){
@@ -653,7 +653,7 @@ void Samplers::ModifiedWidom::sample(State& state){
         
         std::vector< std::shared_ptr<Particle> > empty = {};
         int k = 0;
-        for(auto e : state.energyFunc){
+        for(auto& e : state.energyFunc){
             if(k < elecStart){
                 e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
                 //elDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
@@ -685,7 +685,7 @@ void Samplers::ModifiedWidom::sample(State& state){
     k = 0;
     state.particles.add(com, com, qDisp, state.particles.nModel.r, state.particles.nModel.rf, state.particles.nModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
     /////////////////////////////////////////////////////////////// Calculate full addition energy /////////////////////////////////////////////////////////////////////////////
-    for(auto e : state.energyFunc){
+    for(auto& e : state.energyFunc){
         std::vector< std::shared_ptr<Particle> > empty = {};
         e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
         if(k < elecStart){
@@ -706,7 +706,7 @@ void Samplers::ModifiedWidom::sample(State& state){
         state.particles.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.nModel.q;
         std::vector< std::shared_ptr<Particle> > empty = {};
         int k = 0;
-        for(auto e : state.energyFunc){
+        for(auto& e : state.energyFunc){
             if(k < elecStart){
                 e->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
                 elDE += (*e)(pIndice, state.particles);
@@ -787,7 +787,7 @@ void Samplers::ModifiedWidomCoulomb::sample(State& state){
     for(int l = 0; l < state.particles.tot - 1; l++){
         state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
     }
-    for(auto e1 : state.energyFunc){
+    for(auto& e1 : state.energyFunc){
 
         std::vector< std::shared_ptr<Particle> > empty = {};
         e1->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
@@ -847,7 +847,7 @@ void Samplers::ModifiedWidomCoulomb::sample(State& state){
     for(int l = 0; l < state.particles.tot - 1; l++){
         state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
     }
-    for(auto e1 : state.energyFunc){
+    for(auto& e1 : state.energyFunc){
         std::vector< std::shared_ptr<Particle> > empty = {};
         e1->update( std::move(empty), state.particles.get_subset(state.particles.tot - 1) );
         if(k >= elecStart){

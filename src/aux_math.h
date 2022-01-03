@@ -1,7 +1,7 @@
 namespace math{
 
     template<typename T, typename G>
-    inline auto dot(T vec1, G vec2) -> double{
+    inline double dot(T vec1, G vec2){
         return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
     }
 
@@ -32,8 +32,8 @@ namespace math{
 
 
     template<typename T>
-    inline auto norm(T x) -> double{
-        double norm = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
+    inline decltype(auto) norm(T x){
+        auto norm = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
         return std::sqrt(norm);
     }
 

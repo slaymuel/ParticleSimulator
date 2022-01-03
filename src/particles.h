@@ -18,10 +18,10 @@ class Particles{
     std::vector<int> movedParticles;
     unsigned int cTot = 0, aTot = 0, tot = 0;
 
-    Eigen::MatrixXd get_subset(int sr, int fr){
+    Eigen::MatrixXd get_subset(int sr, int fr) const{
         return this->positions.block(sr, 0, fr, 3);
     }
-    Eigen::MatrixXd get_particle_pos(int index){
+    Eigen::MatrixXd get_particle_pos(int index) const{
         return this->positions.row(index);
     }
 

@@ -13,33 +13,40 @@ using CallBack = std::function<void(std::vector< unsigned int >)>;
 class Move{
 
     protected:
-    int accepted, rejected, attempted;
+    mutable int accepted, rejected, attempted;
     double stepSize;
     std::string id;
-    State* s;
-    CallBack move_callback;
-    
+
     public:
     double weight;
+    static State* state;
 
-    Move(double step, double w, State* state, CallBack move_callback) : stepSize(step), s(state), move_callback(move_callback), weight(w){
+    Move(double step, double w) : stepSize(step), weight(w){
         this->accepted = 0;
         this->rejected = 0;
         this->attempted = 0;
     }
 
     virtual void operator()() = 0;
-    virtual bool accept(double dE) = 0;
+    virtual bool accept(double dE) const = 0;
     virtual std::string dump() = 0;
 };
 
+std::string Move::dump(){
+    std::ostringstream s;
+    s.precision(1);
+    s << std::fixed;
+    s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+    return s.str();
+}
 
+State* Move::state = nullptr;
 
 
 class Translate : public Move{
     public:
 
-    Translate(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+    Translate(double step, double w) : Move(step, w){
         this->id = "Trans";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
@@ -48,24 +55,17 @@ class Translate : public Move{
 
 
     void operator()(){
-        std::shared_ptr<Particle> p = this->s->particles.random();
-        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        std::vector< unsigned int > particles = {p->index};
-        //printf("Translating particle %lu\n", p->index);
-        //std::cout << p->pos << std::endl;
-        p->translate(this->stepSize);
-        //printf("after move\n");
-        //std::cout << p->pos << std::endl;
-        //PBC
+        auto p = state->particles.random();
 
-
-        this->move_callback(particles);
+        p->translate(stepSize);
         this->attempted++;
+
+        state->move_callback({p->index});
     }
 
-    bool accept(double dE){
-        bool ret = false;
-        //printf("dE trans %lf\n", dE);
+    bool accept(double dE) const{
+        auto  ret = false;
+
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
             this->accepted++;
@@ -78,11 +78,7 @@ class Translate : public Move{
         return ret;
     }
     std::string dump(){
-        std::ostringstream s;
-        s.precision(1);
-        s << std::fixed;
-        s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return s.str();
+        return Move::dump();
     }
 };
 
@@ -91,7 +87,7 @@ class Translate : public Move{
 class Rotate : public Move{
     public:
 
-    Rotate(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+    Rotate(double step, double w) : Move(step, w){
         this->id = "Rot";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
@@ -100,17 +96,16 @@ class Rotate : public Move{
 
 
     void operator()(){
-        std::shared_ptr<Particle> p = this->s->particles.random();
-        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        std::vector< unsigned int > particles = {p->index};
+        auto p = state->particles.random();
 
         p->rotate(this->stepSize);
-        this->move_callback(particles);
         attempted++;
+
+        state->move_callback({p->index});
     }
 
-    bool accept(double dE){
-        bool ret = false;
+    bool accept(double dE) const{
+        auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
@@ -124,11 +119,7 @@ class Rotate : public Move{
         return ret;
     }
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -137,38 +128,28 @@ class Rotate : public Move{
 class Swap : public Move{
 
     public:
-    Swap(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback){
+    Swap(double w) : Move(0.0, w){
         this->id = "Swap";
         printf("\t%s\n", this->id.c_str());
         printf("\tWeight: %lf\n", this->weight);
     }
     void operator()(){
-        int rand = Random::get_random(s->particles.tot), rand2;
+        int rand2 = -1;
+        auto rand = Random::get_random(state->particles.tot);
 
         do{
-            rand2 = Random::get_random(s->particles.tot);
-        } while(this->s->particles[rand]->q == this->s->particles[rand2]->q);
+            rand2 = Random::get_random(state->particles.tot);
+        } while(state->particles[rand]->q == state->particles[rand2]->q);
 
-        /*std::swap(this->s->particles.particles[rand]->q, this->s->particles.particles[rand2]->q);
-        std::swap(this->s->particles.particles[rand]->name, this->s->particles.particles[rand2]->name);
-        std::swap(this->s->particles.particles[rand]->r, this->s->particles.particles[rand2]->r);
-        std::swap(this->s->particles.particles[rand]->rf, this->s->particles.particles[rand2]->rf);
-        std::swap(this->s->particles.particles[rand]->b, this->s->particles.particles[rand2]->b);
-        std::swap(this->s->particles.particles[rand]->qDisp, this->s->particles.particles[rand2]->qDisp);*/
+        std::swap(state->particles.particles[rand]->pos, state->particles.particles[rand2]->pos);
+        std::swap(state->particles.particles[rand]->com, state->particles.particles[rand2]->com);
 
-        std::swap(this->s->particles.particles[rand]->pos, this->s->particles.particles[rand2]->pos);
-        std::swap(this->s->particles.particles[rand]->com, this->s->particles.particles[rand2]->com);
-        std::vector< unsigned int > particles = {static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)};
-
-
-        this->move_callback(particles);
         attempted++;
-
-        //printf("Remove: pAtt: %i, nAtt: %i\n", this->pAtt, this->nAtt);
+        state->move_callback({static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)});
     }
 
-    bool accept(double dE){
-        bool ret = false;
+    bool accept(double dE) const{
+        auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
@@ -183,11 +164,7 @@ class Swap : public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -198,7 +175,7 @@ class Swap : public Move{
 class SingleSwap : public Move{
 
     public:
-    SingleSwap(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback){
+    SingleSwap(double w) : Move(0.0, w){
         //printf("\t\tSwap Move\n");
         this->id = "SingleSwap";
         printf("\t%s\n", this->id.c_str());
@@ -206,59 +183,50 @@ class SingleSwap : public Move{
     }
     
     void operator()(){
-
-            
-        //std::shared_ptr<Particle> p = std::static_pointer_cast<Particle>(argument);
-        //std::vector< unsigned int > particles = {p->index};
-        int rand = Random::get_random(s->particles.tot);
-        //int rand2;
+        auto rand = Random::get_random(state->particles.tot);
 
         //If cation
-        if(this->s->particles[rand]->q > 0){
-            this->s->particles[rand]->q = this->s->particles.nModel.q;
-            this->s->particles[rand]->b = this->s->particles.nModel.b;
-            this->s->particles[rand]->r = this->s->particles.nModel.r;
-            this->s->particles[rand]->rf = this->s->particles.nModel.rf;
+        if(state->particles[rand]->q > 0){
+            state->particles[rand]->q = state->particles.nModel.q;
+            state->particles[rand]->b = state->particles.nModel.b;
+            state->particles[rand]->r = state->particles.nModel.r;
+            state->particles[rand]->rf = state->particles.nModel.rf;
 
             //Set qDisp
             Eigen::Vector3d v = Random::get_vector();
-            this->s->particles[rand]->qDisp = v;
-            this->s->particles[rand]->qDisp = this->s->particles[rand]->qDisp.normalized() * this->s->particles[rand]->b;
-            this->s->particles[rand]->pos = this->s->particles[rand]->com + this->s->particles[rand]->qDisp;
+            state->particles[rand]->qDisp = v;
+            state->particles[rand]->qDisp = state->particles[rand]->qDisp.normalized() * state->particles[rand]->b;
+            state->particles[rand]->pos = state->particles[rand]->com + state->particles[rand]->qDisp;
 
-            this->s->particles[rand]->name = "Cl";
-            this->s->particles.aTot++;
-            this->s->particles.cTot--;
+            state->particles[rand]->name = "Cl";
+            state->particles.aTot++;
+            state->particles.cTot--;
         }
 
         //anion
         else{
             //flip charge and change name
-            this->s->particles[rand]->q = this->s->particles.pModel.q;
-            this->s->particles[rand]->b = this->s->particles.pModel.b;
-            this->s->particles[rand]->r = this->s->particles.pModel.r;
-            this->s->particles[rand]->rf = this->s->particles.pModel.rf;
+            state->particles[rand]->q = state->particles.pModel.q;
+            state->particles[rand]->b = state->particles.pModel.b;
+            state->particles[rand]->r = state->particles.pModel.r;
+            state->particles[rand]->rf = state->particles.pModel.rf;
 
             //Set qDisp
             Eigen::Vector3d v = Random::get_vector();
-            this->s->particles[rand]->qDisp = v;
-            this->s->particles[rand]->qDisp = this->s->particles[rand]->qDisp.normalized() * this->s->particles[rand]->b;
-            this->s->particles[rand]->pos = this->s->particles[rand]->com + this->s->particles[rand]->qDisp;
+            state->particles[rand]->qDisp = v;
+            state->particles[rand]->qDisp = state->particles[rand]->qDisp.normalized() * state->particles[rand]->b;
+            state->particles[rand]->pos = state->particles[rand]->com + state->particles[rand]->qDisp;
 
-            this->s->particles[rand]->name = "Na";
-            this->s->particles.cTot++;
-            this->s->particles.aTot--;      
+            state->particles[rand]->name = "Na";
+            state->particles.cTot++;
+            state->particles.aTot--;      
         }
 
-
-        std::vector< unsigned int > particles = {static_cast<unsigned int>(rand)};
-
-
-        this->move_callback(particles);
         attempted++;
+        state->move_callback({static_cast<unsigned int>(rand)});
     }
 
-    bool accept(double dE){
+    bool accept(double dE) const{
         bool ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -274,11 +242,7 @@ class SingleSwap : public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -295,13 +259,13 @@ class GrandCanonicalSingle : public Move{
     double nVolume;
     double pVolume;
     double cp;
-    int pAtt = 0, nAtt = 0, pAcc = 0, nAcc = 0;
-    int* att;
-    int* acc;
+    mutable int pAtt = 0, nAtt = 0, pAcc = 0, nAcc = 0;
+    mutable int* att;
+    mutable int* acc;
 
     public:
 
-    GrandCanonicalSingle(double chemPot, double donnan, double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback),
+    GrandCanonicalSingle(double chemPot, double donnan, double w) : Move(0.0, w),
                   d(donnan), cp(chemPot){
         if(ADD){
             this->id = "GCAddSingle";
@@ -309,82 +273,72 @@ class GrandCanonicalSingle : public Move{
         else{
             this->id = "GCRemSingle";
         }
+        
         printf("\t%s\n", this->id.c_str());
         constants::cp = chemPot;
-        this->pVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.pModel.rf);
-        this->nVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.nModel.rf);
+        this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
+        this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         printf("\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
         printf("\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
         printf("\tWeight: %lf\n", this->weight);
     }
 
     void operator()(){
-        //UNUSED(p);
-        
-        std::vector< unsigned int > particles;
         if(ADD){
-            
-            auto [ind, qt] = s->particles.add_random(s->geo->_dh);
+            auto [ind, qt] = state->particles.add_random(state->geo->_dh);
             this->q = qt;
-            particles.push_back(ind);
-            this->move_callback(particles);
+            state->move_callback({ind});
         }
 
         else{
-            auto [ind, qt] = s->particles.remove_random();
+            std::vector< unsigned int > particles;
+            auto [ind, qt] = state->particles.remove_random();
             this->q = qt;
             if(ind != -1){
                 particles.push_back(ind);
             }
-            this->move_callback(particles);        
+            state->move_callback(particles);     
         }
         this->attempted++;
     }
 
-    bool accept(double dE){
-        double prob;
+    bool accept(double dE) const{
+        auto prob = -1.0;
 
         // ADD
         if(ADD){
-            //printf("dE add %lf\n", dE);
             //Cation
             if(this->q > 0.0){
-                prob = this->pVolume / s->particles.cTot * std::exp(this->cp - this->d * this->q - dE); //N + 1 since s->particles.cTot is the new N + 1 state
+                prob = this->pVolume / state->particles.cTot * std::exp(this->cp - this->d * this->q - dE); //N + 1 since state->particles.cTot is the new N + 1 state
                 this->acc = &this->pAcc;
                 this->pAtt++;
-                //printf("Add + %lf\n", dE);
             }
             //Anion
             else{
-                prob = this->nVolume / s->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
+                prob = this->nVolume / state->particles.aTot * std::exp(this->cp - this->d * this->q - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
-                //printf("Add - %lf\n", dE);
             } 
         }
         // REMOVE
         else{
-            //printf("dE remove %lf\n", dE);
             //Cation
             if(this->q > 0.0){
-                prob = (s->particles.cTot + 1) / this->pVolume * std::exp(this->d * this->q - this->cp - dE); //N since s->particles.cTot is the new N - 1 state
+                prob = (state->particles.cTot + 1) / this->pVolume * std::exp(this->d * this->q - this->cp - dE); //N since state->particles.cTot is the new N - 1 state
                 this->acc = &this->pAcc;
                 this->pAtt++;
-                //printf("Remove + %lf\n", dE);
             }
             //Anion
             else{
-                prob = (s->particles.aTot + 1) / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
+                prob = (state->particles.aTot + 1) / this->nVolume * std::exp(this->d * this->q - this->cp - dE);
                 this->acc = &this->nAcc;
                 this->nAtt++;
-                //printf("Remove - %lf\n", dE);
             }
         }
 
         if(prob >= Random::get_random()){
             *(this->acc) += 1;
             return true;
-            //return false;
         }
         else{
             return false;
@@ -430,7 +384,7 @@ class GrandCanonical : public Move{
 
     public:
 
-    GrandCanonical(double chemPot, double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback), cp(chemPot){
+    GrandCanonical(double chemPot, double w) : Move(0.0, w), cp(chemPot){
         if(ADD){
             this->id = "GCAdd";
         }
@@ -439,9 +393,9 @@ class GrandCanonical : public Move{
         }
         
         constants::cp = chemPot;
-        this->pVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.pModel.rf);
-        this->nVolume = this->s->geo->_d[0] * this->s->geo->_d[1] * (this->s->geo->_d[2] - 2.0 * this->s->particles.nModel.rf);
-        this->valency = s->particles.pModel.q;
+        this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
+        this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
+        this->valency = state->particles.pModel.q;
 
         printf("\t%s\n", this->id.c_str());
         printf("\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
@@ -450,56 +404,31 @@ class GrandCanonical : public Move{
     }
 
     void operator()(){
-        //UNUSED(p);
         std::vector< unsigned int > particles;
         if(ADD){
-            auto [ind, qt] = s->particles.add_random(s->geo->_dh, 1.0);
+            auto [ind, qt] = state->particles.add_random(state->geo->_dh, 1.0);
             particles.push_back(ind);
             for(int i = 0; i < this->valency; i++){
-                auto [ind2, qt2] = s->particles.add_random(s->geo->_dh, -1.0);
+                auto [ind2, qt2] = state->particles.add_random(state->geo->_dh, -1.0);
                 particles.push_back(ind2);
             }
         }
         else{
             std::vector< unsigned int > pt;
-            /*int di;
-            auto [ind, qt] = s->particles.remove_random(1.0);
-            particles.push_back(ind);
-            printf("removing: %i\n", ind);
-            pt.push_back(ind);
-            for(int i = 0; i < this->valency; i++){
-                di = 0;
-                auto [ind2, qt2] = s->particles.remove_random(-1.0);
-                for(int j = 0; j < particles.size(); j++){
-                    if(pt[j] <= ind2) di += 1;
-                    if(pt[j] == ind2) di += 1;
-                }
-                printf("removing: %i\n", ind2);
-                pt.push_back(ind2);
-                particles.push_back(ind2 + di);
-            }*/
+
             int rand = 0;
-            if(s->particles.cTot > 0){
+            if(state->particles.cTot > 0){
                 do{
-                    rand = Random::get_random(s->particles.tot);
-                } while(s->particles[rand]->q != s->particles.pModel.q);
+                    rand = Random::get_random(state->particles.tot);
+                } while(state->particles[rand]->q != state->particles.pModel.q);
                 particles.push_back(rand);
             }
 
-
-            /*for(int i = 0; i < this->valency; i++){
-                if(s->particles.aTot > this->valency){
-                    do{
-                        rand = Random::get_random(s->particles.tot);
-                    } while(s->particles[rand]->q != s->particles.nModel.q && std::none_of(particles.begin(), particles.end(), [&](int val){return val==rand;}));
-                    particles.push_back(rand);
-                }
-            }*/
-            if(s->particles.aTot > 0){
+            if(state->particles.aTot > 0){
                 while(particles.size() < this->valency + 1){
                     do{
-                        rand = Random::get_random(s->particles.tot);
-                    } while(s->particles[rand]->q != s->particles.nModel.q);
+                        rand = Random::get_random(state->particles.tot);
+                    } while(state->particles[rand]->q != state->particles.nModel.q);
 
                     if(std::none_of(particles.begin(), particles.end(), [&](int val){return val==rand;})){
                         particles.push_back(rand);   
@@ -509,25 +438,23 @@ class GrandCanonical : public Move{
             std::sort(particles.begin(), particles.end());
             std::reverse(particles.begin(), particles.end());
             for(auto p : particles){
-                //printf("%i\n", p);
-                s->particles.remove(p);
+                state->particles.remove(p);
             }
-            //printf("\n");
         }
 
         this->attempted++;
-        this->move_callback(particles);  
+        state->move_callback(particles);  
     }
 
-    bool accept(double dE){
+    bool accept(double dE) const{
         double prob;
 
         // ADD
         if(ADD){
-            double pFac = this->pVolume / s->particles.cTot;
-            double nFac = 1.0;
+            auto pFac = this->pVolume / state->particles.cTot;
+            auto nFac = 1.0;
             for(int i = 0; i < this->valency; i++){
-                nFac *= this->nVolume / (s->particles.aTot - i);
+                nFac *= this->nVolume / (state->particles.aTot - i);
             }
 
             prob = pFac * nFac * std::exp((this->valency + 1.0) * this->cp - dE); 
@@ -535,10 +462,10 @@ class GrandCanonical : public Move{
         }
         // REMOVE
         else{
-            double pFac = (s->particles.cTot + 1) / this->pVolume;
-            double nFac = 1.0;
+            auto pFac = (state->particles.cTot + 1) / this->pVolume;
+            auto nFac = 1.0;
             for(int i = 0; i < this->valency; i++){
-                nFac *= (s->particles.aTot + 1 - i) / this->nVolume ;
+                nFac *= (state->particles.aTot + 1 - i) / this->nVolume ;
             }
             prob = pFac * nFac * std::exp(-(this->valency + 1.0) * this->cp - dE); 
         }
@@ -553,12 +480,7 @@ class GrandCanonical : public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted/ this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted<<") ";
-
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -583,13 +505,13 @@ class VolumeMove: public Move{
     private:
     double _oldV;
     double pressure;
-    double unit = 2.430527863808942e-10;
+    static constexpr auto unit = 2.430527863808942e-10;
 
     public:
-    VolumeMove(double step, double pressure, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+    VolumeMove(double step, double pressure, double w) : Move(step, w){
         this->id = "Vol";
         printf("\t%s\n", this->id.c_str());
-        this->pressure = pressure * this->unit;
+        this->pressure = pressure * unit;
         printf("\tPressure: %lf\n", this->pressure);
         printf("\tStepsize: %lf\n", step);
         printf("\tWeight: %lf\n", this->weight);
@@ -597,38 +519,37 @@ class VolumeMove: public Move{
 
 
     void operator()(){
-        _oldV = this->s->geo->volume;
-        double lnV = std::log(this->s->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
-        double V = std::exp(lnV);
-        double L = std::cbrt(V);
-        double RL = L / this->s->geo->_d[0];
+        _oldV = state->geo->volume;
+        auto lnV = std::log(state->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
+        auto V = std::exp(lnV);
+        auto L = std::cbrt(V);
+        auto RL = L / state->geo->_d[0];
 
         std::vector<double> LV = {L, L, L};
         std::vector<double> LVh = {L / 2.0, L / 2.0, L / 2.0};
 
-        this->s->geo->_d = LV;
-        this->s->geo->_dh = LVh;
-        this->s->geo->d = LV;
-        this->s->geo->dh = LVh;
-        this->s->geo->volume = V;
+        state->geo->_d = LV;
+        state->geo->_dh = LVh;
+        state->geo->d = LV;
+        state->geo->dh = LVh;
+        state->geo->volume = V;
 
         std::vector< unsigned int > particles;
 
-        for(unsigned int i = 0; i < this->s->particles.tot; i++){
-            this->s->particles[i]->com *= RL;
-            this->s->particles[i]->pos = this->s->particles[i]->com + this->s->particles[i]->qDisp;
-            particles.push_back(s->particles[i]->index);
+        for(unsigned int i = 0; i < state->particles.tot; i++){
+            state->particles[i]->com *= RL;
+            state->particles[i]->pos = state->particles[i]->com + state->particles[i]->qDisp;
+            particles.push_back(state->particles[i]->index);
         }
 
-        this->move_callback(particles);
         this->attempted++;
+        state->move_callback(particles);
     }
 
-    bool accept(double dE){
-        bool ret = false;
-        
-        double prob = exp(-dE - this->pressure * (this->s->geo->volume - _oldV) +
-                      (this->s->particles.tot + 1.0) * std::log(this->s->geo->volume / _oldV));
+    bool accept(double dE) const{
+        auto ret = false;
+        auto prob = exp(-dE - this->pressure * (state->geo->volume - _oldV) +
+                      (state->particles.tot + 1.0) * std::log(state->geo->volume / _oldV));
 
         if(prob >= Random::get_random()){
             ret = true;
@@ -643,11 +564,7 @@ class VolumeMove: public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -658,7 +575,7 @@ class ChargeTrans: public Move{
 
     public:
 
-    ChargeTrans(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+    ChargeTrans(double step, double w) : Move(step, w){
         this->id = "qTrans";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
@@ -667,20 +584,19 @@ class ChargeTrans: public Move{
 
 
     void operator()(){
-        int rand = 0;
+        auto rand = 0;
         do{
-            rand = Random::get_random(s->particles.tot);
-        } while(s->particles[rand]->q < 0.0);
+            rand = Random::get_random(state->particles.tot);
+        } while(state->particles[rand]->q < 0.0);
         
-        std::vector< unsigned int > particles = {s->particles[rand]->index};
-        //printf("Translating\n");
-        this->s->particles[rand]->chargeTrans(this->stepSize);
-        this->move_callback(particles);
+        state->particles[rand]->chargeTrans(this->stepSize);
+
         this->attempted++;
+        state->move_callback({state->particles[rand]->index});
     }
 
-    bool accept(double dE){
-        bool ret = false;
+    bool accept(double dE) const{
+        auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
@@ -695,11 +611,7 @@ class ChargeTrans: public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -710,7 +622,7 @@ class ChargeTranslate: public Move{
 
     public:
 
-    ChargeTranslate(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+    ChargeTranslate(double step, double w) : Move(step, w){
         this->id = "qTranslate";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
@@ -719,22 +631,21 @@ class ChargeTranslate: public Move{
 
 
     void operator()(){
-        int rand = 0;
+        auto rand = 0;
         do{
-            rand = Random::get_random(s->particles.tot);
-        } while(s->particles[rand]->q < 0.0);
+            rand = Random::get_random(state->particles.tot);
+        } while(state->particles[rand]->q < 0.0);
         
-        std::vector< unsigned int > particles = {s->particles[rand]->index};
-        this->s->particles[rand]->chargeTranslate(this->stepSize);
+        state->particles[rand]->chargeTranslate(this->stepSize);
 
-        this->s->particles[rand]->qDisp = this->s->geo->displacement(this->s->particles[rand]->pos, this->s->particles[rand]->com);
-        this->s->particles[rand]->b = this->s->particles[rand]->qDisp.norm();
+        state->particles[rand]->qDisp = state->geo->displacement(state->particles[rand]->pos, state->particles[rand]->com);
+        state->particles[rand]->b = state->particles[rand]->qDisp.norm();
 
-        this->move_callback(particles);
         this->attempted++;
+        state->move_callback({state->particles[rand]->index});
     }
 
-    bool accept(double dE){
+    bool accept(double dE) const{
         bool ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -750,11 +661,7 @@ class ChargeTranslate: public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -764,7 +671,7 @@ class ChargeTransRand: public Move{
 
     public:
 
-    ChargeTransRand(double step, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback){
+    ChargeTransRand(double step, double w) : Move(step, w){
         this->id = "qTransRand";
         printf("\t%s\n", this->id.c_str());
         printf("\tWeight: %lf\n", this->weight);
@@ -774,26 +681,23 @@ class ChargeTransRand: public Move{
     void operator()(){
         //printf("Move\n");
         std::vector< unsigned int > particles;
-        int rand = 0;
-        if(s->particles.cTot > 0){
+        auto rand = 0;
+        if(state->particles.cTot > 0){
             do{
-                rand = Random::get_random(s->particles.tot);
-            } while(s->particles[rand]->q < 0.0);
+                rand = Random::get_random(state->particles.tot);
+            } while(state->particles[rand]->q < 0.0);
 
-            this->s->particles[rand]->chargeTransRand();
-            //this->s->particles[rand]->qDisp = this->s->geo->displacement(this->s->particles[rand]->pos, this->s->particles[rand]->com);
-            //this->s->particles[rand]->b = this->s->particles[rand]->qDisp.norm();
-            
-            particles.push_back(s->particles[rand]->index);
+            state->particles[rand]->chargeTransRand();
+
+            particles.push_back(state->particles[rand]->index);
         }
-        this->move_callback(particles);
-        
 
         this->attempted++;
+        state->move_callback(particles);
     }
 
-    bool accept(double dE){
-        bool ret = false;
+    bool accept(double dE) const{
+        auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
             ret = true;
@@ -808,11 +712,7 @@ class ChargeTransRand: public Move{
     }
 
     std::string dump(){
-        std::ostringstream ss;
-        ss.precision(1);
-        ss << std::fixed;
-        ss << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
-        return ss.str();
+        return Move::dump();
     }
 };
 
@@ -821,14 +721,14 @@ class Cluster : public Move{
     private:
     double minDist;
     bool found = false;
-    std::unordered_map<unsigned int, unsigned int> att;
-    std::unordered_map<unsigned int, unsigned int> acc;
+    mutable std::unordered_map<unsigned int, unsigned int> att;
+    mutable std::unordered_map<unsigned int, unsigned int> acc;
     unsigned int pNum = 0;
     std::shared_ptr<Particle> p;
 
     public:
 
-    Cluster(double step, double md, double w, State* s, CallBack move_callback) : Move(step, w, s, move_callback), minDist(md){
+    Cluster(double step, double md, double w) : Move(step, w), minDist(md){
         this->id = "Clus";
         printf("\t%s\n", this->id.c_str());
         printf("\tStepsize: %lf\n", step);
@@ -838,29 +738,29 @@ class Cluster : public Move{
 
 
     void operator()(){
-        this->p = this->s->particles.random();
+        this->p = state->particles.random();
         std::vector<unsigned int> indices;
         Eigen::Vector3d disp;
 
-        for(auto i : this->s->particles.particles){
+        for(auto i : state->particles.particles){
             if(i->index == this->p->index) continue;
 
-            if(this->s->geo->distance(i->pos, this->p->pos) <= this->minDist){
+            if(state->geo->distance(i->pos, this->p->pos) <= this->minDist){
                 indices.push_back(i->index);
             }
         }
+
         //Choose random particle
         //If particle is in cluster
         //Move cluster
-
         if(!indices.empty()){
             indices.push_back(this->p->index);
             this->pNum = indices.size();
 
             disp = Random::get_norm_vector();
             disp *= this->stepSize;
-            this->s->particles.translate(indices, disp);
-            this->move_callback(indices);
+            state->particles.translate(indices, disp);
+            state->move_callback(indices);
             this->attempted++;
             found = true;
 
@@ -875,14 +775,14 @@ class Cluster : public Move{
         else found = false;
     }
 
-    bool accept(double dE){
-        int count = 1;
+    bool accept(double dE) const{
+        auto count = 1;
 
         if(found){
 
-            for(auto i : this->s->particles.particles){
+            for(auto i : state->particles.particles){
                 if(i->index == this->p->index) continue;
-                if(this->s->geo->distance(i->pos, this->p->pos) <= this->minDist){
+                if(state->geo->distance(i->pos, this->p->pos) <= this->minDist){
                     count++;
                 }
             }
@@ -919,11 +819,11 @@ class WidomInsertion : public Move{
 
     protected:
     double q;
-    double cp = 0.0;
-    int samples = 0;
+    mutable double cp = 0.0;
+    mutable int samples = 0;
     public:
 
-    WidomInsertion(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback) {
+    WidomInsertion(double w) : Move(0.0, w) {
 
         this->id = "WIns";
         printf("\t%s\n", this->id.c_str());
@@ -931,15 +831,13 @@ class WidomInsertion : public Move{
     }
 
     void operator()(){      
-        auto [ind, qt] = s->particles.add_random(s->geo->_dh, 2.0);
+        auto [ind, qt] = state->particles.add_random(state->geo->_dh, 2.0);
         this->q = qt;
-        std::vector< unsigned int > particles{ind};
-        this->move_callback(particles);
-
         this->attempted++;
+        state->move_callback({ind});
     }
 
-    bool accept(double dE){
+    bool accept(double dE) const{
         if(this->samples > 10000){
             this->samples = 0;
             this->cp = 0.0;
@@ -964,11 +862,11 @@ class WidomDeletion : public Move{
 
     protected:
     double q;
-    double cp = 0.0;
-    int samples = 0;
+    mutable double cp = 0.0;
+    mutable int samples = 0;
     public:
 
-    WidomDeletion(double w, State* s, CallBack move_callback) : Move(0.0, w, s, move_callback) {
+    WidomDeletion(double w) : Move(0.0, w) {
 
         this->id = "WDel";
         printf("\t%s\n", this->id.c_str());
@@ -976,15 +874,14 @@ class WidomDeletion : public Move{
     }
 
     void operator()(){      
-        auto [ind, qt] = s->particles.remove_random();
+        auto [ind, qt] = state->particles.remove_random();
         this->q = qt;
-        std::vector< unsigned int > particles{ind};
-        this->move_callback(particles);
 
         this->attempted++;
+        state->move_callback({ind});
     }
 
-    bool accept(double dE){
+    bool accept(double dE) const{
         if(this->samples > 10000){
             this->samples = 0;
             this->cp = 0.0;

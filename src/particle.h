@@ -7,7 +7,6 @@ using Vector3 = Eigen::Block<Eigen::MatrixXd, 1, 3>;
 class Particle{
 
     private:
-    //static int _count;
 
     public:
 
@@ -18,17 +17,6 @@ class Particle{
     double r, b, b_min, b_max, q, rf;     //radius, length of charge vector, charge, minimum distance to wall
 
     unsigned int index;
-
-    /*Particle& operator=(const Particle& p){
-        this->pos = p.pos;
-        this->r = p.r;
-        this->rf = p.rf;
-        this->q = p.q;
-        this->b = p.b;
-        this->index = p.index;
-
-        return *this;
-    }*/
 
 
     void translate(double step){
@@ -48,13 +36,6 @@ class Particle{
     };
 
     void chargeTrans(double step){
-        /*Eigen::Vector3d v = Random::get_norm_vector();
-        this->qDisp += step * v * Random::get_random();
-
-        this->b = this->qDisp.norm();
-
-        this->pos = this->qDisp + this->com;*/
-
         Eigen::Vector3d v = Random::get_vector();
         this->pos[0] += step * v[0];
         this->pos[1] += step * v[1];
@@ -63,20 +44,8 @@ class Particle{
 
 
     void chargeTransRand(){
-        
-        //this->b = this->b_min + (this->b_max - this->b_min) * Random::get_random();
-        //this->qDisp = Random::get_random_vector(1.0);
-        //this->qDisp = this->qDisp.normalized() * this->b;
-
-        //this->qDisp = Random::get_norm_vector();
-        //this->qDisp *= (this->b_min + (this->b_max - this->b_min) * Random::get_random());
-        
         this->qDisp = Random::get_random_vector(this->b_max);
         this->b = this->qDisp.norm();
-
-        //this->qDisp = Random::get_random_vector(0.5);
-        //this->qDisp *= 2.0 * this->b_max;
-        //this->b = this->qDisp.norm();
 
         this->pos = this->com + this->qDisp;
     };
