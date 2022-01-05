@@ -3,6 +3,8 @@
 //#include <source_location>
 #include <chrono>
 
+namespace Simulator{
+
 struct Timer{
     private:
     std::chrono::steady_clock::time_point start;
@@ -22,3 +24,5 @@ struct Timer{
         std::cout << location<< " took " << duration.count() << "s" << std::endl;
     }
 };
+
+}

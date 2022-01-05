@@ -1,4 +1,5 @@
-add_library(xdr STATIC)
+add_library(xdr 
+			STATIC)
 
 target_sources(xdr
 	PRIVATE

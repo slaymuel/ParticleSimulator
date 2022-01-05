@@ -20,7 +20,7 @@
 
 #include "pch.h"
 
-#include "random.h"
+#include "random/random.h"
 #include "particles.h"
 #include "state.h"
 //#include <source_location>
@@ -32,7 +32,7 @@
 #include "timer.h"
 
 
-
+namespace Simulator{
 
 class Simulator{
     
@@ -49,12 +49,10 @@ class Simulator{
     
     State state;
 
-    Simulator(double Dielec, double T, std::string name){
+    Simulator(double Dielec, double T, std::string _name) : name(_name){
         constants::set(T, Dielec);
         Move::state = &state;
-        
-        this->name = name;
-
+    
         #ifdef _OPENMP
             printf("\nOpenMP is ENABLED with %i threads.\n\n", omp_get_num_procs());
         #else
@@ -73,10 +71,14 @@ class Simulator{
         constants::T = T; 
         constants::lB = constants::C * (1.0 / (constants::D * T));
     }
+
     void set_cp(double cp){
         constants::cp = cp;
     }
 
+    void add_move(MoveTypes moveType, std::vector<double> args){
+        moves.push_back(Move::create_move(moveType, args));
+    }
 
     void add_move(int i, std::vector<double> args){
     //dp = i1, p = i2, cp = i3, d = i4
@@ -323,10 +325,6 @@ class Simulator{
                 s->save();
             }
         }
-        /*printf("Saving analysis data...\n");
-        for(auto s : sampler){
-            s->save(this->name);
-        }*/
 
         for(auto s : sampler){
             s->close();
@@ -388,11 +386,18 @@ int main(){
 
 #ifdef PY11
 PYBIND11_MODULE(mormon, m) {
-    
+    py::enum_<MoveTypes>(m, "MoveTypes")
+        .value("Translate", MoveTypes::Translate)
+        .value("GCSingleAdd", MoveTypes::GCSingleAdd)
+        .value("GCSingleRemove", MoveTypes::GCSingleRemove);
+
+
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<double, double, std::string>())
         .def("run", &Simulator::run)
-        .def("add_move", &Simulator::add_move)
+        //.def("add_move", &Simulator::add_move)
+        .def("add_move", static_cast<void (Simulator::*)(MoveTypes, std::vector<double>)>(&Simulator::add_move))
+        .def("add_move",  static_cast<void (Simulator::*)(int, std::vector<double>)>(&Simulator::add_move))
         .def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
         .def("set_temperature", &Simulator::set_temperature)
         .def("set_cp", &Simulator::set_cp)
@@ -416,10 +421,6 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("particles", &Particles::particles)
         .def_readonly("pModel", &Particles::pModel)
         .def_readonly("nModel", &Particles::nModel)
-        //.def("load", &Particles::load)
-        //.def("set_models", &Particles::set_models, py::arg("q"), py::arg("r"), py::arg("rf"), py::arg("b"), py::arg("names"))
-        //.def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("p"), py::arg("n"), py::arg("rfp") = 2.5, 
-        //            py::arg("rfn") = 2.5, py::arg("rp") = 2.5, py::arg("rn") = 2.5, py::arg("bp") = 0.0, py::arg("bn") = 0.0);
         .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("params"));
 
     py::class_<Particle>(m, "Particle")
@@ -432,3 +433,5 @@ PYBIND11_MODULE(mormon, m) {
         .def_readonly("rf", &Particle::rf);
 }
 #endif
+
+}

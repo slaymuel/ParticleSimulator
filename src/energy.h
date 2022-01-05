@@ -6,6 +6,8 @@
 #include "io.h"
 #include "constants.h"
 
+namespace Simulator{
+
 class EnergyBase{
 
     protected:
@@ -52,6 +54,14 @@ class PairEnergy : public EnergyBase{
 
     E energy_func;  //energy functor
 
+    inline double i2i(const double& q1, const double& q2, const double&& dist){
+        if(dist <= this->cutoff){
+            return energy_func(q1, q2, dist);
+        }
+        else{
+            return 0.0;
+        }
+    }
     public:
 
     double all2all(Particles& particles){
@@ -127,15 +137,6 @@ class PairEnergy : public EnergyBase{
         }
 
         return e * constants::lB;
-    }
-
-    inline double i2i(const double& q1, const double& q2, const double&& dist){
-        if(dist <= this->cutoff){
-            return energy_func(q1, q2, dist);
-        }
-        else{
-            return 0.0;
-        }
     }
 
     void update(std::vector< std::shared_ptr<Particle> >&& _old, std::vector< std::shared_ptr<Particle> >&& _new){}
@@ -1474,3 +1475,5 @@ class Energy2D: public EnergyBase{
         return force * constants::lB;
     }
 };
+
+}

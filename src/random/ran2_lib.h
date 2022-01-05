@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+namespace Simulator{
+
 extern "C"{
     float ran2_(int*);
 }
@@ -13,3 +15,5 @@ class ran2{
     static int ran_input;
     static double get_random();
 };
+
+}

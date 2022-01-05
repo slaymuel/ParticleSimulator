@@ -1,6 +1,8 @@
 #pragma once
 
-#include "random.h"
+#include "random/random.h"
+
+namespace Simulator{
 
 using Vector3 = Eigen::Block<Eigen::MatrixXd, 1, 3>;
 
@@ -71,3 +73,5 @@ class Particle{
         this->pos = this->com + this->qDisp;
     };
 };
+
+}

@@ -1,6 +1,8 @@
 #include "sampler.h"
 
 
+namespace Simulator{
+
 
 void Samplers::Density::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
@@ -959,3 +961,5 @@ class Potential : public SamplerBase{
     }
 };
 */
+
+}

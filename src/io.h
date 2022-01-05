@@ -5,7 +5,8 @@
 
 #include "particles.h"
 
-
+namespace Simulator{
+    
 namespace IO{
 
     void to_gro(std::string fileName, const Particles& p, const std::vector<double> d);
@@ -41,3 +42,5 @@ namespace IO{
         else std::cout << "Unable to open file\n";
     }
 };
+
+}

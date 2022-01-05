@@ -1,3 +1,5 @@
+namespace Simulator{
+
 namespace comparators{
     struct {
         bool operator()(Move* a, Move* b) const{  
@@ -14,4 +16,6 @@ namespace comparators{
             return a->weight < b;
         }  
     } mdLess;
+}
+
 }

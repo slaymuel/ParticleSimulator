@@ -5,6 +5,8 @@
 #include "xdrfile_xtc.h"
 #include "xdrfile_trr.h"
 
+namespace Simulator{
+
 namespace Samplers{
 
 class SamplerBase{
@@ -337,7 +339,7 @@ class ModifiedWidomCoulomb: public SamplerBase{
 
     ModifiedWidomCoulomb(int interval, std::string filename) : SamplerBase(interval){
         this->filename = filename;
-        this->e = std::make_shared< PairEnergy<Coulomb> >();
+        this->e = std::make_shared< PairEnergy<Potentials::Coulomb> >();
         
         e->set_cutoff(120.0);
 
@@ -404,3 +406,5 @@ class Potential : public SamplerBase{
     }
 };
 */
+
+}

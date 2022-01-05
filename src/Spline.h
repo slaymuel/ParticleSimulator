@@ -1,5 +1,7 @@
 #include <vector>
 
+namespace Simulator{
+
 class SplineData{
 
     public:
@@ -14,3 +16,5 @@ class SplineData{
         this->controlPoints = c;
     }
 };
+
+}

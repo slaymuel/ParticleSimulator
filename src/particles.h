@@ -5,6 +5,8 @@
 
 #include "particle.h"
 
+namespace Simulator{
+
 class Particles{
     private:
 
@@ -439,3 +441,5 @@ class Particles{
         }
     }
 };
+
+}

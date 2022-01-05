@@ -8,6 +8,8 @@
 #include <fstream>
 #include <random>
 
+namespace Simulator{
+
 namespace Random{    
     static constexpr double PI = 3.14159265359;
 
@@ -38,3 +40,5 @@ namespace Random{
         operator std::vector<double>();
     };
 };
+
+}

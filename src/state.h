@@ -8,6 +8,8 @@
 #include "potentials.h"
 #include "Spline.h"
 
+namespace Simulator{
+
 class State{
     private:
 
@@ -419,70 +421,70 @@ class State{
             case 1:
                 printf("\nAdding Ewald potential\n");
                 assert(args.size() == 7);
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
                 //this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::Short> >(1) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
-                EwaldLike::alpha = args[4];
-                EwaldLike::kMax = args[5];
-                EwaldLike::spherical = bool(args[6]);
+                Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                Potentials::EwaldLike::alpha = args[4];
+                Potentials::EwaldLike::kMax = args[5];
+                Potentials::EwaldLike::spherical = bool(args[6]);
 
-                printf("\tSpherical cutoff: %s", EwaldLike::spherical ? "true\n" : "false\n");
-                printf("\tReciprocal cutoff: %lf\n", EwaldLike::kMax);
+                printf("\tSpherical cutoff: %s", Potentials::EwaldLike::spherical ? "true\n" : "false\n");
+                printf("\tReciprocal cutoff: %lf\n", Potentials::EwaldLike::kMax);
                 printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
                 break;
 
             case 2:
                 printf("\nAdding Halfwald potential\n");
                 assert(args.size() == 5);
-                this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::LongHW> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
-                EwaldLike::alpha = args[4];
+                Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                Potentials::EwaldLike::alpha = args[4];
                 printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
                 break;
             
             case 3:
                 printf("\nAdding HalfwaldIPBC potential\n");
                 assert(args.size() == 5);
-                this->energyFunc.push_back( std::make_shared< ImgEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< ImgEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHWIPBC> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::LongHWIPBC> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
-                EwaldLike::alpha = args[4];
+                Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                Potentials::EwaldLike::alpha = args[4];
                 break;
 
             case 4:
                 printf("\nAdding Ellipsoidal Ewald\n");
                 assert(args.size() == 5);
-                this->energyFunc.push_back( std::make_shared< Ellipsoid<BSpline2D> >(spline.aKnots, spline.bKnots, spline.controlPoints) );
+                this->energyFunc.push_back( std::make_shared< Ellipsoid<Potentials::BSpline2D> >(spline.aKnots, spline.bKnots, spline.controlPoints) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongEllipsoidal> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::LongEllipsoidal> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
-                EwaldLike::alpha = args[4];
+                Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                Potentials::EwaldLike::alpha = args[4];
                 break;
 
             case 5:
                 printf("\nAdding Minimum Image Halfwald\n");
                 assert(args.size() == 3);
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<Coulomb> >(args[1], args[2]) );
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::Coulomb> >(args[1], args[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
@@ -500,28 +502,28 @@ class State{
                 printf("\nAdding Truncated Ewald potential\n");
                 assert(args.size() == 8);
                 //this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::ShortTruncated> >() );
-                this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::ShortTruncated> >(1) );
+                this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<Potentials::EwaldLike::ShortTruncated> >(1) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongTruncated> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::LongTruncated> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
-                EwaldLike::alpha = args[4];
-                //printf("Sigma: %lf\n", args[4]);
-                EwaldLike::R = args[5];
-                EwaldLike::kMax = args[6];
-                EwaldLike::spherical = bool(args[7]);
-                printf("\tSpherical cutoff: %s", EwaldLike::spherical ? "true\n" : "false\n");
-                printf("\tReciprocal cutoff: %lf\n", EwaldLike::kMax);
-                EwaldLike::eta = EwaldLike::R * 1.0 / (std::sqrt(2.0) * EwaldLike::alpha);
+                Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                Potentials::EwaldLike::alpha = args[4];
+
+                Potentials::EwaldLike::R = args[5];
+                Potentials::EwaldLike::kMax = args[6];
+                Potentials::EwaldLike::spherical = bool(args[7]);
+                printf("\tSpherical cutoff: %s", Potentials::EwaldLike::spherical ? "true\n" : "false\n");
+                printf("\tReciprocal cutoff: %lf\n", Potentials::EwaldLike::kMax);
+                Potentials::EwaldLike::eta = Potentials::EwaldLike::R * 1.0 / (std::sqrt(2.0) * Potentials::EwaldLike::alpha);
                 break;
 
             case 7:
                 printf("\nAdding Halfwald with real replicates\n");
                 assert(args.size() == 7);
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<EwaldLike::Short> >(args[1], args[6]) );
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::EwaldLike::Short> >(args[1], args[6]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
@@ -531,18 +533,18 @@ class State{
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongHW> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::LongHW> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
-                EwaldLike::alpha = args[5];
+                Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                Potentials::EwaldLike::alpha = args[5];
 
                 break;
 
             case 8:
                 printf("\nAdding harmonic well to charges\n");
                 assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< ChargeWell<Harmonic> >(args[0], 0.0) );
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::Harmonic> >(args[0], 0.0) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
@@ -550,7 +552,7 @@ class State{
             case 9:
                 printf("\nAdding Sture-potential to charges\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< ChargeWell<Sture> >(args[0], args[1]) );
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::Sture> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
@@ -558,7 +560,7 @@ class State{
             case 10:
                 printf("\nAdding FENE-potential to charges\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< ChargeWell<FENE> >(args[0], args[1]) );
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::FENE> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
@@ -567,14 +569,14 @@ class State{
                 printf("\nAdding FanourgakisSP2 with image charges\n");
                 assert(args.size() == 2);
                                                                                           // kMax     eps
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<Fanourgakis::SP2> >(args[1], 1.0) );
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::Fanourgakis::SP2> >(args[1], 1.0) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<Fanourgakis::SP2Self> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::Fanourgakis::SP2Self> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                Fanourgakis::R = args[0];
+                Potentials::Fanourgakis::R = args[0];
 
                 printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
                 this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
@@ -586,14 +588,14 @@ class State{
             case 12:
                 printf("\nAdding FanourgakisSP3 with image charges\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< MIHalfwald<Fanourgakis::SP3> >(args[1], 1.0) );
+                this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::Fanourgakis::SP3> >(args[1], 1.0) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<Fanourgakis::SP3Self> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::Fanourgakis::SP3Self> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2] * 2.0) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                Fanourgakis::R = args[0];
+                Potentials::Fanourgakis::R = args[0];
 
                 printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
                 this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
@@ -612,15 +614,15 @@ class State{
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
 
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::Long> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
-                EwaldLike::alpha = args[5];
+                Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                Potentials::EwaldLike::alpha = args[5];
                 printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
                 break;
 
@@ -628,16 +630,16 @@ class State{
                 printf("\nAdding Ewald slab correction\n");
                 assert(args.size() == 0);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::SlabCorr> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
 
             case 15:
                 printf("\nAdding 2D Ewald potential\n");
                 assert(args.size() == 5);
-                EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
-                EwaldLike::alpha = args[4];
-                this->energyFunc.push_back( std::make_shared< Energy2D<EwaldLike::Ewald2D> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
+                Potentials::EwaldLike::alpha = args[4];
+                this->energyFunc.push_back( std::make_shared< Energy2D<Potentials::EwaldLike::Ewald2D> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
@@ -647,7 +649,7 @@ class State{
                 printf("\nAdding Ewald slab correction2\n");
                 assert(args.size() == 0);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr2> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::SlabCorr2> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
 
@@ -662,15 +664,15 @@ class State{
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
 
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::Long2> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::Long2> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
-                EwaldLike::alpha = args[5];
+                Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                Potentials::EwaldLike::alpha = args[5];
                 printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
                 break;
 
@@ -678,14 +680,14 @@ class State{
                 printf("\nAdding Ewald slab correction3\n");
                 assert(args.size() == 0);
                 printf("\tBox size in z is: %lf\n", this->geo->d[2]);
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::SlabCorr3> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::SlabCorr3> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
 
             case 19:
                 printf("\nAdding Repulsive Lennard-Jones\n");
                 assert(args.size() == 1);
-                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJRep> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<Potentials::LJRep> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
@@ -693,7 +695,7 @@ class State{
             case 20:
                 printf("\nAdding Repulsive wall Lennard-Jones\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< ExternalEnergy<LJWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
+                this->energyFunc.push_back( std::make_shared< ExternalEnergy<Potentials::LJWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
@@ -701,7 +703,7 @@ class State{
             case 21:
                 printf("\nAdding Lennard-Jones\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJ> >(args[0], args[1]) );
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<Potentials::LJ> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
@@ -709,28 +711,28 @@ class State{
             case 22:
                 printf("\nAdding Repulsive wall Exponential\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< ExternalEnergy<ExpWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
+                this->energyFunc.push_back( std::make_shared< ExternalEnergy<Potentials::ExpWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
             case 23:
                 printf("\nAdding Jan-potential to charges\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< ChargeWell<Jan> >(args[0], args[1]) );
+                this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::Jan> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
             case 24:
                 printf("\nAdding truncated and shifted LJ\n");
                 assert(args.size() == 2);
-                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<LJST> >(args[0], args[1]) );
+                this->energyFunc.push_back( std::make_shared< PairEnergyCOM<Potentials::LJST> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[1]);
                 break;
             case 25:
                 printf("\nAdding Ewald charge correction\n");
                 assert(args.size() == 0);
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::ChargeCorr> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::ChargeCorr> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
             case 26:
@@ -743,15 +745,15 @@ class State{
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
 
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                this->energyFunc.push_back( std::make_shared< ExtEnergy<EwaldLike::LongChargedVacuum> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::LongChargedVacuum> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
 
-                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
-                EwaldLike::alpha = args[5];
+                Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                Potentials::EwaldLike::alpha = args[5];
                 printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
                 break;
             case 27:
@@ -764,25 +766,25 @@ class State{
                 this->_old->geo->d[2] = this->geo->d[2];
                 this->_old->geo->dh[2] = this->geo->dh[2]; 
 
-                this->energyFunc.push_back( std::make_shared< ExplicitWallChargeExtEnergy <EwaldLike::LongWithExplicitWallCharges, EwaldLike::Short> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
+                this->energyFunc.push_back( std::make_shared< ExplicitWallChargeExtEnergy <Potentials::EwaldLike::LongWithExplicitWallCharges, Potentials::EwaldLike::Short> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 
-                EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
-                EwaldLike::alpha = args[5];
+                Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
+                Potentials::EwaldLike::alpha = args[5];
                 printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
                 break;
             case 28:
                 printf("\nAdding Real part of Ewald with vacuum slabs\n");
                 assert(args.size() == 1);
 
-                this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::Short> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
             default:
                 printf("\nAdding Coulomb potential\n");
-                this->energyFunc.push_back( std::make_shared< PairEnergy<Coulomb> >() );
+                this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::Coulomb> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;   
@@ -839,3 +841,5 @@ class State{
         printf("Loaded %u particles, %u cations and %u anions.\n", this->particles.tot, this->particles.cTot, this->particles.aTot);
     }
 };
+
+}

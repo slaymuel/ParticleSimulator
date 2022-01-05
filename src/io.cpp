@@ -1,5 +1,6 @@
 #include "io.h"
 
+namespace Simulator{
 
 void IO::to_gro(std::string fileName, const Particles& p, const std::vector<double> d){
     fileName = fileName + ".gro";
@@ -38,4 +39,6 @@ void IO::to_cpt(std::string fileName, const Particles& p, const std::vector<doub
         f.close();
     }
     else std::cout << "Unable to open file";
+}
+
 }

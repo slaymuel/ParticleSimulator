@@ -4,6 +4,8 @@
 #include <Eigen/Dense>
 #include "particle.h"
 
+namespace Simulator{
+
 class Geometry{
     private:
 
@@ -405,3 +407,5 @@ class Sphere : public Geometry{
         return v;
     }
 };
+
+}

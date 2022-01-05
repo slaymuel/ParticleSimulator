@@ -8,6 +8,8 @@
                     initializer(omp_priv = decltype(omp_orig)(omp_orig.size()))
 */
 
+namespace Simulator{
+namespace Potentials{
 
 class Coulomb{
     public:
@@ -2797,3 +2799,6 @@ class Levin{
 };
 
 */
+}
+
+}

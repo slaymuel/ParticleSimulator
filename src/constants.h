@@ -1,5 +1,7 @@
 #pragma once
 
+namespace Simulator{
+
 namespace constants{
     static constexpr double EC = 1.602176620898E-19;
     static constexpr double VP = 8.854187817E-12;
@@ -16,4 +18,6 @@ namespace constants{
         D = _D;
         lB = C * (1.0 / (D * T));
     }
+}
+
 }

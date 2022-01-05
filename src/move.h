@@ -6,7 +6,28 @@
 #include <algorithm>
 #include <unordered_map>
 
+namespace Simulator{
+
 using CallBack = std::function<void(std::vector< unsigned int >)>;
+
+enum class MoveTypes{
+    Translate,
+    GCSingleAdd,
+    GCSingleRemove,
+    Rotate,
+    Swap,
+    SingleSwap,
+    VolumeMove,
+    ChargeTrans,
+    ChargeTransRand,
+    Cluster,
+    WidomInsertion,
+    WidomDeletion,
+    GCAdd,
+    GCRemove,
+    ChargeTranslate
+};
+
 
 
 
@@ -30,6 +51,8 @@ class Move{
     virtual void operator()() = 0;
     virtual bool accept(double dE) const = 0;
     virtual std::string dump() = 0;
+
+    static Move* create_move(MoveTypes moveType, std::vector<double> args);
 };
 
 std::string Move::dump(){
@@ -901,3 +924,82 @@ class WidomDeletion : public Move{
         return ss.str();
     }
 };
+
+
+Move* Move::create_move(MoveTypes moveType, std::vector<double> args){
+    switch(moveType){
+        case MoveTypes::Translate:
+            assert(args.size() == 2);
+                                        //step, w
+            return new Translate(args[1], args[0]);
+            break;
+        case MoveTypes::GCSingleAdd:
+            assert(args.size() == 3);
+                                                            //cp, d, w
+            return new GrandCanonicalSingle<true>(args[1], args[2], args[0]);
+            break;
+        case MoveTypes::GCSingleRemove:
+            assert(args.size() == 3);
+            return new GrandCanonicalSingle<false>(args[1], args[2], args[0]);
+            break;
+        case MoveTypes::Rotate:
+            assert(args.size() == 2);
+                                        //step, w
+            return new Rotate(args[0], args[1]);
+            break;
+        case MoveTypes::Swap:
+            assert(args.size() == 1);
+            return new Swap(args[0]);
+            break;
+        case MoveTypes::SingleSwap:
+            assert(args.size() == 1);
+            return new SingleSwap(args[0]);
+            break;
+        case MoveTypes::VolumeMove:
+            assert(args.size() == 3);
+                                        //step, press, v, w
+            return new VolumeMove(args[0], args[2], args[1]);
+            break;
+        case MoveTypes::ChargeTrans:
+            assert(args.size() == 2);
+            return new ChargeTrans(args[0], args[1]);
+            break;
+        case MoveTypes::ChargeTransRand:
+            assert(args.size() == 2);
+            return new ChargeTransRand(args[0], args[1]);
+            break;
+        case MoveTypes::Cluster:
+            assert(args.size() == 3);
+            return new Cluster(args[0], args[1], args[2]);
+            break;
+        case MoveTypes::WidomInsertion:
+            assert(args.size() == 1);
+            return new WidomInsertion(args[0]);
+            break;
+        case MoveTypes::WidomDeletion:
+            assert(args.size() == 1);
+            return new WidomDeletion(args[0]);
+            break;
+        case MoveTypes::GCAdd:
+            assert(args.size() == 2);
+                                                    //chempot, w
+            return new GrandCanonical<true>(args[1], args[0]);
+            break;
+        case MoveTypes::GCRemove:
+            assert(args.size() == 2);
+            return new GrandCanonical<false>(args[1], args[0]);
+            break;
+        case MoveTypes::ChargeTranslate:
+            assert(args.size() == 2);
+            return new ChargeTranslate(args[0], args[1]);
+            break;
+        default:
+            printf("Invalid move");
+            break;
+    }
+}
+
+
+
+
+}

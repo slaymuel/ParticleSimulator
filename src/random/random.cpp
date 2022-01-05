@@ -1,5 +1,7 @@
 #include "random.h"
 
+namespace Simulator{
+
 void Random::create_CDF(std::string filename){
     
     
@@ -94,4 +96,6 @@ Random::get_norm_vector::operator std::vector<double>(){
     std::vector<double> v = {std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z};
     
     return v;
+}
+
 }

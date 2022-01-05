@@ -1,3 +1,5 @@
+namespace Simulator{
+
 namespace math{
 
     template<typename T, typename G>
@@ -23,8 +25,6 @@ namespace math{
     }
 
 
-
-
     template<typename T>
     inline T erf_x( T x ) {
         return (1 - erfc_x(x));
@@ -32,7 +32,7 @@ namespace math{
 
 
     template<typename T>
-    inline decltype(auto) norm(T x){
+    inline auto norm(T x){
         auto norm = x[0]*x[0] + x[1]*x[1] + x[2]*x[2];
         return std::sqrt(norm);
     }
@@ -68,4 +68,6 @@ namespace math{
         //T v(Map<T>(t.data(), t.cols()*t.rows()));
         return t * v1.colwise().homogeneous();
     }
+}
+
 }
