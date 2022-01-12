@@ -2,6 +2,7 @@
 
 //#include <source_location>
 #include <chrono>
+#include "logger.h"
 
 namespace Simulator{
 
@@ -21,7 +22,7 @@ struct Timer{
         std::chrono::duration<float> duration = std::chrono::high_resolution_clock::now() - start;
 
         //std::cout << location.function_name() << " took" << duration.count() << "s" << std::endl;
-        std::cout << location<< " took " << duration.count() << "s" << std::endl;
+        Logger::Log(location, " took ", duration.count(), "s");
     }
 };
 

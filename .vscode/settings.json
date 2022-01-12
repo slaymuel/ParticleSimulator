@@ -95,7 +95,8 @@
         "qr": "cpp",
         "svd": "cpp",
         "future": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "any": "cpp"
     },
     "python.pythonPath": "/usr/local/bin/python3",
     "cmake.configureOnOpen": true

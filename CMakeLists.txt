@@ -8,10 +8,13 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
 find_package(OpenMP REQUIRED COMPONENTS CXX)
+
 Include(FetchContent)
 include(CTest)
+
 enable_testing()
 
+add_subdirectory(lib/fmt)
 add_subdirectory(src/xdr)
 add_subdirectory(src/random)
 add_subdirectory(src)
@@ -25,6 +28,7 @@ add_subdirectory(src)
 
 #FetchContent_MakeAvailable(Catch2)
 add_subdirectory(lib/Catch2)
+
 add_executable(particles_test tests/particles_test.cpp)
 target_link_libraries(particles_test 
                       PRIVATE

@@ -5,27 +5,28 @@
 #include "state.h"
 #include <algorithm>
 #include <unordered_map>
+#include "logger.h"
 
 namespace Simulator{
 
 using CallBack = std::function<void(std::vector< unsigned int >)>;
 
 enum class MoveTypes{
-    Translate,
-    GCSingleAdd,
-    GCSingleRemove,
-    Rotate,
-    Swap,
-    SingleSwap,
-    VolumeMove,
-    ChargeTrans,
-    ChargeTransRand,
-    Cluster,
-    WidomInsertion,
-    WidomDeletion,
-    GCAdd,
-    GCRemove,
-    ChargeTranslate
+    TRANSLATE,
+    GCSINGLEADD,
+    GCSINGLEREMOVE,
+    ROTATE,
+    SWAP,
+    SINGLESWAP,
+    VOLUMEMOVE,
+    CHARGETRANS,
+    CHARGETRANSRAND,
+    CLUSTER,
+    WIDOMINSERTION,
+    WIDOMDELETION,
+    GCADD,
+    GCREMOVE,
+    CHARGETRANSLATE
 };
 
 
@@ -42,7 +43,9 @@ class Move{
     double weight;
     static State* state;
 
-    Move(double step, double w) : stepSize(step), weight(w){
+    Move(double step, double w, std::string id) : stepSize(step), id(id), weight(w){
+        Logger::Log("\t", this->id);
+        Logger::Log("\tWeight: ", this->weight);
         this->accepted = 0;
         this->rejected = 0;
         this->attempted = 0;
@@ -69,11 +72,8 @@ State* Move::state = nullptr;
 class Translate : public Move{
     public:
 
-    Translate(double step, double w) : Move(step, w){
-        this->id = "Trans";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tStepsize: %lf\n", step);
-        printf("\tWeight: %lf\n", this->weight);
+    Translate(double step, double w) : Move(step, w, "TRANSLATION"){
+        Logger::Log("\tStepsize: ", step);
     }
 
 
@@ -110,11 +110,8 @@ class Translate : public Move{
 class Rotate : public Move{
     public:
 
-    Rotate(double step, double w) : Move(step, w){
-        this->id = "Rot";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tStepsize: %lf\n", step);
-        printf("\tWeight: %lf\n", this->weight);
+    Rotate(double step, double w) : Move(step, w, "ROTATION"){
+        Logger::Log("\tStepsize: ", step);
     }
 
 
@@ -151,11 +148,8 @@ class Rotate : public Move{
 class Swap : public Move{
 
     public:
-    Swap(double w) : Move(0.0, w){
-        this->id = "Swap";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tWeight: %lf\n", this->weight);
-    }
+    Swap(double w) : Move(0.0, w, "SWAP"){}
+
     void operator()(){
         int rand2 = -1;
         auto rand = Random::get_random(state->particles.tot);
@@ -198,12 +192,7 @@ class Swap : public Move{
 class SingleSwap : public Move{
 
     public:
-    SingleSwap(double w) : Move(0.0, w){
-        //printf("\t\tSwap Move\n");
-        this->id = "SingleSwap";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tWeight: %lf\n", this->weight);
-    }
+    SingleSwap(double w) : Move(0.0, w, "SINGLESWAP"){}
     
     void operator()(){
         auto rand = Random::get_random(state->particles.tot);
@@ -288,22 +277,14 @@ class GrandCanonicalSingle : public Move{
 
     public:
 
-    GrandCanonicalSingle(double chemPot, double donnan, double w) : Move(0.0, w),
+    GrandCanonicalSingle(double chemPot, double donnan, double w) : Move(0.0, w, ADD ? "GCSINGLEADD" : "GCSINGLEREM"),
                   d(donnan), cp(chemPot){
-        if(ADD){
-            this->id = "GCAddSingle";
-        }
-        else{
-            this->id = "GCRemSingle";
-        }
-        
-        printf("\t%s\n", this->id.c_str());
+
         constants::cp = chemPot;
         this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
         this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
-        printf("\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
-        printf("\tChemical potential: %.3lf, Bias potential: %.3lf\n", this->cp, this->d);
-        printf("\tWeight: %lf\n", this->weight);
+        Logger::Log("\tCation accessible volume: ", this->pVolume, " Anion accessible volume: ", this->nVolume);
+        Logger::Log("\tChemical potential: ", this->cp, " Bias potential: ", this->d);
     }
 
     void operator()(){
@@ -407,23 +388,14 @@ class GrandCanonical : public Move{
 
     public:
 
-    GrandCanonical(double chemPot, double w) : Move(0.0, w), cp(chemPot){
-        if(ADD){
-            this->id = "GCAdd";
-        }
-        else{
-            this->id = "GCRem";
-        }
-        
+    GrandCanonical(double chemPot, double w) : Move(0.0, w, ADD ? "GCADD" : "GCREM"), cp(chemPot){
         constants::cp = chemPot;
         this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
         this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         this->valency = state->particles.pModel.q;
 
-        printf("\t%s\n", this->id.c_str());
-        printf("\tCation accessible volume: %.3lf, Anion accessible volume: %.3lf\n", this->pVolume, this->nVolume);
-        printf("\tChemical potential: %.3lf", this->cp);
-        printf("\tWeight: %lf\n", this->weight);
+        Logger::Log("\tCation accessible volume: ", this->pVolume, ", Anion accessible volume: ", this->nVolume);
+        Logger::Log("\tChemical potential: ", this->cp);
     }
 
     void operator()(){
@@ -531,13 +503,10 @@ class VolumeMove: public Move{
     static constexpr auto unit = 2.430527863808942e-10;
 
     public:
-    VolumeMove(double step, double pressure, double w) : Move(step, w){
-        this->id = "Vol";
-        printf("\t%s\n", this->id.c_str());
+    VolumeMove(double step, double pressure, double w) : Move(step, w, "VOLUMEMOVE"){
         this->pressure = pressure * unit;
-        printf("\tPressure: %lf\n", this->pressure);
-        printf("\tStepsize: %lf\n", step);
-        printf("\tWeight: %lf\n", this->weight);
+        Logger::Log("\tPressure: ", this->pressure);
+        Logger::Log("\tStepsize: ", step);
     }
 
 
@@ -598,11 +567,8 @@ class ChargeTrans: public Move{
 
     public:
 
-    ChargeTrans(double step, double w) : Move(step, w){
-        this->id = "qTrans";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tStepsize: %lf\n", step);
-        printf("\tWeight: %lf\n", this->weight);
+    ChargeTrans(double step, double w) : Move(step, w, "CHARGETRANS"){
+        Logger::Log("\tStepsize: ", step);
     }
 
 
@@ -645,11 +611,8 @@ class ChargeTranslate: public Move{
 
     public:
 
-    ChargeTranslate(double step, double w) : Move(step, w){
-        this->id = "qTranslate";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tStepsize: %lf\n", step);
-        printf("\tWeight: %lf\n", this->weight);
+    ChargeTranslate(double step, double w) : Move(step, w, "CHARGETRANS"){
+        Logger::Log("\tStepsize: ", step);
     }
 
 
@@ -694,15 +657,10 @@ class ChargeTransRand: public Move{
 
     public:
 
-    ChargeTransRand(double step, double w) : Move(step, w){
-        this->id = "qTransRand";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tWeight: %lf\n", this->weight);
-    }
+    ChargeTransRand(double step, double w) : Move(step, w, "CHARGETRANSRAND"){}
 
 
     void operator()(){
-        //printf("Move\n");
         std::vector< unsigned int > particles;
         auto rand = 0;
         if(state->particles.cTot > 0){
@@ -751,12 +709,9 @@ class Cluster : public Move{
 
     public:
 
-    Cluster(double step, double md, double w) : Move(step, w), minDist(md){
-        this->id = "Clus";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tStepsize: %lf\n", step);
-        printf("\tMax distance in cluster: %lf\n", this->minDist);
-        printf("\tWeight: %lf\n", this->weight);
+    Cluster(double step, double md, double w) : Move(step, w, "CLUSTER"), minDist(md){
+        Logger::Log("\tStepsize: ", step);
+        Logger::Log("\tMax distance in cluster: ", this->minDist);
     }
 
 
@@ -846,12 +801,7 @@ class WidomInsertion : public Move{
     mutable int samples = 0;
     public:
 
-    WidomInsertion(double w) : Move(0.0, w) {
-
-        this->id = "WIns";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tWeight: %lf\n", this->weight);
-    }
+    WidomInsertion(double w) : Move(0.0, w, "WIDOMINSERTION") {}
 
     void operator()(){      
         auto [ind, qt] = state->particles.add_random(state->geo->_dh, 2.0);
@@ -889,12 +839,7 @@ class WidomDeletion : public Move{
     mutable int samples = 0;
     public:
 
-    WidomDeletion(double w) : Move(0.0, w) {
-
-        this->id = "WDel";
-        printf("\t%s\n", this->id.c_str());
-        printf("\tWeight: %lf\n", this->weight);
-    }
+    WidomDeletion(double w) : Move(0.0, w, "WIDOMDELETION") {}
 
     void operator()(){      
         auto [ind, qt] = state->particles.remove_random();
@@ -909,7 +854,6 @@ class WidomDeletion : public Move{
             this->samples = 0;
             this->cp = 0.0;
         }
-        //printf("dE %lf\n", dE);
         this->cp += std::exp(dE);
         this->samples++;
 
@@ -927,74 +871,76 @@ class WidomDeletion : public Move{
 
 
 Move* Move::create_move(MoveTypes moveType, std::vector<double> args){
+    printf("\n");
+    Logger::Log("Adding move:");
     switch(moveType){
-        case MoveTypes::Translate:
+        case MoveTypes::TRANSLATE:
             assert(args.size() == 2);
                                         //step, w
             return new Translate(args[1], args[0]);
             break;
-        case MoveTypes::GCSingleAdd:
+        case MoveTypes::GCSINGLEADD:
             assert(args.size() == 3);
                                                             //cp, d, w
             return new GrandCanonicalSingle<true>(args[1], args[2], args[0]);
             break;
-        case MoveTypes::GCSingleRemove:
+        case MoveTypes::GCSINGLEREMOVE:
             assert(args.size() == 3);
             return new GrandCanonicalSingle<false>(args[1], args[2], args[0]);
             break;
-        case MoveTypes::Rotate:
+        case MoveTypes::ROTATE:
             assert(args.size() == 2);
                                         //step, w
             return new Rotate(args[0], args[1]);
             break;
-        case MoveTypes::Swap:
+        case MoveTypes::SWAP:
             assert(args.size() == 1);
             return new Swap(args[0]);
             break;
-        case MoveTypes::SingleSwap:
+        case MoveTypes::SINGLESWAP:
             assert(args.size() == 1);
             return new SingleSwap(args[0]);
             break;
-        case MoveTypes::VolumeMove:
+        case MoveTypes::VOLUMEMOVE:
             assert(args.size() == 3);
                                         //step, press, v, w
             return new VolumeMove(args[0], args[2], args[1]);
             break;
-        case MoveTypes::ChargeTrans:
+        case MoveTypes::CHARGETRANS:
             assert(args.size() == 2);
             return new ChargeTrans(args[0], args[1]);
             break;
-        case MoveTypes::ChargeTransRand:
+        case MoveTypes::CHARGETRANSRAND:
             assert(args.size() == 2);
             return new ChargeTransRand(args[0], args[1]);
             break;
-        case MoveTypes::Cluster:
+        case MoveTypes::CLUSTER:
             assert(args.size() == 3);
             return new Cluster(args[0], args[1], args[2]);
             break;
-        case MoveTypes::WidomInsertion:
+        case MoveTypes::WIDOMINSERTION:
             assert(args.size() == 1);
             return new WidomInsertion(args[0]);
             break;
-        case MoveTypes::WidomDeletion:
+        case MoveTypes::WIDOMDELETION:
             assert(args.size() == 1);
             return new WidomDeletion(args[0]);
             break;
-        case MoveTypes::GCAdd:
+        case MoveTypes::GCADD:
             assert(args.size() == 2);
                                                     //chempot, w
             return new GrandCanonical<true>(args[1], args[0]);
             break;
-        case MoveTypes::GCRemove:
+        case MoveTypes::GCREMOVE:
             assert(args.size() == 2);
             return new GrandCanonical<false>(args[1], args[0]);
             break;
-        case MoveTypes::ChargeTranslate:
+        case MoveTypes::CHARGETRANSLATE:
             assert(args.size() == 2);
             return new ChargeTranslate(args[0], args[1]);
             break;
         default:
-            printf("Invalid move");
+            Logger::Log("Invalid move");
             break;
     }
 }

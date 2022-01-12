@@ -14,7 +14,7 @@ target_compile_options(
         -O3
         -ffast-math
 	-march=native
-	-DDEBUG
+	-D_DEBUG_
 	-DTIMERS
 	-Wall
 )
@@ -56,4 +56,5 @@ target_link_libraries(
     Eigen3::Eigen
     xdr
     random
+    fmt::fmt
 )

@@ -2,6 +2,7 @@
 
 #define UNUSED(x) (void)(x)
 
+#include "logger.h"
 #include "aux_math.h"
 #include "geometry.h"
 #include "energy.h"
@@ -36,8 +37,8 @@ class State{
     }
 
     void control(){
-        #ifdef DEBUG
-        printf("Control (DEBUG)\n");
+        #ifdef _DEBUG_
+        Logger::Log<Logger::LogLevel::DEBUG>("Control (DEBUG)");
         #else
         printf("Control\n");
         #endif
@@ -55,45 +56,46 @@ class State{
 
         #ifdef DEBUG
         if(this->particles.tot != _old->particles.tot){
-            printf("_old state has %i particles and current state has %i.\n", _old->particles.tot, this->particles.tot);
+            Logger::Log<Logger::LogLevel::FATAL>("_old state has ", _old->particles.tot, " particles and current state has", this->particles.tot);
             exit(1);
         }
         unsigned int cations = 0, anions = 0;
         for(unsigned int i = 0; i < this->particles.tot; i++){
             if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
                                                                 this->particles.particles[i]->b) > 1e-5){
-                printf("|Pos - com| is not b! it is: %.6lf and should be: %.6lf\n",
-                                    this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos), 
-                                    this->particles.particles[i]->b);
+                Logger::Log<Logger::LogLevel::FATAL>("|Pos - com| is not b! it is: ", 
+                                                        this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos), 
+                                                        "and should be: ",
+                                                        this->particles.particles[i]->b);
                 exit(1);
             }
             if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
                                                                 this->particles.particles[i]->qDisp.norm()) > 1e-5){
-                printf("|Pos - com| is not equal to |qDisp|!\n");
+                Logger::Log<Logger::LogLevel::FATAL>("|Pos - com| is not equal to |qDisp|!");
                 exit(1);
             }
             if(this->particles.particles[i]->b > this->particles.particles[i]->b_max){
-                printf("Ooops, b is larger than b_max!\n");
+                Logger::Log<Logger::LogLevel::FATAL>("Ooops, b is larger than b_max!");
                 exit(1);
             }
             if(this->particles.particles[i]->pos != this->_old->particles.particles[i]->pos){
-                printf("current positions is not equal to old positions for particle %i.\n", i);
-                std::cout << this->particles.particles[i]->pos << std::endl;
+                Logger::Log<Logger::LogLevel::FATAL>("current positions is not equal to old positions for particle ", i);
+                std::cout << this->particles.particles[i]->pos) << std::endl;
                 std::cout << "\n" << this->_old->particles.particles[i]->pos<< std::endl;
                 exit(1);
             }
             if(this->particles.particles[i]->com != this->_old->particles.particles[i]->com){
-                printf("current center of mass is not equal to old for particle %i.\n", i);
+                Logger::Log<Logger::LogLevel::FATAL>("current center of mass is not equal to old for particle ", i);
                 std::cout << this->particles.particles[i]->com << std::endl;
                 std::cout << "\n" << this->_old->particles.particles[i]->com << std::endl;
                 exit(1);
             }
             if(this->particles.particles[i]->index != i){
-                printf("index is wrong in current for particle %i, it has index %i.\n", i, this->particles.particles[i]->index );
+                Logger::Log<Logger::LogLevel::FATAL>("index is wrong in current for particle ", i, " it has index ", this->particles.particles[i]->index);
                 exit(1);
             }
             if(this->_old->particles.particles[i]->index != i){
-                printf("index is wrong in in _old for particle %i, it has index %i.\n", i, this->_old->particles.particles[i]->index );
+                Logger::Log<Logger::LogLevel::FATAL>("index is wrong in in _old for particle ", i, " it has index ", this->_old->particles.particles[i]->index);
                 exit(1);
             }
 
@@ -101,28 +103,27 @@ class State{
         }
 
         if(cations != this->particles.cTot || anions != this->particles.aTot){
-            printf("Wrong number of cations or anions!\n");
-            printf("Cations %i should be %i. Anions %i should be %i\n", this->particles.cTot, cations, this->particles.aTot, anions);
+            Logger::Log<Logger::LogLevel::FATAL>("Wrong number of cations or anions!\n");
             exit(0);
         }
 
         if(this->particles.cTot + this->particles.aTot != this->particles.tot){
-            printf("cTot + aTot != tot\n");
+            Logger::Log<Logger::LogLevel::FATAL>("cTot + aTot != tot");
             exit(0);
         }
 
         if(!this->movedParticles.empty()){
-            printf("Moved particles is not empty!\n");
+            Logger::Log<Logger::LogLevel::FATAL>("Moved particles is not empty!");
             exit(0);
         }
 
         if(!this->_old->movedParticles.empty()){
-            printf("_old Moved particles is not empty!\n");
+            Logger::Log<Logger::LogLevel::FATAL>("_old Moved particles is not empty!");
             exit(0);
         }
         #endif
         if(this->error > 1e-10 || this->energy > 1e30){
-            printf("\n\nEnergy drift is too large: %.12lf (all2all: %lf, cummulative: %lf)\n\n", this->error, this->energy, this->cummulativeEnergy);
+            Logger::Log<Logger::LogLevel::FATAL>("Energy drift is too large: ", this->error, " (all2all: ", this->energy, " cummulative: " ,this->cummulativeEnergy, ")");
             exit(1);
         } 
         /*if(this->energy != 0 && this->cummulativeEnergy != 0){
@@ -131,7 +132,8 @@ class State{
     }
 
     void finalize(std::string name){
-        printf("\nFinalizing simulation: %s.\n", name.c_str());
+        printf("\n");
+        Logger::Log("Finalizing simulation: ", name.c_str());
         // Set up old system
         for(auto p : this->particles.particles){
             _old->particles.add(p);
@@ -140,11 +142,11 @@ class State{
         //Calculate the initial energy of the system
         for(auto& e : this->energyFunc){
             e->initialize(particles);
-            printf("energy: %lf\n", e->all2all(this->particles));
+            //printf("energy: %lf\n", e->all2all(this->particles));
             this->energy += e->all2all(this->particles);
         }
         this->cummulativeEnergy = this->energy;
-        printf("\tEnergy of the first frame is: %.15lf\n\n", this->energy);
+        Logger::Log("\tEnergy of the first frame is: ", this->energy);
     }
 
     void reset_energy(){
@@ -296,27 +298,28 @@ class State{
 
 
     void equilibrate(double step){
-        printf("\nEquilibrating:\n");
+        printf("\n");
+        Logger.Log("Equilibrating:");
         Eigen::Vector3d v;
         
         // Initial Check
         int i = 0, overlaps = this->get_overlaps();
         if(overlaps > 0){
-            printf("\tRandomly placing particles\n");
+            Logger::Log("\tRandomly placing particles");
             for(unsigned int i = 0; i < this->particles.tot; i++){
                 this->particles.particles[i]->com = this->geo->random_pos(this->particles.particles[i]->rf);
                 this->particles.particles[i]->pos = this->particles.particles[i]->com + this->particles.particles[i]->qDisp;
             }
         }
 
-        printf("\tInitial overlaps: %i\n", overlaps);
+        Logger::Log("\tInitial overlaps: ", overlaps);
         Eigen::Vector3d oldCom;
         Eigen::Vector3d oldPos;
         std::shared_ptr<Particle> p;
         double step_rand;
         //Move particles to prevent overlap
         if(overlaps > 0){
-            printf("\tRemoving overlaps.\n");
+            Logger::Log("\tRemoving overlaps.");
             while(overlaps > 0){
                 p = this->particles.random();
                 oldCom = p->com;
@@ -332,7 +335,7 @@ class State{
 
                 if(i % 50000 == 0){
                     overlaps = this->get_overlaps();
-                    printf("\tOverlaps: %i, iteration: %i\r", overlaps, i);
+                    Logger::Log("\tOverlaps: ", overlaps, " iteration: ", i);
                     fflush(stdout);
                 }
                 i++;
@@ -342,9 +345,9 @@ class State{
             }
         }
         else{
-            printf("\tNo overlaps to remove!\n");
+            Logger::Log("\tNo overlaps to remove!");
         }
-        printf("\n\tEquilibration done\n\n");
+        Logger::Log("\tEquilibration done");
     }
 
 
@@ -373,7 +376,7 @@ class State{
 
         switch (type){
             default:
-                printf("Creating Cuboid box\n");
+                Logger::Log("Creating Cuboid box");
                 assert(args.size() == 3);
                 this->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
                 this->_old->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
@@ -384,28 +387,28 @@ class State{
                 break;
 
             case 2:
-                printf("Creating Cuboid-Image box\n");
+                Logger::Log("Creating Cuboid-Image box");
                 assert(args.size() == 3);
                 this->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
                 this->_old->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
                 break;
 
             case 3:
-                printf("Creating Cuboid-Image box with no PBC in z\n");
+                Logger::Log("Creating Cuboid-Image box with no PBC in z");
                 assert(args.size() == 3);
                 this->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
                 this->_old->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
                 break;
 
             case 4:
-                printf("Creating Cuboid box with no PBC\n");
+                Logger::Log("Creating Cuboid box with no PBC");
                 assert(args.size() == 3);
                 this->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
                 this->_old->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
                 break;
 
             case 5:
-                printf("Creating Cuboid box with no PBC in z\n");
+                Logger::Log("Creating Cuboid box with no PBC in z");
                 assert(args.size() == 3);
                 this->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
                 this->_old->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
@@ -417,10 +420,18 @@ class State{
 
 
     void set_energy(int type, std::vector<double> args = std::vector<double>()){
+        printf("\n");
         switch (type){
             case 1:
-                printf("\nAdding Ewald potential\n");
-                assert(args.size() == 7);
+                Logger::Log("\nAdding Ewald potential\n");
+                if(bool(args[5])){
+                    printf("");
+                    assert(args.size() == 7);
+                }
+                else{
+                    assert(args.size() == 6);
+                }
+                
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
                 //this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<EwaldLike::Short> >(1) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -431,16 +442,19 @@ class State{
 
                 Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 Potentials::EwaldLike::alpha = args[4];
-                Potentials::EwaldLike::kMax = args[5];
-                Potentials::EwaldLike::spherical = bool(args[6]);
+                Potentials::EwaldLike::spherical = bool(args[5]);
+                Potentials::EwaldLike::kMax = args[6];
 
-                printf("\tSpherical cutoff: %s", Potentials::EwaldLike::spherical ? "true\n" : "false\n");
-                printf("\tReciprocal cutoff: %lf\n", Potentials::EwaldLike::kMax);
-                printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
+                Logger::Log("\tReciprocal cutoff type: ", Potentials::EwaldLike::spherical ? "Spherical" : "Cubic");
+                printf("\n");
+                if(Potentials::EwaldLike::spherical)
+                    Logger::Log("\t\tMaximum number of k-vectors: ", Potentials::EwaldLike::kMax);
+                Logger::Log("\tReciprocal cutoff: ", Potentials::EwaldLike::kMax);
+                Logger::Log("\tk-vectors: ", (int) args[1], (int) args[2], (int) args[3]);
                 break;
 
             case 2:
-                printf("\nAdding Halfwald potential\n");
+                Logger::Log("Adding Halfwald potential");
                 assert(args.size() == 5);
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -451,11 +465,11 @@ class State{
 
                 Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 Potentials::EwaldLike::alpha = args[4];
-                printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
+                Logger::Log("\tk-vectors: ", (int) args[1], (int) args[2], (int) args[3]);
                 break;
             
             case 3:
-                printf("\nAdding HalfwaldIPBC potential\n");
+                Logger::Log("\nAdding HalfwaldIPBC potential");
                 assert(args.size() == 5);
                 this->energyFunc.push_back( std::make_shared< ImgEnergy<Potentials::EwaldLike::Short> >() );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -469,7 +483,7 @@ class State{
                 break;
 
             case 4:
-                printf("\nAdding Ellipsoidal Ewald\n");
+                Logger::Log("\nAdding Ellipsoidal Ewald");
                 assert(args.size() == 5);
                 this->energyFunc.push_back( std::make_shared< Ellipsoid<Potentials::BSpline2D> >(spline.aKnots, spline.bKnots, spline.controlPoints) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -482,14 +496,14 @@ class State{
                 break;
 
             case 5:
-                printf("\nAdding Minimum Image Halfwald\n");
+                Logger::Log("\nAdding Minimum Image Halfwald");
                 assert(args.size() == 3);
                 this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::Coulomb> >(args[1], args[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
                 // Set box size due to reflections, needed for distance PBC
-                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                Logger::Log("\tResetting box size in z to: ", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
                 this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -499,7 +513,7 @@ class State{
 
 
             case 6:
-                printf("\nAdding Truncated Ewald potential\n");
+                Logger::Log("Adding Truncated Ewald potential");
                 assert(args.size() == 8);
                 //this->energyFunc.push_back( std::make_shared< PairEnergy<EwaldLike::ShortTruncated> >() );
                 this->energyFunc.push_back( std::make_shared< PairEnergyWithRep<Potentials::EwaldLike::ShortTruncated> >(1) );
@@ -515,19 +529,19 @@ class State{
                 Potentials::EwaldLike::R = args[5];
                 Potentials::EwaldLike::kMax = args[6];
                 Potentials::EwaldLike::spherical = bool(args[7]);
-                printf("\tSpherical cutoff: %s", Potentials::EwaldLike::spherical ? "true\n" : "false\n");
-                printf("\tReciprocal cutoff: %lf\n", Potentials::EwaldLike::kMax);
+                Logger::Log("\tSpherical cutoff: ", Potentials::EwaldLike::spherical ? "true\n" : "false\n");
+                Logger::Log("\tReciprocal cutoff: ", Potentials::EwaldLike::kMax);
                 Potentials::EwaldLike::eta = Potentials::EwaldLike::R * 1.0 / (std::sqrt(2.0) * Potentials::EwaldLike::alpha);
                 break;
 
             case 7:
-                printf("\nAdding Halfwald with real replicates\n");
+                Logger::Log("Adding Halfwald with real replicates");
                 assert(args.size() == 7);
                 this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::EwaldLike::Short> >(args[1], args[6]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
 
-                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                Logger::Log("\tResetting box size in z to: ", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
                 this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -542,7 +556,7 @@ class State{
                 break;
 
             case 8:
-                printf("\nAdding harmonic well to charges\n");
+                Logger::Log("Adding harmonic well to charges");
                 assert(args.size() == 1);
                 this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::Harmonic> >(args[0], 0.0) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -550,7 +564,7 @@ class State{
                 break;
 
             case 9:
-                printf("\nAdding Sture-potential to charges\n");
+                Logger::Log("Adding Sture-potential to charges");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::Sture> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -558,7 +572,7 @@ class State{
                 break;
 
             case 10:
-                printf("\nAdding FENE-potential to charges\n");
+                Logger::Log("Adding FENE-potential to charges");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::FENE> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -566,7 +580,7 @@ class State{
                 break;
 
             case 11:
-                printf("\nAdding FanourgakisSP2 with image charges\n");
+                Logger::Log("Adding FanourgakisSP2 with image charges");
                 assert(args.size() == 2);
                                                                                           // kMax     eps
                 this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::Fanourgakis::SP2> >(args[1], 1.0) );
@@ -578,7 +592,7 @@ class State{
 
                 Potentials::Fanourgakis::R = args[0];
 
-                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                Logger::Log("\tResetting box size in z to: ", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
                 this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -586,7 +600,7 @@ class State{
                 break;
 
             case 12:
-                printf("\nAdding FanourgakisSP3 with image charges\n");
+                Logger::Log("Adding FanourgakisSP3 with image charges");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< MIHalfwald<Potentials::Fanourgakis::SP3> >(args[1], 1.0) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -597,7 +611,7 @@ class State{
 
                 Potentials::Fanourgakis::R = args[0];
 
-                printf("\tResetting box size in z to %lf\n", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
+                Logger::Log("\tResetting box size in z to: ", (4.0 * args[1] + 2.0) * this->geo->_d[2]);
                 this->geo->d[2] = (4.0 * args[1] + 2.0) * this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -605,10 +619,10 @@ class State{
                 break;
 
             case 13:
-                printf("\nAdding Ewald with vacuum slabs\n");
+                Logger::Log("Adding Ewald with vacuum slabs");
                 assert(args.size() == 6);
 
-                printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
+                Logger::Log("\tAdding vacuum slabs of thickness: ", args[1], " on each side of the box.");
                 this->geo->d[2] = 2.0 * args[1] + this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -623,11 +637,11 @@ class State{
 
                 Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 Potentials::EwaldLike::alpha = args[5];
-                printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
+                Logger::Log("\tk-vectors: ", (int) args[2], (int) args[3], (int) args[4]);
                 break;
 
             case 14:
-                printf("\nAdding Ewald slab correction\n");
+                Logger::Log("Adding Ewald slab correction.");
                 assert(args.size() == 0);
 
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::SlabCorr> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
@@ -635,18 +649,18 @@ class State{
                 break;
 
             case 15:
-                printf("\nAdding 2D Ewald potential\n");
+                Logger::Log("Adding 2D Ewald potential");
                 assert(args.size() == 5);
                 Potentials::EwaldLike::set_km({ (int) args[1], (int) args[2], (int) args[3] });
                 Potentials::EwaldLike::alpha = args[4];
                 this->energyFunc.push_back( std::make_shared< Energy2D<Potentials::EwaldLike::Ewald2D> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
-                printf("\tk-vectors: %d %d %d\n", (int) args[1], (int) args[2], (int) args[3]);
+                Logger::Log("\tk-vectors: ", (int) args[1], (int) args[2], (int) args[3]);
                 break;
 
             case 16:
-                printf("\nAdding Ewald slab correction2\n");
+                Logger::Log("Adding Ewald slab correction2");
                 assert(args.size() == 0);
 
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::SlabCorr2> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
@@ -655,10 +669,10 @@ class State{
 
 
             case 17:
-                printf("\nAdding Ewald with vacuum slabs with plane-wise summation\n");
+                Logger::Log("Adding Ewald with vacuum slabs with plane-wise summation");
                 assert(args.size() == 6);
 
-                printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
+                Logger::Log("\tAdding vacuum slabs of thickness: ", args[1], " on each side of the box.");
                 this->geo->d[2] = 2.0 * args[1] + this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -673,19 +687,19 @@ class State{
 
                 Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 Potentials::EwaldLike::alpha = args[5];
-                printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
+                Logger::Log("\tk-vectors: ", (int) args[2], (int) args[3], (int) args[4]);
                 break;
 
             case 18:
-                printf("\nAdding Ewald slab correction3\n");
+                Logger::Log("Adding Ewald slab correction3.");
                 assert(args.size() == 0);
-                printf("\tBox size in z is: %lf\n", this->geo->d[2]);
+                Logger::Log("\tBox size in z is: ", this->geo->d[2]);
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::SlabCorr3> >(this->geo->d[0], this->geo->d[1], this->geo->d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
 
             case 19:
-                printf("\nAdding Repulsive Lennard-Jones\n");
+                Logger::Log("Adding Repulsive Lennard-Jones.");
                 assert(args.size() == 1);
                 this->energyFunc.push_back( std::make_shared< PairEnergyCOM<Potentials::LJRep> >() );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -693,7 +707,7 @@ class State{
                 break;
 
             case 20:
-                printf("\nAdding Repulsive wall Lennard-Jones\n");
+                Logger::Log("Adding Repulsive wall Lennard-Jones");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< ExternalEnergy<Potentials::LJWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -701,7 +715,7 @@ class State{
                 break;
 
             case 21:
-                printf("\nAdding Lennard-Jones\n");
+                Logger::Log("Adding Lennard-Jones");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< PairEnergyCOM<Potentials::LJ> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
@@ -709,37 +723,37 @@ class State{
                 break;
 
             case 22:
-                printf("\nAdding Repulsive wall Exponential\n");
+                Logger::Log("Adding Repulsive wall Exponential.");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< ExternalEnergy<Potentials::ExpWallRep> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
             case 23:
-                printf("\nAdding Jan-potential to charges\n");
+                Logger::Log("Adding Jan-potential to charges.");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< ChargeWell<Potentials::Jan> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(100.0);
                 break;
             case 24:
-                printf("\nAdding truncated and shifted LJ\n");
+                Logger::Log("Adding truncated and shifted LJ.");
                 assert(args.size() == 2);
                 this->energyFunc.push_back( std::make_shared< PairEnergyCOM<Potentials::LJST> >(args[0], args[1]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[1]);
                 break;
             case 25:
-                printf("\nAdding Ewald charge correction\n");
+                Logger::Log("Adding Ewald charge correction.");
                 assert(args.size() == 0);
                 this->energyFunc.push_back( std::make_shared< ExtEnergy<Potentials::EwaldLike::ChargeCorr> >(this->geo->_d[0], this->geo->_d[1], this->geo->_d[2]) );
                 this->energyFunc.back()->set_geo(this->geo);
                 break;
             case 26:
-                printf("\nAdding Ewald with vacuum slabs + correction terms (charged system)\n");
+                Logger::Log("Adding Ewald with vacuum slabs + correction terms (charged system).");
                 assert(args.size() == 6);
 
-                printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
+                Logger::Log("\tAdding vacuum slabs of thickness: ", args[1], " on each side of the box.");
                 this->geo->d[2] = 2.0 * args[1] + this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -754,10 +768,10 @@ class State{
 
                 Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 Potentials::EwaldLike::alpha = args[5];
-                printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
+                Logger::Log("\tk-vectors: ", (int) args[2], (int) args[3], (int) args[4]);
                 break;
             case 27:
-                printf("\nAdding Long range Ewald with vacuum slabs and excplicit wall charges\n");
+                Logger::Log("Adding Long range Ewald with vacuum slabs and excplicit wall charges");
                 assert(args.size() == 6);
 
                 printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
@@ -772,10 +786,10 @@ class State{
                 
                 Potentials::EwaldLike::set_km({ (int) args[2], (int) args[3], (int) args[4] });
                 Potentials::EwaldLike::alpha = args[5];
-                printf("\tk-vectors: %d %d %d\n", (int) args[2], (int) args[3], (int) args[4]);
+                Logger::Log("\tk-vectors: ", (int) args[2], (int) args[3], (int) args[4]);
                 break;
             case 28:
-                printf("\nAdding Real part of Ewald with vacuum slabs\n");
+                Logger::Log("Adding Real part of Ewald with vacuum slabs.");
                 assert(args.size() == 1);
 
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::EwaldLike::Short> >() );
@@ -783,7 +797,7 @@ class State{
                 this->energyFunc.back()->set_cutoff(args[0]);
                 break;
             default:
-                printf("\nAdding Coulomb potential\n");
+                Logger::Log("\nAdding Coulomb potential.");
                 this->energyFunc.push_back( std::make_shared< PairEnergy<Potentials::Coulomb> >() );
                 this->energyFunc.back()->set_geo(this->geo);
                 this->energyFunc.back()->set_cutoff(args[0]);
@@ -797,7 +811,7 @@ class State{
 
     void load_cp(std::vector< std::vector<double> > com, std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<double> b_min, std::vector<double> b_max, std::vector<std::string> names){
         //assert correct sizes
-
+        printf("\n");
         Eigen::Vector3d ae, be, qDisp;
         
         for(unsigned int i = 0; i < pos.size(); i++){
@@ -809,10 +823,10 @@ class State{
 
         }
         if(!this->particles.setPModel || !this->particles.setNModel){
-            printf("Cation or anion model not set!\n");
+            Logger::Log<Logger::LogLevel::FATAL>("Cation or anion model not set!");
             exit(1);
         }
-        printf("Loaded %u particles, %u cations and %u anions.\n", this->particles.tot, this->particles.cTot, this->particles.aTot);
+        Logger::Log("Loaded ", this->particles.tot, " particles, ", this->particles.cTot, " cations and ", this->particles.aTot, " anions.");
     }
 
     void load_cp_old(std::vector< std::vector<double> > com, std::vector< std::vector<double> > pos, std::vector<double> charges, std::vector<double> r, std::vector<double> rf, std::vector<double> b, std::vector<std::string> names){

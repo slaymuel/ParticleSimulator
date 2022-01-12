@@ -19,7 +19,7 @@
 #endif
 
 #include "pch.h"
-
+#include "logger.h"
 #include "random/random.h"
 #include "particles.h"
 #include "state.h"
@@ -30,7 +30,6 @@
 #include "comparators.h"
 #include "io.h"
 #include "timer.h"
-
 
 namespace Simulator{
 
@@ -54,15 +53,15 @@ class Simulator{
         Move::state = &state;
     
         #ifdef _OPENMP
-            printf("\nOpenMP is ENABLED with %i threads.\n\n", omp_get_num_procs());
+            Logger::Log("OpenMP is ENABLED with ", omp_get_num_procs()," threads.");
         #else
-            printf("\nOpenMP is DISABLED\n");
+            Logger::Log("OpenMP is DISABLED");
         #endif
 
-        #ifdef DEBUG
-            printf("Debug mode is ENABLED\n");
+        #ifdef _DEBUG_
+            Logger::Log<Logger::LogLevel::DEBUG>("Debug mode is ENABLED");
         #else
-            printf("Debug mode is DISABLED\n");
+            Logger::Log("Debug mode is DISABLED");
         #endif
         printf("\n");
     }
@@ -82,7 +81,8 @@ class Simulator{
 
     void add_move(int i, std::vector<double> args){
     //dp = i1, p = i2, cp = i3, d = i4
-        printf("\nAdding move:\n");
+        printf("\n");
+        Logger::Log("Adding move:");
         switch(i){
             case 0:
                 assert(args.size() == 2);
@@ -246,7 +246,45 @@ class Simulator{
     }
 
     void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps){
-
+/*
+char* snusmumrik = 
+"
+          .-.\n
+       __/   (\n
+     , '-.____\\\n
+      u=='/  \\\n
+         /_/  \\\n
+       .-''   |\n
+      (  ____/_____\n
+      _>_/.--------\n
+      \\///\n
+       //\n
+snd   //\n
+"
+char* mumin = 
+"
+                 /|  /|
+                J(|_J(|
+               /    _  `_
+              J    \' _ \' \
+              F     (.) (.)--._
+             /                 `.
+            J                   |
+            F       ._         .\'
+           J          `-.____.\'
+           F           \\
+          J             \\.
+          |   .  `.      \\
+ ,,,      |    `.  `.     L`
+\\VVV\'     |      `.  `    |`
+ \\W|      J        ```    |
+  `.    .\' \\              F
+    `--\'    )    ___..-   (  .-
+           /   .\'     `.   `\' /
+           `.  \\        `.   /
+             `._|         `-\'   TJ/mh/TVK
+"
+*/
         printf("            +\n"                                            
                "           (|)\n"
                " _____.___.|_|.\n"                                      
@@ -259,14 +297,8 @@ class Simulator{
                "||| M M M |   |\n"                                       
                "---------------\n\n");
 
-
-        printf("Bjerrum length is: %.15lf\n", constants::lB);
-        std::cout << "Running simulation at: " << constants::T << "K, "
-                                                                << " with: " 
-                                                                << state.particles.particles.size() << " particles ( "
-                                                                << state.particles.cTot << " cations, " 
-                                                                << state.particles.aTot <<" anions)" 
-                                                                << std::endl;
+        Logger::Log("Bjerrum length is: ", constants::lB);
+        Logger::Log("Running Simulation at: ", constants::T, "K", " with ", state.particles.particles.size(), " particles (", state.particles.cTot, " cations and ", state.particles.aTot, " anions)");
 
         for(unsigned int macro = 0; macro < macroSteps; macro++){
             TIMEIT;
@@ -295,19 +327,20 @@ class Simulator{
 
             /*                                "HALF TIME"                                  */
             //Print progress
-            std::cout << "\nIteration (macrostep): " << macro << std::endl;
+            printf("\n");
+            Logger::Log("Iteration (macrostep): ", macro);
 
-            printf("Acceptance ratios: \n");
+            Logger::Log("Acceptances ratios");
             for(auto move : moves){
-                std::cout << move->dump() << std::endl;
+                Logger::Log(move->dump());
             }
             
-            printf("Total energy is: %lf, energy drift: %.15lf\n", state.cummulativeEnergy, state.error);
-            printf("Cations: %i Anions: %i Tot: %i\n", state.particles.cTot, state.particles.aTot, state.particles.tot);
-            printf("Box: %lf (%.15lf * %lf * %lf (%lf))\n", state.geo->volume, state.geo->_d[0], state.geo->_d[1], state.geo->_d[2], state.geo->d[2]);
+            Logger::Log("Total energy is: ", state.cummulativeEnergy, ", energy drift: ", state.error);
+            Logger::Log("Cations: ", state.particles.cTot, " Anions: ", state.particles.aTot, " Tot: ", state.particles.tot);
+            Logger::Log("Box: ", state.geo->volume, " (", state.geo->_d[0] ," * " , state.geo->_d[1], " * ", state.geo->_d[2], " (", state.geo->d[2], ") )");
 
             #ifdef TRACK_MEMORY
-                std::cout << "Total allocated memory: " << allocationData.GetCurrentUsage() << std::endl << std::endl;
+                Logger::Log("Total allocated memory: ", allocationData.GetCurrentUsage());
             #endif
             
             //Check energy drift etc
@@ -334,8 +367,9 @@ class Simulator{
         IO::to_cpt(this->name, state.particles, state.geo->d);
 
         //this->state.close();
-        printf("Energy of last frame: %.15lf\n", this->state.cummulativeEnergy);
-        printf("Simulation Done!\n\n");
+        Logger::Log("Energy of last frame: ", this->state.cummulativeEnergy);
+        Logger::Log("Simulation Done!");
+        printf("\n\n");
     }
 };
 
@@ -387,10 +421,23 @@ int main(){
 #ifdef PY11
 PYBIND11_MODULE(mormon, m) {
     py::enum_<MoveTypes>(m, "MoveTypes")
-        .value("Translate", MoveTypes::Translate)
-        .value("GCSingleAdd", MoveTypes::GCSingleAdd)
-        .value("GCSingleRemove", MoveTypes::GCSingleRemove);
+        .value("TRANSLATE", MoveTypes::TRANSLATE)
+        .value("GCSINGLEADD", MoveTypes::GCSINGLEADD)
+        .value("GCSINGLEREMOVE", MoveTypes::GCSINGLEREMOVE)
+        .value("ROTATE", MoveTypes::ROTATE)
+        .value("SWAP", MoveTypes::SWAP)
+        .value("SINGLESWAP", MoveTypes::SINGLESWAP)
+        .value("VOLUMEMOVE", MoveTypes::VOLUMEMOVE)
+        .value("CHARGETRANS", MoveTypes::CHARGETRANS)
+        .value("CHARGETRANSRAND", MoveTypes::CHARGETRANSRAND)
+        .value("CLUSTER", MoveTypes::CLUSTER)
+        .value("WIDOMINSERTION", MoveTypes::WIDOMINSERTION)
+        .value("WIDOMDELETION", MoveTypes::WIDOMDELETION)
+        .value("GCADD", MoveTypes::GCADD)
+        .value("GCREMOVE", MoveTypes::GCREMOVE)
+        .value("CHARGETRANSLATE", MoveTypes::CHARGETRANSLATE);
 
+    
 
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<double, double, std::string>())

@@ -5,6 +5,7 @@
 #include "geometry.h"
 #include "io.h"
 #include "constants.h"
+#include "logger.h"
 
 namespace Simulator{
 
@@ -28,7 +29,7 @@ class EnergyBase{
 
     void set_cutoff(double cutoff){
         this->cutoff = cutoff;
-        printf("\tEnergy cutoff set to %lf\n", this->cutoff);
+        Logger::Log("\tEnergy cutoff set to ", this->cutoff);
     }
 
 

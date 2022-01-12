@@ -45,7 +45,7 @@ b_min = np.zeros(len(b))
 b_max = np.zeros(len(b))
 sim.state.load_cp(com, pos, charges, r, rf, b, b_min, b_max, names)
 
-sim.add_move(0, [1.0, 0.0]);
+sim.add_move(mr.MoveTypes.TRANSLATE, [1.0, 0.0]);
 
 sim.finalize()
 sim.run(1,    0,     0)

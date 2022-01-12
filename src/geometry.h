@@ -40,7 +40,7 @@ class Cuboid : public Geometry{
         this->dh = {x / 2.0, y / 2.0, z / 2.0};
         this->_dh = dh;
         this->volume = x * y * z;
-        printf("\tVolume: %lf\n", this->volume);
+        Logger::Log("\tVolume: ", this->volume);
     }
 
     void resize(){
@@ -243,8 +243,8 @@ class CuboidImg : public Geometry{
         this->_dh = {this->_d[0] / 2.0, this->_d[1] / 2.0, this->_d[2] / 2.0};
 
         this->volume = x * y * z;
-        printf("\tBox dimensions: %.3lf, %.3lf, %.3lf\n", this->_d[0], this->_d[1], this->_d[2]);
-        printf("\tVolume %.3lf\n", this->volume);
+        Logger::Log("\tBox dimensions: ", this->_d[0], this->_d[1], this->_d[2]);
+        Logger::Log("\tVolume ", this->volume);
     }
 
     void resize(){}
