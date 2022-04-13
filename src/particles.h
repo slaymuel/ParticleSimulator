@@ -430,9 +430,12 @@ class Particles{
                          this->add(com, this->nModel.r, this->nModel.rf, this->nModel.q, this->nModel.b_min, this->nModel.b_max, "Cl");
         }
 
-        printf("\nCreated %i cations and %i anions\n", pNum, nNum);
+        printf("\n");
+        Logger::Log("Created ", pNum, " cations and ", nNum, " anions");
+        printf("\n");
         for(auto val : params){
-            printf("\t %s, %lf\n", val.first.c_str(), val.second);
+            Logger::Log("\t", val.first.c_str(), " ", val.second);
+            printf("\n");
         }
 
         if(params.size() != 10){
