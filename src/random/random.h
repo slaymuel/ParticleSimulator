@@ -2,7 +2,7 @@
 
 #include <Eigen/Dense>
 #include <vector>
-
+#include <memory>
 #include "ran2_lib.h"
 #include <iostream>
 #include <fstream>

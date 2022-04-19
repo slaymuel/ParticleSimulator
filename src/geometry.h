@@ -3,6 +3,7 @@
 #include <vector>
 #include <Eigen/Dense>
 #include "particle.h"
+#include "logger.h"
 
 namespace Simulator{
 

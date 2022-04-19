@@ -16,6 +16,26 @@ endif()
 
 pybind11_add_module(mormon)
 
+if(APPLE)
+	target_compile_options(
+		mormon
+			PRIVATE
+		-std=c++20
+			-O3
+			-ffast-math
+		-march=native
+		-D_DEBUG_
+		-DTIMERS
+		-Wall
+	)
+	target_link_options(
+		mormon
+		PRIVATE
+		-lstdc++
+		-O3
+		-ffast-math
+	)
+else()
 target_compile_options(
 	mormon
         PRIVATE
@@ -26,6 +46,7 @@ target_compile_options(
 	-D_DEBUG_
 	-DTIMERS
 	-Wall
+	-fopenmp=libomp
 )
 target_link_options(
 	mormon
@@ -33,7 +54,10 @@ target_link_options(
 	-lstdc++
 	-O3
 	-ffast-math
+	-fopenmp=libomp
 )
+endif()
+
 
 add_definitions(-DPY11)
 
