@@ -20,6 +20,10 @@ target_link_options(
 	-ffast-math
 	)
 
-target_link_libraries(random 
-                    PRIVATE 
-                    Eigen3::Eigen)
+if(APPLE)
+	target_link_libraries(
+		random 
+		PRIVATE 
+		Eigen3::Eigen
+	)
+endif()

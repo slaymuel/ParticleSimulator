@@ -30,12 +30,24 @@ add_subdirectory(src)
 add_subdirectory(lib/Catch2)
 
 add_executable(particles_test tests/particles_test.cpp)
-target_link_libraries(particles_test 
-                      PRIVATE
-                      Eigen3::Eigen
-                      Catch2::Catch2WithMain
-                      random
-                      )
+
+if(APPLE)
+  target_link_libraries(
+    particles_test 
+    PRIVATE
+    Eigen3::Eigen
+    Catch2::Catch2WithMain
+    random
+  )
+else()
+  target_link_libraries(
+    particles_test 
+    PRIVATE
+    Catch2::Catch2WithMain
+    random
+  )
+endif()
+
 #target_link_options(particles_test
 #                    PRIVATE
 #                    -force_load Catch2)
@@ -51,11 +63,22 @@ catch_discover_tests(particles_test
 
 #################################       INTEGRATION TESTS    ##################################
 add_executable(ran2_test ${CMAKE_CURRENT_LIST_DIR}/tests/ran2_test.cpp)
+if(APPLE)
+  target_link_libraries(
+    ran2_test 
+    PRIVATE
+    random
+    Eigen3::Eigen
+  )
+else()
+  target_link_libraries(
+    ran2_test 
+    PRIVATE
+    random
+  )
+endif()
 
-target_link_libraries(ran2_test 
-                    PRIVATE
-                    random
-                    Eigen3::Eigen)
+
 
 add_test(
 	NAME python_ewald3d_energy_test

@@ -2,7 +2,6 @@
 
 #define UNUSED(x) (void)(x)
 
-#include "logger.h"
 #include "aux_math.h"
 #include "geometry.h"
 #include "energy.h"
@@ -40,7 +39,7 @@ class State{
         #ifdef _DEBUG_
         Logger::Log<Logger::LogLevel::DEBUG>("Control (DEBUG)");
         #else
-        printf("Control\n");
+        Logger::Log("Control\n");
         #endif
         
         this->energy = 0.0;
@@ -299,7 +298,7 @@ class State{
 
     void equilibrate(double step){
         printf("\n");
-        Logger.Log("Equilibrating:");
+        Logger::Log("Equilibrating:");
         Eigen::Vector3d v;
         
         // Initial Check
@@ -774,7 +773,7 @@ class State{
                 Logger::Log("Adding Long range Ewald with vacuum slabs and excplicit wall charges");
                 assert(args.size() == 6);
 
-                printf("\tAdding vacuum slabs of thickness: %lf on each side of the box.\n", args[1]);
+                Logger::Log("\tAdding vacuum slabs of thickness: ", args[1], " on each side of the box.\n");
                 this->geo->d[2] = 2.0 * args[1] + this->geo->_d[2];
                 this->geo->dh[2] = 0.5 * this->geo->d[2]; 
                 this->_old->geo->d[2] = this->geo->d[2];
@@ -849,10 +848,10 @@ class State{
 
         }
         if(!this->particles.setPModel || !this->particles.setNModel){
-            printf("Cation or anion model not set!\n");
+            Logger::Log("Cation or anion model not set!\n");
             exit(1);
         }
-        printf("Loaded %u particles, %u cations and %u anions.\n", this->particles.tot, this->particles.cTot, this->particles.aTot);
+        Logger::Log("Loaded ", this->particles.tot, " particles, ", this->particles.cTot, " cations and ", this->particles.aTot, " anions.\n");
     }
 };
 

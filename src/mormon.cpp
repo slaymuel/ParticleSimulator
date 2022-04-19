@@ -19,7 +19,6 @@
 #endif
 
 #include "pch.h"
-#include "logger.h"
 #include "random/random.h"
 #include "particles.h"
 #include "state.h"
@@ -150,7 +149,7 @@ class Simulator{
                 moves.push_back(new ChargeTranslate(args[0], args[1]));
                 break;
             default:
-                printf("Could not find move %i\n", i);
+                Logger::Log("Could not find move ", i, "\n");
                 break;
         }
     }
@@ -158,68 +157,68 @@ class Simulator{
     void add_sampler(int i, int interval, double ds = 0.05){
         switch(i){
             case 0:
-                printf("\nAdding z density sampler\n");
+                Logger::Log("\nAdding z density sampler\n");
                 sampler.push_back(new Samplers::Density(2, this->state.geo->_d[2], ds, 
                                               this->state.geo->d[0], this->state.geo->d[1], interval, this->name));
                 break;
             case 1:
-                printf("Adding Widom HS-CP sampler\n");
+                Logger::Log("Adding Widom HS-CP sampler\n");
                 sampler.push_back(new Samplers::WidomHS(interval, this->name));
                 break;
 
             case 2:
-                printf("Adding energy sampler\n");
+                Logger::Log("Adding energy sampler\n");
                 sampler.push_back(new Samplers::Energy(interval, this->name));
                 break;
 
             case 3:
-                printf("Adding charge distribution sampler\n");
+                Logger::Log("Adding charge distribution sampler\n");
                 sampler.push_back(new Samplers::QDist(4, ds, interval, this->name));
                 break;
             case 4:
-                printf("Adding XDR trajectory sampler\n");
+                Logger::Log("Adding XDR trajectory sampler\n");
                 sampler.push_back(new Samplers::XDR(interval, this->name));
                 break;
             case 5:
-                printf("Adding number of ions sampler\n");
+                Logger::Log("Adding number of ions sampler\n");
                 sampler.push_back(new Samplers::NumIons(interval, this->name));
                 break;
             case 6:
-                printf("\nAdding x density sampler\n");
+                Logger::Log("\nAdding x density sampler\n");
                 sampler.push_back(new Samplers::Density(0, this->state.geo->_d[0], ds, 
                                               this->state.geo->d[1], this->state.geo->d[2], interval, this->name));
                 break;
             case 7:
-                printf("\nAdding y density sampler\n");
+                Logger::Log("\nAdding y density sampler\n");
                 sampler.push_back(new Samplers::Density(1, this->state.geo->_d[1], ds, 
                                               this->state.geo->d[0], this->state.geo->d[2], interval, this->name));
                 break;
             case 8:
-                printf("\nAdding virial pressure sampler\n");
+                Logger::Log("\nAdding virial pressure sampler\n");
                 sampler.push_back(new Samplers::Pressure(interval, this->state.geo->volume, this->state.geo->dh[2], this->name));
                 break;
             case 9:
-                printf("\nAdding pressureV sampler\n");
+                Logger::Log("\nAdding pressureV sampler\n");
                 sampler.push_back(new Samplers::PressureV(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->state.geo->_d[2], this->name));
                 break;
             case 10:
-                printf("\nAdding ForcePressure sampler\n");
+                Logger::Log("\nAdding ForcePressure sampler\n");
                 sampler.push_back(new Samplers::ForcePressure(interval, this->state.geo->volume, this->state.geo->dh[2], this->name));
                 break;
             case 11:
-                printf("\nAdding Force sampler\n");
+                Logger::Log("\nAdding Force sampler\n");
                 sampler.push_back(new Samplers::Force(interval, this->name));
                 break;
             case 12:
-                printf("\nAdding Cliff pressure sampler\n");
+                Logger::Log("\nAdding Cliff pressure sampler\n");
                 sampler.push_back(new Samplers::CliffPressure(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->name));
                 break;
             case 13:
-                printf("\nAdding Modified Widom sampler\n");
+                Logger::Log("\nAdding Modified Widom sampler\n");
                 sampler.push_back(new Samplers::ModifiedWidom(interval, this->name));
                 break;
             case 14:
-                printf("\nAdding Modified Widom Coulomb sampler\n");
+                Logger::Log("\nAdding Modified Widom Coulomb sampler\n");
                 sampler.push_back(new Samplers::ModifiedWidomCoulomb(interval, this->name));
                 break;
             default:

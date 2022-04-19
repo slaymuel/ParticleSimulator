@@ -8,3 +8,4 @@
 #include <functional>
 #include <chrono>
 #include <assert.h>
+#include "logger.h"

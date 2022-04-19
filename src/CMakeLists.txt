@@ -39,6 +39,11 @@ target_sources(
 target_include_directories(mormon
 			PRIVATE
 			${CMAKE_SOURCE_DIR}/src)
+
+if(${CMAKE_VERSION} VERSION_LESS "3.16.0") 
+	message("NOT using precompiled header, CMAKE version too old (< 3.16)")
+endif()
+
 target_precompile_headers(
 			mormon
 			PRIVATE
@@ -48,13 +53,24 @@ include(FortranCInterface)
 FortranCInterface_VERIFY(CXX)
 
 
+if(APPLE)
+	target_link_libraries(
+		mormon
+		PRIVATE
+		OpenMP::OpenMP_CXX
+		Eigen3::Eigen
+		xdr
+		random
+		fmt::fmt
+	)
+else()
+	target_link_libraries(
+		mormon
+		PRIVATE
+		OpenMP::OpenMP_CXX
+		xdr
+		random
+		fmt::fmt
+	)
+endif()
 
-target_link_libraries(
-    mormon
-    PRIVATE
-    OpenMP::OpenMP_CXX
-    Eigen3::Eigen
-    xdr
-    random
-    fmt::fmt
-)

@@ -44,7 +44,7 @@ namespace math{
     }
 
     //Quaternion multiplication
-    template <typename T>
+/*    template <typename T>
     inline Eigen::Vector4d q_mul(T& q1, T& q2){
         Eigen::Vector4d v(  -q1[1]*q2[1] - q1[2]*q2[2] - q1[3]*q2[3] + q1[0]*q2[0],
                              q1[1]*q2[0] + q1[2]*q2[3] - q1[3]*q2[2] + q1[0]*q2[1],
@@ -68,6 +68,7 @@ namespace math{
         //T v(Map<T>(t.data(), t.cols()*t.rows()));
         return t * v1.colwise().homogeneous();
     }
+*/
 }
 
 }

@@ -2,8 +2,8 @@
 
 #include <tuple>
 #include <map>
-
 #include "particle.h"
+#include "logger.h"
 
 namespace Simulator{
 

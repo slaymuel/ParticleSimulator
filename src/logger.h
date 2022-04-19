@@ -1,7 +1,8 @@
 #pragma once
 
-#include <fmt/core.h>
-#include <fmt/color.h>
+#include <iostream>
+#include "../lib/fmt/include/fmt/core.h"
+#include "../lib/fmt/include/fmt/color.h"
 
 namespace Logger{
     namespace LogLevel{

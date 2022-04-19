@@ -988,6 +988,14 @@ class ImgEnergy : public EnergyBase{
            }
         }
 
+        for(int i = 0; i < p.size(); i++){
+            Eigen::Vector3d temp = particles[p[i]]->pos;
+            temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
+            for(int j = i + 1; j < p.size(); j++){
+                e -= i2i(-particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(temp, particles[p[j]]->pos));
+            }
+        }
+
         return e * constants::lB;
     }
 
@@ -1003,7 +1011,13 @@ class ImgEnergy : public EnergyBase{
                e -= i2i(particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
            }
         }
-
+        for(int i = 0; i < p.size(); i++){
+            Eigen::Vector3d temp = particles[p[i]]->pos;
+            temp[2] = math::sgn(temp[2]) * this->geo->dh[2] - temp[2]; 
+            for(int j = i + 1; j < p.size(); j++){
+                e -= i2i(-particles[p[i]]->q, particles[p[j]]->q, this->geo->distance(temp, particles[p[j]]->pos));
+            }
+        }
         return e * constants::lB;
     }
 

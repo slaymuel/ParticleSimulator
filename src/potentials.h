@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Faddeeva.h"
+#include "logger.h"
 
 /*
 #pragma omp declare reduction(vec_double_plus : std::vector<std::complex<double>> : \
@@ -67,7 +68,7 @@ class LJST{
         this->shift = 0.0;
         this->k = k;
         this->shift = (*this)(1.0, 1.0, R);
-        printf("\tShift: %lf", this->shift);
+        Logger::Log("\tShift: ", this->shift);
     }
 
     inline double operator()(const double& q1, const double& q2, const double& dist){
@@ -208,7 +209,7 @@ class Harmonic{
     public:
     void set_k(double k, double R){
         this->k = k;
-        printf("\tForce constant is (k): %lf\n", this->k);
+        Logger::Log("\tForce constant is (k): ", this->k, "\n");
     }
 
     inline double operator()(const double& R, const double& dist){
@@ -232,7 +233,7 @@ class FENE{
     void set_k(double k, double R){
         this->k = k;
         this->Rsq = R * R;
-        printf("\tForce constant is (k): %lf, R is: %lf\n", this->k, R);
+        Logger::Log("\tForce constant is (k): ", this->k, " R is: ", R, "\n");
     }
 
     inline double operator()(const double& R, const double& dist){
@@ -590,7 +591,7 @@ namespace EwaldLike{
                 return 0.0;
             }
             else if(dist < 1e-6){
-                printf("Distance is 0\n");
+                Logger::Log<Logger::LogLevel::FATAL>("Distance is 0\n");
                 exit(0);
             }
             else{
@@ -641,8 +642,8 @@ namespace EwaldLike{
             double k2 = 0;
 
 
-            printf("Setting up truncated ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+            Logger::Log("Setting up truncated ewald\n");
+            Logger::Log("\tWavevectors in x, y, z: ", kM[0], kM[1], kM[2], "\n");
 
             //get k-vectors
             double factor = 1;
@@ -680,8 +681,8 @@ namespace EwaldLike{
                 }
             }
 
-            printf("\tFound: %lu k-vectors\n", kVec.size());
-            printf("\tAlpha is set to: %lf\n", alpha);
+            Logger::Log("\tFound: ", kVec.size()," k-vectors\n");
+            Logger::Log("\tAlpha is set to: ", alpha, "\n");
             //Calculate norms
             for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
@@ -711,7 +712,7 @@ namespace EwaldLike{
             this->selfTerm /= 1.0 - math::erfc_x(eta) - 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
             //this->selfTerm /= (1.0 - math::erfc_x(R / (std::sqrt(2.0) * alpha)) - std::sqrt(2.0) * R * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha)) * (std::sqrt(constants::PI) * alpha) * 2.0;
             //this->selfTerm *= alpha / sqrt(constants::PI);
-            printf("\tEwald initialization Complete\n");
+            Logger::Log("\tEwald initialization Complete\n");
         }
 
 
@@ -827,8 +828,8 @@ namespace EwaldLike{
                     _Ak = Ak(k);
                     energy += std::norm(this->rkVec[k]) * _Ak.real() * 1.0 / (kNorm[k] * kNorm[k]);//this->resFac[k];
                     if(std::fabs(_Ak.imag()) > 1E-12){
-                        printf("Imaginary is too large! \n");
-                        printf("%lf\n", std::fabs(_Ak.imag()));
+                        Logger::Log("Imaginary is too large! \n");
+                        Logger::Log(std::fabs(_Ak.imag()), "\n");
                         exit(0);
                     }
             }
@@ -1983,8 +1984,8 @@ namespace EwaldLike{
         void initialize(Particles &particles){
             double k2 = 0;
             //int zMax = (int) (this->zb / this->xb * kMax);
-            printf("Setting up ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+            Logger::Log("Setting up ewald\n");
+            Logger::Log("\tWavevectors in x, y, z: ", kM[0], kM[1], kM[2], "\n");
 
             //get k-vectors
             double factor = 1;
@@ -2179,15 +2180,15 @@ namespace EwaldLike{
         void initialize(const Particles &particles){
             double k2 = 0;
 
-            printf("Setting up ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+            Logger::Log("Setting up ewald\n");
+            Logger::Log("\tWavevectors in x, y, z: ", kM[0], kM[1], kM[2], "\n");
 
             this->kVec.clear();
             this->resFac.clear();
             this->kNorm.clear();
             this->rkVec.clear();
             if(!this->rkVec.empty()){
-                printf("rkVec is not empty!\n");
+                Logger::Log("rkVec is not empty!\n");
                 exit(0);
             }
             this->selfTerm = 0.0;
@@ -2219,8 +2220,8 @@ namespace EwaldLike{
                 }
             }
 
-            printf("\tFound: %lu k-vectors\n", kVec.size());
-            printf("\tAlpha is set to: %lf\n", alpha);
+            Logger::Log("\tFound: ", kVec.size(), " k-vectors.");
+            Logger::Log("\tAlpha is set to: ", alpha, "\n");
             //Calculate norms
             for(unsigned int i = 0; i < kVec.size(); i++){
                 this->kNorm.push_back(math::norm(kVec[i]));
@@ -2259,8 +2260,8 @@ namespace EwaldLike{
             }
 
             this->selfTerm *= alpha / std::sqrt(constants::PI); //   *2.0 due to images
-            printf("\tSelfterm is: %lf\n", this->selfTerm);
-            printf("\tEwald initialization Complete\n");
+            Logger::Log("\tSelfterm is: ", this->selfTerm, "\n");
+            Logger::Log("\tEwald initialization Complete\n");
         }
 
         inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
@@ -2389,8 +2390,8 @@ namespace EwaldLike{
             //double c0 = cR / (cL * 2.0 * constants::PI);
             double c0 = (alpha * this->xb) / (2.0 * constants::PI);
 
-            printf("Setting up ewald\n");
-            printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
+            Logger::Log("Setting up ewald\n");
+            Logger::Log("\tWavevectors in x, y, z: ", kM[0], kM[1], kM[2], "\n");
 
             //get k-vectors
             double factor = 1;
