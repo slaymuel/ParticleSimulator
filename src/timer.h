@@ -8,7 +8,7 @@ namespace Simulator{
 
     struct Timer{
         private:
-        std::chrono::steady_clock::time_point start;
+        std::chrono::high_resolution_clock::time_point start;
         //std::source_location location;
         std::string location;
 
@@ -25,5 +25,4 @@ namespace Simulator{
             Logger::Log(location, " took ", duration.count(), "s");
         }
     };
-
 }
