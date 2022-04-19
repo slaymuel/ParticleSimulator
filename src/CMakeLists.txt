@@ -51,12 +51,15 @@ target_include_directories(mormon
 
 if(${CMAKE_VERSION} VERSION_LESS "3.16.0") 
 	message("NOT using precompiled header, CMAKE version too old (< 3.16)")
+else()
+	target_precompile_headers(
+		mormon
+		PRIVATE
+		pch.h
+	)
 endif()
 
-target_precompile_headers(
-			mormon
-			PRIVATE
-			pch.h)
+
 
 include(FortranCInterface)
 FortranCInterface_VERIFY(CXX)
