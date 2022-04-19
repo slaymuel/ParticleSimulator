@@ -25,7 +25,7 @@ if(APPLE)
 			-ffast-math
 		-march=native
 		-D_DEBUG_
-		-DTIMERS
+		-D_TIMERS_
 		-Wall
 	)
 	target_link_options(
@@ -44,7 +44,7 @@ target_compile_options(
         -ffast-math
 	-march=native
 	-D_DEBUG_
-	-DTIMERS
+	-D_TIMERS_
 	-Wall
 )
 target_link_options(
@@ -102,7 +102,6 @@ else()
 	target_link_libraries(
 		mormon
 		PRIVATE
-		OpenMP::OpenMP_CXX
 		xdr
 		random
 		fmt::fmt
