@@ -5,7 +5,9 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 project(mormon LANGUAGES CXX C Fortran)
 
 set(CMAKE_CXX_STANDARD 20)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+if(APPLE)
+  find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+endif()
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
 find_package(OpenMP REQUIRED COMPONENTS CXX)
 
