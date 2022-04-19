@@ -8,7 +8,7 @@
     namespace py = pybind11;
 #endif
 
-#ifdef TIMERS
+#ifdef _TIMERS_
     #define TIMEIT Timer timer(__FUNCTION__);
 #else
     #define TIMEIT;
@@ -300,7 +300,9 @@ char* mumin =
         Logger::Log("Running Simulation at: ", constants::T, "K", " with ", state.particles.particles.size(), " particles (", state.particles.cTot, " cations and ", state.particles.aTot, " anions)");
 
         for(unsigned int macro = 0; macro < macroSteps; macro++){
-            TIMEIT;
+            #ifdef _TIMERS_
+                TIMEIT;
+            #endif
             for(unsigned int micro = 0; micro <= microSteps; micro++){
                 wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
                 (*moves[wIt - mWeights.begin()])();

@@ -39,14 +39,13 @@ else()
 target_compile_options(
 	mormon
         PRIVATE
-	-std=c++20
+	-std=c++2a
         -O3
         -ffast-math
 	-march=native
 	-D_DEBUG_
 	-DTIMERS
 	-Wall
-	-fopenmp=libomp
 )
 target_link_options(
 	mormon
