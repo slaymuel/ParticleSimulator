@@ -6,7 +6,7 @@ FetchContent_Declare(pybind11
 
 if(${CMAKE_VERSION} VERSION_LESS "3.14.0") 
 	FetchContent_MakeAvailable(pybind11)
-else
+else()
 	FetchContent_GetProperties(pybind11)
 	if(NOT pybind11_POPULATED)
 		FetchContent_Populate(pybind11)
