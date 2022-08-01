@@ -82,6 +82,5 @@ def load_cp(fileName):
 MIT
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
-
-    [pybind11]: <https://github.com/pybind/pybind11>
-    [OpenMP]: <https://www.openmp.org/>
+ [pybind11]: <https://github.com/pybind/pybind11>
+ [OpenMP]: <https://www.openmp.org/>
