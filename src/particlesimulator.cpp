@@ -245,57 +245,6 @@ class Simulator{
     }
 
     void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps){
-/*
-char* snusmumrik = 
-"
-          .-.\n
-       __/   (\n
-     , '-.____\\\n
-      u=='/  \\\n
-         /_/  \\\n
-       .-''   |\n
-      (  ____/_____\n
-      _>_/.--------\n
-      \\///\n
-       //\n
-snd   //\n
-"
-char* mumin = 
-"
-                 /|  /|
-                J(|_J(|
-               /    _  `_
-              J    \' _ \' \
-              F     (.) (.)--._
-             /                 `.
-            J                   |
-            F       ._         .\'
-           J          `-.____.\'
-           F           \\
-          J             \\.
-          |   .  `.      \\
- ,,,      |    `.  `.     L`
-\\VVV\'     |      `.  `    |`
- \\W|      J        ```    |
-  `.    .\' \\              F
-    `--\'    )    ___..-   (  .-
-           /   .\'     `.   `\' /
-           `.  \\        `.   /
-             `._|         `-\'   TJ/mh/TVK
-"
-*/
-        printf("            +\n"                                            
-               "           (|)\n"
-               " _____.___.|_|.\n"                                      
-               "|    / \\  |===|\n"                                           
-               "|   /   \\ | o |               MORMONS\n"                                           
-               "|__/__v__\\|, ,|    MOleculaR MOdelliNg Software\n"                                           
-               "| | | | | || ||   -----------------------------\n"   
-               "|/| . . . |','|\n"                                           
-               "||| A A A | , |\n"                                           
-               "||| M M M |   |\n"                                       
-               "---------------\n\n");
-
         Logger::Log("Bjerrum length is: ", constants::lB);
         Logger::Log("Running Simulation at: ", constants::T, "K", " with ", state.particles.particles.size(), " particles (", state.particles.cTot, " cations and ", state.particles.aTot, " anions)");
 
@@ -347,14 +296,7 @@ char* mumin =
             //Check energy drift etc
             state.control();
             state.advance();
-            //1. Lista/vektor med olika input som de olika samplingsmetoderna behöver
-            //2. sampler kan på något sätt efterfråga input, text genom att sätta en variabel
-            //   Sen kan simulator ha en map och leta på den variabeln
 
-            //for(auto s : sampler){
-            //    s.sample(??????);
-            //    s.sample(s.arguments);
-            //}
             for(auto s : sampler){
                 s->save();
             }
@@ -420,7 +362,7 @@ int main(){
 #endif
 
 #ifdef PY11
-PYBIND11_MODULE(mormon, m) {
+PYBIND11_MODULE(particlesimulator, m) {
     py::enum_<MoveTypes>(m, "MoveTypes")
         .value("TRANSLATE", MoveTypes::TRANSLATE)
         .value("GCSINGLEADD", MoveTypes::GCSINGLEADD)

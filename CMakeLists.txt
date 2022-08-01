@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR)
 
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 
-project(mormon LANGUAGES CXX C Fortran)
+project(particlesimulator LANGUAGES CXX C Fortran)
 
 set(CMAKE_CXX_STANDARD 20)
 if(APPLE)

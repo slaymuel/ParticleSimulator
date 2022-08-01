@@ -14,11 +14,11 @@ else()
 	FetchContent_MakeAvailable(pybind11)
 endif()
 
-pybind11_add_module(mormon)
+pybind11_add_module(particlesimulator)
 
 if(APPLE)
 	target_compile_options(
-		mormon
+		particlesimulator
 			PRIVATE
 		-std=c++20
 			-O3
@@ -29,7 +29,7 @@ if(APPLE)
 		-Wall
 	)
 	target_link_options(
-		mormon
+		particlesimulator
 		PRIVATE
 		-lstdc++
 		-O3
@@ -37,7 +37,7 @@ if(APPLE)
 	)
 else()
 target_compile_options(
-	mormon
+	particlesimulator
         PRIVATE
 	-std=c++2a
         -O3
@@ -48,7 +48,7 @@ target_compile_options(
 	-Wall
 )
 target_link_options(
-	mormon
+	particlesimulator
 	PRIVATE
 	-lstdc++
 	-O3
@@ -61,14 +61,14 @@ endif()
 add_definitions(-DPY11)
 
 target_sources(
-	mormon
+	particlesimulator
 	PRIVATE
 	io.cpp
 	sampler.cpp
 	Faddeeva.cpp
-	mormon.cpp
+	particlesimulator.cpp
 )
-target_include_directories(mormon
+target_include_directories(particlesimulator
 			PRIVATE
 			${CMAKE_SOURCE_DIR}/src)
 
@@ -76,7 +76,7 @@ if(${CMAKE_VERSION} VERSION_LESS "3.16.0")
 	message("NOT using precompiled header, CMAKE version too old (< 3.16)")
 else()
 	target_precompile_headers(
-		mormon
+		particlesimulator
 		PRIVATE
 		pch.h
 	)
@@ -90,7 +90,7 @@ FortranCInterface_VERIFY(CXX)
 
 if(APPLE)
 	target_link_libraries(
-		mormon
+		particlesimulator
 		PRIVATE
 		OpenMP::OpenMP_CXX
 		Eigen3::Eigen
@@ -100,7 +100,7 @@ if(APPLE)
 	)
 else()
 	target_link_libraries(
-		mormon
+		particlesimulator
 		PRIVATE
 		xdr
 		random
