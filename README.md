@@ -3,7 +3,7 @@ ParticleSimulator simulates simple particles in bulk and close to flat surfaces.
 
 ## Features
 
-- Simulate simple particles using Markoc Chain Monte Carlo (MCMC)
+- Simulate simple particles using Markov Chain Monte Carlo (MCMC)
 - Support for several thermodynamic ensembles (NVT, NPT and μVT)
 - Simulate particles confined by infinitely conducting surfaces
 - Several different analysis types
