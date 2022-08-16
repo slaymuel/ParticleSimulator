@@ -3,8 +3,100 @@
 
 namespace Simulator{
 
+namespace Samplers{
 
-void Samplers::Density::sample(State& state){
+int SamplerBase::getInterval(){ return this->interval; }
+
+//void Samplers::SamplerBase::addSampler(int i, int interval, double ds = 0.05){
+std::unique_ptr<SamplerBase> SamplerBase::createSampler(SamplerTypes sampler_type, std::vector<double> args){
+        /*switch(sampler_type){
+            case SamplerTypes::DENSITY_Z:
+                Logger::Log("\nAdding z density sampler\n");
+                return std::make_unique<Density>(2, this->state.geo->_d[2], ds, 
+                                              this->state.geo->d[0], this->state.geo->d[1], interval, this->name);
+                break;
+            case SamplerTypes::WIDOMHS:
+                Logger::Log("Adding Widom HS-CP sampler\n");
+                sampler.push_back(new WidomHS(interval, this->name));
+                break;
+
+            case SamplerTypes::ENERGY:
+                Logger::Log("Adding energy sampler\n");
+                return std::make_unique<Energy>(interval, this->name);
+                break;
+
+            case SamplerTypes::QDIST:
+                Logger::Log("Adding charge distribution sampler\n");
+                return std::make_unique<QDist>(4, ds, interval, this->name);
+                break;
+            case SamplerTypes::XDR:
+                Logger::Log("Adding XDR trajectory sampler\n");
+                return std::make_unique<XDR>(interval, this->name);
+                break;
+            case SamplerTypes::NUMIONS:
+                Logger::Log("Adding number of ions sampler\n");
+                return std::make_unique<NumIons>(interval, this->name);
+                break;
+            case SamplerTypes::DENSITY_X:
+                Logger::Log("\nAdding x density sampler\n");
+                return std::make_unique<Density>(0, this->state.geo->_d[0], ds, 
+                                              this->state.geo->d[1], this->state.geo->d[2], interval, this->name);
+                break;
+            case SamplerTypes::DENSITY_Y:
+                Logger::Log("\nAdding y density sampler\n");
+                return std::make_unique<Density>(1, this->state.geo->_d[1], ds, 
+                                              this->state.geo->d[0], this->state.geo->d[2], interval, this->name);
+                break;
+            case SamplerTypes::PRESSURE:
+                Logger::Log("\nAdding virial pressure sampler\n");
+                return std::make_unique<Pressure>(interval, this->state.geo->volume, this->state.geo->dh[2], this->name);
+                break;
+            case SamplerTypes::PRESSUREV:
+                Logger::Log("\nAdding pressureV sampler\n");
+                return std::make_unique<PressureV>(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->state.geo->_d[2], this->name);
+                break;
+            case SamplerTypes::FORCEPRESSURE:
+                Logger::Log("\nAdding ForcePressure sampler\n");
+                return std::make_unique<ForcePressure>(interval, this->state.geo->volume, this->state.geo->dh[2], this->name);
+                break;
+            case SamplerTypes::FORCE:
+                Logger::Log("\nAdding Force sampler\n");
+                return std::make_unique<Force>(interval, this->name);
+                break;
+            case SamplerTypes::CLIFFPRESSURE:
+                Logger::Log("\nAdding Cliff pressure sampler\n");
+                return std::make_unique<CliffPressure>(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->name);
+                break;
+            case SamplerTypes::MODIFIEDWIDOM:
+                Logger::Log("\nAdding Modified Widom sampler\n");
+                return std::make_unique<ModifiedWidom>(interval, this->name);
+                break;
+            case SamplerTypes::MODIFIEDWIDOMCOULOMB:
+                Logger::Log("\nAdding Modified Widom Coulomb sampler\n");
+                return std::make_unique<ModifiedWidomCoulomb>(interval, this->name);
+                break;
+            default:
+                Logger::Log("Invalid sampler");
+                break;
+        }*/
+}
+
+Density::Density(int d, double dl, double binWidth, double xb, double yb, int interval, std::string filename) : SamplerBase(interval){
+    this->binWidth = binWidth;
+    this->bins = dl / binWidth;
+    this->pDens.resize(this->bins, 0);
+    this->nDens.resize(this->bins, 0);
+    this->d = d;    //Which dimension to sample
+    this->dh = dl / 2.0;
+    this->xb = xb;
+    this->yb = yb;
+    this->filename = filename;
+    if(d == 0) this->dim = "x";
+    if(d == 1) this->dim = "y";
+    if(d == 2) this->dim = "z";
+}
+
+void Density::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
         //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
         if(state.particles.particles[i]->q > 0){
@@ -18,7 +110,7 @@ void Samplers::Density::sample(State& state){
     this->samples++;
 }
 
-void Samplers::Density::save(){
+void Density::save(){
     std::ofstream f ("p" + dim + "_" + this->filename + ".txt");
     if (f.is_open())
     {
@@ -42,7 +134,7 @@ void Samplers::Density::save(){
     else std::cout << "Unable to open file";
 }
 
-void Samplers::Density::close(){};
+void Density::close(){};
 
 
 
@@ -52,11 +144,11 @@ void Samplers::Density::close(){};
 
 
 
-void Samplers::Energy::sample(State &state){
+void Energy::sample(State &state){
     energies.push_back(state.cummulativeEnergy);
 }
 
-void Samplers::Energy::save(){
+void Energy::save(){
     std::ofstream f (this->filename);
     if (f.is_open()){
         for(const auto& e : energies){
@@ -67,7 +159,7 @@ void Samplers::Energy::save(){
     else std::cout << "Unable to open file";
 }
 
-void Samplers::Energy::close(){};
+void Energy::close(){};
 
 
 
@@ -79,7 +171,7 @@ void Samplers::Energy::close(){};
 
 
 
-void Samplers::WidomHS::sample(State& state){
+void WidomHS::sample(State& state){
     Eigen::Vector3d com = state.geo->random_pos(2.5);
     Eigen::Vector3d qDisp;
     qDisp << 0.0, 0.0, 0.0;
@@ -97,7 +189,7 @@ void Samplers::WidomHS::sample(State& state){
     //printf("cp: %lf\n\n", this->cp);
 }
 
-void Samplers::WidomHS::save(){
+void WidomHS::save(){
     std::ofstream f (this->filename);
     if (f.is_open()){
         f << std::fixed << std::setprecision(10) << "Hard-sphere chemical potential: " << -std::log(this->cp / this->samples)  << "\n";
@@ -106,14 +198,14 @@ void Samplers::WidomHS::save(){
     else std::cout << "Unable to open file";
 }
 
-void Samplers::WidomHS::close(){};
+void WidomHS::close(){};
 
 
 
 
 
 
-void Samplers::QDist::sample(State& state){
+void QDist::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
         int index = (int)((state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com)) / this->binWidth);
         if(state.particles.particles[i]->q > 0.0){
@@ -127,7 +219,7 @@ void Samplers::QDist::sample(State& state){
     this->samples++;
 }
 
-void Samplers::QDist::save(){
+void QDist::save(){
     std::ofstream pf ("pqDist_" + this->filename + ".txt");
     if (pf.is_open())
     {
@@ -151,7 +243,7 @@ void Samplers::QDist::save(){
     else std::cout << "Unable to open file";
 }
 
-void Samplers::QDist::close(){};
+void QDist::close(){};
 
 
 
@@ -161,13 +253,13 @@ void Samplers::QDist::close(){};
 
 
 
-void Samplers::XDR::save(){};
+void XDR::save(){};
 
-void Samplers::XDR::close(){
+void XDR::close(){
     xdrfile_close(xdf);
 }
 
-void Samplers::XDR::sample(State& state){
+void XDR::sample(State& state){
     matrix box;
     box[0][0] = state.geo->_d[0];
     box[0][1] = 0.0;
@@ -206,12 +298,12 @@ void Samplers::XDR::sample(State& state){
 
 
 
-void Samplers::NumIons::sample(State& state){
+void NumIons::sample(State& state){
     this->pNum.push_back(state.particles.cTot);
     this->nNum.push_back(state.particles.aTot);
 }
 
-void Samplers::NumIons::save(){
+void NumIons::save(){
     std::ofstream f ("pNum_" + this->filename + ".txt");
     if (f.is_open())
     {
@@ -233,14 +325,14 @@ void Samplers::NumIons::save(){
     else std::cout << "Unable to open file";
 }
 
-void Samplers::NumIons::close(){};
+void NumIons::close(){};
 
 
 
 
 
 
-void Samplers::Pressure::sample(State& state){
+void Pressure::sample(State& state){
     Eigen::Vector3d force;
     Eigen::Vector3d disp;
     Eigen::Vector3d temp;
@@ -293,7 +385,7 @@ void Samplers::Pressure::sample(State& state){
     counter++;
 }
 
-void Samplers::Pressure::save(){
+void Pressure::save(){
     printf("Ideal pressure: %lf\n", idP / this->samples);
     std::cout << "Pressure tensor:" << std::endl;
     std::cout <<  this->pressureT * 1.0 / this->V * 1.0 / this->samples << std::endl;
@@ -311,7 +403,7 @@ void Samplers::Pressure::save(){
     counter = 0;
 }
 
-void Samplers::Pressure::close(){};
+void Pressure::close(){};
 
 
 
@@ -320,7 +412,7 @@ void Samplers::Pressure::close(){};
 
 
 
-void Samplers::PressureV::sample(State& state){
+void PressureV::sample(State& state){
     bool fail = false;
     double e1 = 0.0, e2 = 0.0;
     oldd = state.geo->d[2];
@@ -376,7 +468,7 @@ void Samplers::PressureV::sample(State& state){
     }
 }
 
-void Samplers::PressureV::save(){
+void PressureV::save(){
     printf("PressureV: %lf\n", 1.0 / this->dV * std::log(this->av / this->samples));
     std::ofstream f (this->filename + ".txt", std::ios::app);
     if (f.is_open())
@@ -391,7 +483,7 @@ void Samplers::PressureV::save(){
     counter = 0;
 }
 
-void Samplers::PressureV::close(){};
+void PressureV::close(){};
 
 
 
@@ -401,7 +493,7 @@ void Samplers::PressureV::close(){};
 
 
 
-void Samplers::ForcePressure::sample(State& state){
+void ForcePressure::sample(State& state){
     Eigen::Vector3d force;
     Eigen::Vector3d disp;
     Eigen::Vector3d temp;
@@ -454,7 +546,7 @@ void Samplers::ForcePressure::sample(State& state){
     this->samples++;
 }
 
-void Samplers::ForcePressure::save(){
+void ForcePressure::save(){
     printf("Ideal pressure: %lf\n", idP / this->samples);
     std::cout << "RightToLeft: " << this->leftForce[this->counter - 1] / (80.0 * 80.0) << std::endl;
     std::cout << "LeftToRight: " << this->rightForce[this->counter - 1] / (80.0 * 80.0) << std::endl;
@@ -475,7 +567,7 @@ void Samplers::ForcePressure::save(){
     this->counter = 0;
 }
 
-void Samplers::ForcePressure::close(){};
+void ForcePressure::close(){};
 
 
 
@@ -486,7 +578,7 @@ void Samplers::ForcePressure::close(){};
 
 
 
-void Samplers::Force::sample(State& state){
+void Force::sample(State& state){
 
     //#pragma omp parallel for private(force, disp) reduction(+:leftToRight, +:rightToLeft)
     for(int i = 0; i < state.particles.tot; i++){
@@ -504,8 +596,8 @@ void Samplers::Force::sample(State& state){
     }
 }
 
-void Samplers::Force::save(){}
-void Samplers::Force::close(){};
+void Force::save(){}
+void Force::close(){};
 
 
 
@@ -519,7 +611,7 @@ void Samplers::Force::close(){};
 
 
 
-void Samplers::CliffPressure::sample(State& state){
+void CliffPressure::sample(State& state){
     double rPTemp = 0.0;
     double lPTemp = 0.0;
     // Move particles
@@ -582,7 +674,7 @@ void Samplers::CliffPressure::sample(State& state){
     counter++;
 }
 
-void Samplers::CliffPressure::save(){
+void CliffPressure::save(){
     std::cout << "rP: " << this->rP / (this->samples * this->dL * this->area) << std::endl;
     std::cout << "lP: " << this->lP / (this->samples * this->dL * this->area) << std::endl;
     std::cout << "Cliff pressure: " << (this->rP - this->lP) / (this->samples * this->dL * this->area) << std::endl;
@@ -600,7 +692,7 @@ void Samplers::CliffPressure::save(){
     this->counter = 0;
 }
 
-void Samplers::CliffPressure::close(){};
+void CliffPressure::close(){};
 
 
 
@@ -610,7 +702,7 @@ void Samplers::CliffPressure::close(){};
 
 
 
-void Samplers::ModifiedWidom::sample(State& state){
+void ModifiedWidom::sample(State& state){
     double elDE = 0.0, startExt;
     Eigen::Vector3d com = state.geo->random_pos(state.particles.pModel.rf);
     Eigen::Vector3d qDisp;
@@ -734,7 +826,7 @@ void Samplers::ModifiedWidom::sample(State& state){
     this->samples++;
 }
 
-void Samplers::ModifiedWidom::save(){
+void ModifiedWidom::save(){
     double integralP = 0.0;
     for(int i = 0; i <= 10; i++){
         integralP += (nomP[i] / this->pSamples) / (denomP[i] / this->pSamples) * 1.0 / 11.0;
@@ -754,7 +846,7 @@ void Samplers::ModifiedWidom::save(){
     printf("MWSum - el: %lf tot %lf\n", sumN, -std::log(this->facN / this->nSamples) + sumN);
 }
 
-void Samplers::ModifiedWidom::close(){};
+void ModifiedWidom::close(){};
 
 
 
@@ -768,7 +860,7 @@ void Samplers::ModifiedWidom::close(){};
 
 
 
-void Samplers::ModifiedWidomCoulomb::sample(State& state){
+void ModifiedWidomCoulomb::sample(State& state){
     e->set_geo(state.geo);
     double elDE = 0.0;
     Eigen::Vector3d com = state.geo->random_pos(state.particles.pModel.rf);
@@ -896,7 +988,7 @@ void Samplers::ModifiedWidomCoulomb::sample(State& state){
     this->samples++;
 }
 
-void Samplers::ModifiedWidomCoulomb::save(){
+void ModifiedWidomCoulomb::save(){
     double integralP = 0.0;
     for(int i = 0; i <= 10; i++){
         integralP += (nomP[i] / this->pSamples) / (denomP[i] / this->pSamples) * 1.0 / 11.0;
@@ -916,50 +1008,8 @@ void Samplers::ModifiedWidomCoulomb::save(){
     printf("MWSum - el: %lf tot %lf\n", sumN, -std::log(this->facN / this->nSamples) + sumN);
 }
 
-void Samplers::ModifiedWidomCoulomb::close(){};
+void ModifiedWidomCoulomb::close(){};
 
-/*
-class Potential : public SamplerBase{
-    private:
+} // end of namespace Samplers
 
-    double binWidth, dl;
-    std::vector< std::vector<double> > potential;
-    int bins;
-
-    public:
-
-    Potential(double dl, double binWidth){
-        this->binWidth = binWidth;
-        this->bins = dl / binWidth;
-        this->potential.resize(this->bins, std::vector<double>(2));
-        this->dl = dl;
-
-        for(auto p : this->potential){
-            p[0] = 0.0;
-            p[1] = 0.0;
-        }
-    }
-
-    void sample(Particles& particles){
-        particles.add(T com, T pos, double r, 2.5, 1.0, 0.0, std::string name, bool image = false);
-        this->potential[(int)particles.particles.back()->pos[2] + 0.5 * this->dl][0] += get_energy();
-        this->potential[(int)particles.particles.back()->pos[2] + 0.5 * this->dl][1] += 1;
-        particles.remove(particles.particles.back()->index);
-    }
-
-    void save(std::string filename){
-        std::ofstream f ("potential_" + filename + ".txt");
-        if (f.is_open())
-        {
-            for(unsigned int i = 0; i < this->potential.size(); i++){
-                f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
-                     (double) this->potential[i][0] / this->potential[i][1] << "\n";
-            }
-            f.close();
-        }
-        else std::cout << "Unable to open file";
-    }
-};
-*/
-
-}
+} // end of namespace Simulator

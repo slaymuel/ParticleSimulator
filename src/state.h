@@ -24,12 +24,10 @@ class State{
     double energy = 0.0, cummulativeEnergy = 0.0, dE = 0.0, error = 0.0;
     Particles particles;
     std::vector< unsigned int > movedParticles;    //Particles that has moved from previous state
-    Geometry *geo;
+    std::shared_ptr<Geometry> geo;
     std::vector< std::shared_ptr<EnergyBase> > energyFunc;
 
-    ~State(){
-        delete geo;
-    }
+    ~State(){}
 
     void advance(){
         this->step++;
@@ -377,40 +375,40 @@ class State{
             default:
                 Logger::Log("Creating Cuboid box");
                 assert(args.size() == 3);
-                this->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
-                this->_old->geo = new Cuboid<true, true, true>(args[0], args[1], args[2]);
+                this->geo = std::make_shared< Cuboid<true, true, true> >(args[0], args[1], args[2]);
+                this->_old->geo = std::make_shared< Cuboid<true, true, true> >(args[0], args[1], args[2]);
                 break;
 
             case 1:
-                this->geo = new Sphere();
+                this->geo = std::make_shared<Sphere>();
                 break;
 
             case 2:
                 Logger::Log("Creating Cuboid-Image box");
                 assert(args.size() == 3);
-                this->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
-                this->_old->geo = new CuboidImg<true, true, true>(args[0], args[1], args[2]);
+                this->geo = std::make_shared< CuboidImg<true, true, true> >(args[0], args[1], args[2]);
+                this->_old->geo = std::make_shared< CuboidImg<true, true, true> >(args[0], args[1], args[2]);
                 break;
 
             case 3:
                 Logger::Log("Creating Cuboid-Image box with no PBC in z");
                 assert(args.size() == 3);
-                this->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
-                this->_old->geo = new CuboidImg<true, true, false>(args[0], args[1], args[2]);
+                this->geo = std::make_shared< CuboidImg<true, true, false> >(args[0], args[1], args[2]);
+                this->_old->geo = std::make_shared< CuboidImg<true, true, false> >(args[0], args[1], args[2]);
                 break;
 
             case 4:
                 Logger::Log("Creating Cuboid box with no PBC");
                 assert(args.size() == 3);
-                this->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
-                this->_old->geo = new Cuboid<false, false, false>(args[0], args[1], args[2]);
+                this->geo = std::make_shared< Cuboid<false, false, false> >(args[0], args[1], args[2]);
+                this->_old->geo = std::make_shared< Cuboid<false, false, false> >(args[0], args[1], args[2]);
                 break;
 
             case 5:
                 Logger::Log("Creating Cuboid box with no PBC in z");
                 assert(args.size() == 3);
-                this->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
-                this->_old->geo = new Cuboid<true, true, false>(args[0], args[1], args[2]);
+                this->geo = std::make_shared< Cuboid<true, true, false> >(args[0], args[1], args[2]);
+                this->_old->geo = std::make_shared< Cuboid<true, true, false> >(args[0], args[1], args[2]);
                 break;
         }
 

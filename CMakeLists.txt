@@ -6,30 +6,39 @@ project(particlesimulator LANGUAGES CXX C Fortran)
 
 set(CMAKE_CXX_STANDARD 20)
 if(APPLE)
-  find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+  find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 endif()
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
-find_package(OpenMP REQUIRED COMPONENTS CXX)
+
+find_package(OPENMP REQUIRED COMPONENTS CXX)
 
 Include(FetchContent)
 include(CTest)
 
 enable_testing()
 
-add_subdirectory(lib/fmt)
+FetchContent_Declare(fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG master
+  SOURCE_DIR lib/fmt
+)
+FetchContent_MakeAvailable(fmt)
+#add_subdirectory(lib/fmt)
+
 add_subdirectory(src/xdr)
 add_subdirectory(src/random)
 add_subdirectory(src)
 
 #################################       CATCH2 UNIT TESTING    ##################################
-#FetchContent_Declare(
-#  Catch2
-#  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-#  GIT_TAG        v3.0.0-preview3
-#)
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.0.0-preview3
+  SOURCE_DIR     lib/Catch2
+)
 
-#FetchContent_MakeAvailable(Catch2)
-add_subdirectory(lib/Catch2)
+FetchContent_MakeAvailable(Catch2)
+#add_subdirectory(lib/Catch2)
 
 add_executable(particles_test tests/particles_test.cpp)
 

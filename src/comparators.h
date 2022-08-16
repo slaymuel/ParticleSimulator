@@ -2,7 +2,8 @@ namespace Simulator{
 
 namespace comparators{
     struct {
-        bool operator()(Move* a, Move* b) const{  
+        template<typename T>
+        bool operator()(T& a, T& b) const{  
             return a->weight < b->weight;
         }   
     } mLess;

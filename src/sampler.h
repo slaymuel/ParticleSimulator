@@ -9,24 +9,49 @@ namespace Simulator{
 
 namespace Samplers{
 
+enum class SamplerTypes{
+    DENSITY_X,
+    DENSITY_Y,
+    DENSITY_Z,
+    ENERGY,
+    WIDOMHS,
+    QDIST,
+    XDR,
+    NUMIONS,
+    PRESSURE,
+    PRESSUREV,
+    FORCEPRESSURE,
+    CLUSTER,
+    FORCE,
+    CLIFFPRESSURE,
+    MODIFIEDWIDOM,
+    MODIFIEDWIDOMCOLOUMB
+};
+
 class SamplerBase{
 
-    public:
+    protected:
     int samples = 1;
     int interval;
     std::string filename;
 
+    public:
+
     SamplerBase(int interval) : interval(interval){}
+    virtual ~SamplerBase() = default;
 
     virtual void sample(State& state) = 0;
     virtual void save() = 0;
     virtual void close() = 0;
+
+    int getInterval();
+    static std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, std::vector<double> args);
 };
 
 
 class Density : public SamplerBase{
-    private:
 
+    private:
     double binWidth, dh, xb, yb;
     std::vector<unsigned long long int> pDens;
     std::vector<unsigned long long int> nDens;
@@ -35,24 +60,13 @@ class Density : public SamplerBase{
 
     public:
 
-    Density(int d, double dl, double binWidth, double xb, double yb, int interval, std::string filename) : SamplerBase(interval){
-        this->binWidth = binWidth;
-        this->bins = dl / binWidth;
-        this->pDens.resize(this->bins, 0);
-        this->nDens.resize(this->bins, 0);
-        this->d = d;    //Which dimension to sample
-        this->dh = dl / 2.0;
-        this->xb = xb;
-        this->yb = yb;
-        this->filename = filename;
-        if(d == 0) this->dim = "x";
-        if(d == 1) this->dim = "y";
-        if(d == 2) this->dim = "z";
-    }
+    Density(int d, double dl, double binWidth, double xb, double yb, 
+            int interval, std::string filename);
+    ~Density() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -65,10 +79,11 @@ class Energy : public SamplerBase{
         energies.reserve(50000);
         this->filename = "energies_" + filename + ".txt";
     }
+    ~Energy() override = default;
 
-    void sample(State &state);
-    void save();
-    void close();
+    void sample(State &state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -80,10 +95,11 @@ class WidomHS : public SamplerBase{
     WidomHS(int interval, std::string filename) : SamplerBase(interval){
         this->filename = "cp_HS_" + filename + ".txt";
     }
+    ~WidomHS() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -102,10 +118,11 @@ class QDist : public SamplerBase{
         this->nqDist.resize((int) dl / binWidth, 0);
         this->filename = filename;
     }
+    ~QDist() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -118,10 +135,11 @@ class XDR : public SamplerBase{
         filename = filename + ".xtc";
         xdf = xdrfile_open(filename.c_str(), "w");
     }
+    ~XDR() override = default;
 
-    void save();
-    void close();
-    void sample(State& state);
+    void save() override;
+    void close() override;
+    void sample(State& state) override;
 };
 
 
@@ -136,10 +154,11 @@ class NumIons : public SamplerBase{
     NumIons(int interval, std::string filename) : SamplerBase(interval){
         this->filename = filename;
     }
+    ~NumIons() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -159,10 +178,11 @@ class Pressure : public SamplerBase{
         this->filename = "ptZ_" + filename;
         pressures.resize(10000 / interval + 1, 0);
     }
+    ~Pressure() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -186,15 +206,12 @@ class PressureV : public SamplerBase{
         pressures.resize(10000 / interval + 1, 0);
         printf("\t ds: %lf\n", this->dL);
     }
+    ~PressureV() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
-
-
-
-
 
 
 
@@ -221,14 +238,12 @@ class ForcePressure : public SamplerBase{
         this->lZ = lZ;
         this->idP = 0.0;
     }
+    ~ForcePressure() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
-
-
-
 
 
 
@@ -243,16 +258,12 @@ class Force : public SamplerBase{
     Force(int interval, std::string filename) : SamplerBase(interval){
         this->filename = "force_" + filename;
     }
+    ~Force() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
-
-
-
-
-
 
 
 
@@ -275,10 +286,11 @@ class CliffPressure : public SamplerBase{
         this->area = xL * yL;
         this->pressures.resize(10000 / interval + 1, 0);
     }
+    ~CliffPressure() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
@@ -305,17 +317,12 @@ class ModifiedWidom: public SamplerBase{
 
         printf("Modified widom sampler");
     }
+    ~ModifiedWidom() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
-
-
-
-
-
-
 
 
 
@@ -345,66 +352,15 @@ class ModifiedWidomCoulomb: public SamplerBase{
 
         printf("Modified widom sampler");
     }
+    ~ModifiedWidomCoulomb() override = default;
 
-    void sample(State& state);
-    void save();
-    void close();
+    void sample(State& state) override;
+    void save() override;
+    void close() override;
 };
 
 
 
+} // end of namespace Samplers
 
-
-
-
-
-
-
-
-}
-
-/*
-class Potential : public SamplerBase{
-    private:
-
-    double binWidth, dl;
-    std::vector< std::vector<double> > potential;
-    int bins;
-
-    public:
-
-    Potential(double dl, double binWidth){
-        this->binWidth = binWidth;
-        this->bins = dl / binWidth;
-        this->potential.resize(this->bins, std::vector<double>(2));
-        this->dl = dl;
-
-        for(auto p : this->potential){
-            p[0] = 0.0;
-            p[1] = 0.0;
-        }
-    }
-
-    void sample(Particles& particles){
-        particles.add(T com, T pos, double r, 2.5, 1.0, 0.0, std::string name, bool image = false);
-        this->potential[(int)particles.particles.back()->pos[2] + 0.5 * this->dl][0] += get_energy();
-        this->potential[(int)particles.particles.back()->pos[2] + 0.5 * this->dl][1] += 1;
-        particles.remove(particles.particles.back()->index);
-    }
-
-    void save(std::string filename){
-        std::ofstream f ("potential_" + filename + ".txt");
-        if (f.is_open())
-        {
-            for(unsigned int i = 0; i < this->potential.size(); i++){
-                f << std::fixed << std::setprecision(10) << i * this->binWidth + this->binWidth / 2.0 << " " <<  
-                     (double) this->potential[i][0] / this->potential[i][1] << "\n";
-            }
-            f.close();
-        }
-        else std::cout << "Unable to open file";
-    }
-};
-*/
-
-}
+} // end of namespace Simulator

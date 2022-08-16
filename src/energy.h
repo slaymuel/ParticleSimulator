@@ -17,13 +17,13 @@ class EnergyBase{
     double cutoff;
 
     public:
-    Geometry *geo;
+    std::shared_ptr<Geometry> geo;
 
     //is not used by ext - bad design
     //should add one layer EnergyBase -> PairEnergy -> Pair
     //where PairEnergy constains set_geo()
     // EnergyBase -> External -> ExtEnergy
-    void set_geo(Geometry* geo){
+    void set_geo(std::shared_ptr<Geometry> geo){
         this->geo = geo;
     }
 

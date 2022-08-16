@@ -1,7 +1,7 @@
 import sys
-sys.path.append('/Users/samuel/Documents/mormon/build/src')
+sys.path.append('../build/src')
 import argparse
-import mormon as mr
+import particlesimulator as ps
 import numpy as np
 
 parser = argparse.ArgumentParser()
@@ -35,7 +35,7 @@ kVec = [5, 5, 5]
 alpha = np.pi / cutoff
 
 
-sim = mr.Simulator(eps,   T, outfile)
+sim = ps.Simulator(eps,   T, outfile)
 
 sim.state.set_geometry(2, box)
 sim.state.set_energy(2, [cutoff, kVec[0], kVec[1], kVec[2], alpha])
@@ -45,7 +45,7 @@ b_min = np.zeros(len(b))
 b_max = np.zeros(len(b))
 sim.state.load_cp(com, pos, charges, r, rf, b, b_min, b_max, names)
 
-sim.add_move(mr.MoveTypes.TRANSLATE, [1.0, 0.0]);
+sim.add_move(ps.MoveTypes.TRANSLATE, [1.0, 0.0]);
 
 sim.finalize()
 sim.run(1,    0,     0)

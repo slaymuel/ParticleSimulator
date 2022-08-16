@@ -50,15 +50,16 @@ class Move{
         this->rejected = 0;
         this->attempted = 0;
     }
+    virtual ~Move() = default;
 
     virtual void operator()() = 0;
     virtual bool accept(double dE) const = 0;
-    virtual std::string dump() = 0;
+    virtual std::string dump() const = 0;
 
-    static Move* create_move(MoveTypes moveType, std::vector<double> args);
+    static std::unique_ptr<Move> createMove(MoveTypes move_type, std::vector<double> args);
 };
 
-std::string Move::dump(){
+std::string Move::dump() const{
     std::ostringstream s;
     s.precision(1);
     s << std::fixed;
@@ -75,9 +76,9 @@ class Translate : public Move{
     Translate(double step, double w) : Move(step, w, "TRANSLATION"){
         Logger::Log("\tStepsize: ", step);
     }
+    ~Translate() override = default;
 
-
-    void operator()(){
+    void operator()() override{
         auto p = state->particles.random();
 
         p->translate(stepSize);
@@ -86,7 +87,7 @@ class Translate : public Move{
         state->move_callback({p->index});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto  ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -100,7 +101,7 @@ class Translate : public Move{
 
         return ret;
     }
-    std::string dump(){
+    std::string dump() const override{
         return Move::dump();
     }
 };
@@ -113,9 +114,9 @@ class Rotate : public Move{
     Rotate(double step, double w) : Move(step, w, "ROTATION"){
         Logger::Log("\tStepsize: ", step);
     }
+    ~Rotate() override = default;
 
-
-    void operator()(){
+    void operator()() override{
         auto p = state->particles.random();
 
         p->rotate(this->stepSize);
@@ -124,7 +125,7 @@ class Rotate : public Move{
         state->move_callback({p->index});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -138,7 +139,7 @@ class Rotate : public Move{
 
         return ret;
     }
-    std::string dump(){
+    std::string dump() const override{
         return Move::dump();
     }
 };
@@ -149,8 +150,9 @@ class Swap : public Move{
 
     public:
     Swap(double w) : Move(0.0, w, "SWAP"){}
+    ~Swap() override = default;
 
-    void operator()(){
+    void operator()() override {
         int rand2 = -1;
         auto rand = Random::get_random(state->particles.tot);
 
@@ -165,7 +167,7 @@ class Swap : public Move{
         state->move_callback({static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -180,7 +182,7 @@ class Swap : public Move{
         return ret;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         return Move::dump();
     }
 };
@@ -193,8 +195,9 @@ class SingleSwap : public Move{
 
     public:
     SingleSwap(double w) : Move(0.0, w, "SINGLESWAP"){}
-    
-    void operator()(){
+    ~SingleSwap() override = default;
+
+    void operator()() override {
         auto rand = Random::get_random(state->particles.tot);
 
         //If cation
@@ -238,7 +241,7 @@ class SingleSwap : public Move{
         state->move_callback({static_cast<unsigned int>(rand)});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         bool ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -253,7 +256,7 @@ class SingleSwap : public Move{
         return ret;
     }
 
-    std::string dump(){
+    std::string dump() const override {
         return Move::dump();
     }
 };
@@ -286,8 +289,9 @@ class GrandCanonicalSingle : public Move{
         Logger::Log("\tCation accessible volume: ", this->pVolume, " Anion accessible volume: ", this->nVolume);
         Logger::Log("\tChemical potential: ", this->cp, " Bias potential: ", this->d);
     }
+    ~GrandCanonicalSingle() override = default;
 
-    void operator()(){
+    void operator()() override {
         if(ADD){
             auto [ind, qt] = state->particles.add_random(state->geo->_dh);
             this->q = qt;
@@ -306,7 +310,7 @@ class GrandCanonicalSingle : public Move{
         this->attempted++;
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto prob = -1.0;
 
         // ADD
@@ -349,7 +353,7 @@ class GrandCanonicalSingle : public Move{
         }
     }
 
-    std::string dump(){
+    std::string dump() const override{
         std::ostringstream ss;
         ss.precision(1);
         ss << std::fixed;
@@ -397,8 +401,9 @@ class GrandCanonical : public Move{
         Logger::Log("\tCation accessible volume: ", this->pVolume, ", Anion accessible volume: ", this->nVolume);
         Logger::Log("\tChemical potential: ", this->cp);
     }
+    ~GrandCanonical() override = default;
 
-    void operator()(){
+    void operator()() override {
         std::vector< unsigned int > particles;
         if(ADD){
             auto [ind, qt] = state->particles.add_random(state->geo->_dh, 1.0);
@@ -441,7 +446,7 @@ class GrandCanonical : public Move{
         state->move_callback(particles);  
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         double prob;
 
         // ADD
@@ -474,7 +479,7 @@ class GrandCanonical : public Move{
         }
     }
 
-    std::string dump(){
+    std::string dump() const override {
         return Move::dump();
     }
 };
@@ -508,9 +513,9 @@ class VolumeMove: public Move{
         Logger::Log("\tPressure: ", this->pressure);
         Logger::Log("\tStepsize: ", step);
     }
+    ~VolumeMove() override = default;
 
-
-    void operator()(){
+    void operator()() override {
         _oldV = state->geo->volume;
         auto lnV = std::log(state->geo->volume) + (Random::get_random() * 2.0 - 1.0) * this->stepSize;
         auto V = std::exp(lnV);
@@ -538,7 +543,7 @@ class VolumeMove: public Move{
         state->move_callback(particles);
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto ret = false;
         auto prob = exp(-dE - this->pressure * (state->geo->volume - _oldV) +
                       (state->particles.tot + 1.0) * std::log(state->geo->volume / _oldV));
@@ -555,7 +560,7 @@ class VolumeMove: public Move{
         return ret;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         return Move::dump();
     }
 };
@@ -570,9 +575,9 @@ class ChargeTrans: public Move{
     ChargeTrans(double step, double w) : Move(step, w, "CHARGETRANS"){
         Logger::Log("\tStepsize: ", step);
     }
+    ~ChargeTrans() override = default;
 
-
-    void operator()(){
+    void operator()() override {
         auto rand = 0;
         do{
             rand = Random::get_random(state->particles.tot);
@@ -584,7 +589,7 @@ class ChargeTrans: public Move{
         state->move_callback({state->particles[rand]->index});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -599,7 +604,7 @@ class ChargeTrans: public Move{
         return ret;
     }
 
-    std::string dump(){
+    std::string dump() const override {
         return Move::dump();
     }
 };
@@ -614,9 +619,9 @@ class ChargeTranslate: public Move{
     ChargeTranslate(double step, double w) : Move(step, w, "CHARGETRANS"){
         Logger::Log("\tStepsize: ", step);
     }
+    ~ChargeTranslate() override = default;
 
-
-    void operator()(){
+    void operator()() override {
         auto rand = 0;
         do{
             rand = Random::get_random(state->particles.tot);
@@ -631,7 +636,7 @@ class ChargeTranslate: public Move{
         state->move_callback({state->particles[rand]->index});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         bool ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -646,7 +651,7 @@ class ChargeTranslate: public Move{
         return ret;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         return Move::dump();
     }
 };
@@ -658,9 +663,9 @@ class ChargeTransRand: public Move{
     public:
 
     ChargeTransRand(double step, double w) : Move(step, w, "CHARGETRANSRAND"){}
+    ~ChargeTransRand() override = default;
 
-
-    void operator()(){
+    void operator()() override{
         std::vector< unsigned int > particles;
         auto rand = 0;
         if(state->particles.cTot > 0){
@@ -677,7 +682,7 @@ class ChargeTransRand: public Move{
         state->move_callback(particles);
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto ret = false;
 
         if(exp(-dE) >= Random::get_random() || dE < 0.0){
@@ -692,7 +697,7 @@ class ChargeTransRand: public Move{
         return ret;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         return Move::dump();
     }
 };
@@ -713,9 +718,9 @@ class Cluster : public Move{
         Logger::Log("\tStepsize: ", step);
         Logger::Log("\tMax distance in cluster: ", this->minDist);
     }
+    ~Cluster() override = default;
 
-
-    void operator()(){
+    void operator()() override{
         this->p = state->particles.random();
         std::vector<unsigned int> indices;
         Eigen::Vector3d disp;
@@ -753,7 +758,7 @@ class Cluster : public Move{
         else found = false;
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         auto count = 1;
 
         if(found){
@@ -779,7 +784,7 @@ class Cluster : public Move{
         return false;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         std::ostringstream ss;
         ss.precision(1);
         ss << std::fixed;
@@ -802,15 +807,16 @@ class WidomInsertion : public Move{
     public:
 
     WidomInsertion(double w) : Move(0.0, w, "WIDOMINSERTION") {}
+    ~WidomInsertion() override = default;
 
-    void operator()(){      
+    void operator()() override{      
         auto [ind, qt] = state->particles.add_random(state->geo->_dh, 2.0);
         this->q = qt;
         this->attempted++;
         state->move_callback({ind});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         if(this->samples > 10000){
             this->samples = 0;
             this->cp = 0.0;
@@ -822,7 +828,7 @@ class WidomInsertion : public Move{
         return false;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         std::ostringstream ss;
         ss.precision(5);
         ss << std::fixed;
@@ -840,8 +846,9 @@ class WidomDeletion : public Move{
     public:
 
     WidomDeletion(double w) : Move(0.0, w, "WIDOMDELETION") {}
+    ~WidomDeletion() override = default;
 
-    void operator()(){      
+    void operator()() override{      
         auto [ind, qt] = state->particles.remove_random();
         this->q = qt;
 
@@ -849,7 +856,7 @@ class WidomDeletion : public Move{
         state->move_callback({ind});
     }
 
-    bool accept(double dE) const{
+    bool accept(double dE) const override{
         if(this->samples > 10000){
             this->samples = 0;
             this->cp = 0.0;
@@ -860,7 +867,7 @@ class WidomDeletion : public Move{
         return false;
     }
 
-    std::string dump(){
+    std::string dump() const override{
         std::ostringstream ss;
         ss.precision(5);
         ss << std::fixed;
@@ -870,74 +877,74 @@ class WidomDeletion : public Move{
 };
 
 
-Move* Move::create_move(MoveTypes moveType, std::vector<double> args){
+std::unique_ptr<Move> Move::createMove(MoveTypes moveType, std::vector<double> args){
     printf("\n");
     Logger::Log("Adding move:");
     switch(moveType){
         case MoveTypes::TRANSLATE:
             assert(args.size() == 2);
                                         //step, w
-            return new Translate(args[1], args[0]);
+            return std::make_unique<Translate>(args[1], args[0]);
             break;
         case MoveTypes::GCSINGLEADD:
             assert(args.size() == 3);
                                                             //cp, d, w
-            return new GrandCanonicalSingle<true>(args[1], args[2], args[0]);
+            return std::make_unique< GrandCanonicalSingle<true> >(args[1], args[2], args[0]);
             break;
         case MoveTypes::GCSINGLEREMOVE:
             assert(args.size() == 3);
-            return new GrandCanonicalSingle<false>(args[1], args[2], args[0]);
+            return std::make_unique< GrandCanonicalSingle<false> >(args[1], args[2], args[0]);
             break;
         case MoveTypes::ROTATE:
             assert(args.size() == 2);
                                         //step, w
-            return new Rotate(args[0], args[1]);
+            return std::make_unique<Rotate>(args[0], args[1]);
             break;
         case MoveTypes::SWAP:
             assert(args.size() == 1);
-            return new Swap(args[0]);
+            return std::make_unique<Swap>(args[0]);
             break;
         case MoveTypes::SINGLESWAP:
             assert(args.size() == 1);
-            return new SingleSwap(args[0]);
+            return std::make_unique<SingleSwap>(args[0]);
             break;
         case MoveTypes::VOLUMEMOVE:
             assert(args.size() == 3);
                                         //step, press, v, w
-            return new VolumeMove(args[0], args[2], args[1]);
+            return std::make_unique<VolumeMove>(args[0], args[2], args[1]);
             break;
         case MoveTypes::CHARGETRANS:
             assert(args.size() == 2);
-            return new ChargeTrans(args[0], args[1]);
+            return std::make_unique<ChargeTrans>(args[0], args[1]);
             break;
         case MoveTypes::CHARGETRANSRAND:
             assert(args.size() == 2);
-            return new ChargeTransRand(args[0], args[1]);
+            return std::make_unique<ChargeTransRand>(args[0], args[1]);
             break;
         case MoveTypes::CLUSTER:
             assert(args.size() == 3);
-            return new Cluster(args[0], args[1], args[2]);
+            return std::make_unique<Cluster>(args[0], args[1], args[2]);
             break;
         case MoveTypes::WIDOMINSERTION:
             assert(args.size() == 1);
-            return new WidomInsertion(args[0]);
+            return std::make_unique<WidomInsertion>(args[0]);
             break;
         case MoveTypes::WIDOMDELETION:
             assert(args.size() == 1);
-            return new WidomDeletion(args[0]);
+            return std::make_unique<WidomDeletion>(args[0]);
             break;
         case MoveTypes::GCADD:
             assert(args.size() == 2);
                                                     //chempot, w
-            return new GrandCanonical<true>(args[1], args[0]);
+            return std::make_unique< GrandCanonical<true> >(args[1], args[0]);
             break;
         case MoveTypes::GCREMOVE:
             assert(args.size() == 2);
-            return new GrandCanonical<false>(args[1], args[0]);
+            return std::make_unique< GrandCanonical<false> >(args[1], args[0]);
             break;
         case MoveTypes::CHARGETRANSLATE:
             assert(args.size() == 2);
-            return new ChargeTranslate(args[0], args[1]);
+            return std::make_unique<ChargeTranslate>(args[0], args[1]);
             break;
         default:
             Logger::Log("Invalid move");
