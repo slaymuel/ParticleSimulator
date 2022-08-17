@@ -52,11 +52,8 @@ class Simulator{
     void set_temperature(double T);
     void set_cp(double cp);
     void add_move(MoveTypes move_type, std::vector<double> args);
-    //void add_sampler(int i, int interval, double ds = 0.05);
     void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
-    //void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
-    //std::unique_ptr<Samplers::SamplerBase> _add_sampler(int i, int interval, double ds = 0.05);
-    // Finalize the settings, called when user is done adding moves etc.
+    // Finalize the settings, called by user when user is done adding moves etc.
     void finalize();
     // Run the simulation
     void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps);

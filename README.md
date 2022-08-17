@@ -15,7 +15,7 @@ Using pybind11, running a simulation is very easy.
 
 
 ```sh
-import ParticleSimulator as ps #Import the package
+import particlesimulator as ps #Import the package
 
 #Create a simulator object
 eps = 78.0 #Relative permittivity
