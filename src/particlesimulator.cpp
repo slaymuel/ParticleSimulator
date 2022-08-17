@@ -34,11 +34,7 @@ void Simulator::set_cp(double cp){
 void Simulator::add_move(MoveTypes move_type, std::vector<double> args){
     moves.push_back(Move::createMove(move_type, args));
 }
-/*
-void Simulator::add_sampler(int i, int interval, double ds){
-    sampler.push_back(_add_sampler(i, interval, ds));
-}
-*/
+
 void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> args){
     //      0       1    2     3     4     5      6       7
     // { interval, ds, d[0], d[1], d[2], _d[0], _d[1], _d[2] }
@@ -53,80 +49,7 @@ void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> arg
 
     Samplers::createSampler(type, this->name, args);
 }
-/*
-std::unique_ptr<Samplers::SamplerBase> Simulator::_add_sampler(int i, int interval, double ds){
-    switch(i){
-        case 0:
-            Logger::Log("\nAdding z density sampler\n");
-            return std::make_unique<Samplers::Density>(2, this->state.geo->_d[2], ds, 
-                                            this->state.geo->d[0], this->state.geo->d[1], interval, this->name);
-            break;
-        case 1:
-            Logger::Log("Adding Widom HS-CP sampler\n");
-            return std::make_unique<Samplers::WidomHS>(interval, this->name);
-            break;
 
-        case 2:
-            Logger::Log("Adding energy sampler\n");
-            return std::make_unique<Samplers::Energy>(interval, this->name);
-            break;
-
-        case 3:
-            Logger::Log("Adding charge distribution sampler\n");
-            return std::make_unique<Samplers::QDist>(4, ds, interval, this->name);
-            break;
-        case 4:
-            Logger::Log("Adding XDR trajectory sampler\n");
-            return std::make_unique<Samplers::XDR>(interval, this->name);
-            break;
-        case 5:
-            Logger::Log("Adding number of ions sampler\n");
-            return std::make_unique<Samplers::NumIons>(interval, this->name);
-            break;
-        case 6:
-            Logger::Log("\nAdding x density sampler\n");
-            return std::make_unique<Samplers::Density>(0, this->state.geo->_d[0], ds, 
-                                            this->state.geo->d[1], this->state.geo->d[2], interval, this->name);
-            break;
-        case 7:
-            Logger::Log("\nAdding y density sampler\n");
-            return std::make_unique<Samplers::Density>(1, this->state.geo->_d[1], ds, 
-                                            this->state.geo->d[0], this->state.geo->d[2], interval, this->name);
-            break;
-        case 8:
-            Logger::Log("\nAdding virial pressure sampler\n");
-            return std::make_unique<Samplers::Pressure>(interval, this->state.geo->volume, this->state.geo->dh[2], this->name);
-            break;
-        case 9:
-            Logger::Log("\nAdding pressureV sampler\n");
-            return std::make_unique<Samplers::PressureV>(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->state.geo->_d[2], this->name);
-            break;
-        case 10:
-            Logger::Log("\nAdding ForcePressure sampler\n");
-            return std::make_unique<Samplers::ForcePressure>(interval, this->state.geo->volume, this->state.geo->dh[2], this->name);
-            break;
-        case 11:
-            Logger::Log("\nAdding Force sampler\n");
-            return std::make_unique<Samplers::Force>(interval, this->name);
-            break;
-        case 12:
-            Logger::Log("\nAdding Cliff pressure sampler\n");
-            return std::make_unique<Samplers::CliffPressure>(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->name);
-            break;
-        case 13:
-            Logger::Log("\nAdding Modified Widom sampler\n");
-            return std::make_unique<Samplers::ModifiedWidom>(interval, this->name);
-            break;
-        case 14:
-            Logger::Log("\nAdding Modified Widom Coulomb sampler\n");
-            return std::make_unique<Samplers::ModifiedWidomCoulomb>(interval, this->name);
-            break;
-        default:
-            Logger::Log("Invalid sampler");
-            break;
-    }
-}
-*/
 void Simulator::finalize(){
     // Create the vector with weights
     std::for_each( this->moves.begin(), this->moves.end(), 
