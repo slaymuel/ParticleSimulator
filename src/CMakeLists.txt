@@ -65,6 +65,7 @@ target_sources(
 	PRIVATE
 	io.cpp
 	sampler.cpp
+	move.cpp
 	state.cpp
 	Faddeeva.cpp
 	constants.cpp

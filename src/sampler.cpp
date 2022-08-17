@@ -7,83 +7,6 @@ namespace Samplers{
 
 int SamplerBase::getInterval(){ return this->interval; }
 
-//      0       1    2     3     4     5      6       7
-// { interval, ds, d[0], d[1], d[2], _d[0], _d[1], _d[2] }
-std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, std::string name, std::vector<double> args){
-    double volume = args[2] * args[3] * args[4];
-
-    switch(sampler_type){
-        case SamplerTypes::DENSITY_Z:
-            Logger::Log("\nAdding z density sampler\n");
-            return std::make_unique<Density>(2, args[7], args[1], 
-                                            args[2], args[3], args[0], name);
-            break;
-        case SamplerTypes::WIDOMHS:
-            Logger::Log("Adding Widom HS-CP sampler\n");
-            return std::make_unique<WidomHS>(args[0], name);
-            break;
-
-        case SamplerTypes::ENERGY:
-            Logger::Log("Adding energy sampler\n");
-            return std::make_unique<Energy>(args[0], name);
-            break;
-
-        case SamplerTypes::QDIST:
-            Logger::Log("Adding charge distribution sampler\n");
-            return std::make_unique<QDist>(4, args[1], args[0], name);
-            break;
-        case SamplerTypes::XDR:
-            Logger::Log("Adding XDR trajectory sampler\n");
-            return std::make_unique<XDR>(args[0], name);
-            break;
-        case SamplerTypes::NUMIONS:
-            Logger::Log("Adding number of ions sampler\n");
-            return std::make_unique<NumIons>(args[0], name);
-            break;
-        case SamplerTypes::DENSITY_X:
-            Logger::Log("\nAdding x density sampler\n");
-            return std::make_unique<Density>(0, args[5], args[1], 
-                                            args[3], args[4], args[0], name);
-            break;
-        case SamplerTypes::DENSITY_Y:
-            Logger::Log("\nAdding y density sampler\n");
-            return std::make_unique<Density>(1, args[6], args[1], 
-                                            args[2], args[4], args[0], name);
-            break;
-        case SamplerTypes::PRESSURE:
-            Logger::Log("\nAdding virial pressure sampler\n");
-            return std::make_unique<Pressure>(args[0], volume, 0.5 * args[4], name);
-            break;
-        case SamplerTypes::PRESSUREV:
-            Logger::Log("\nAdding pressureV sampler\n");
-            return std::make_unique<PressureV>(args[0], args[1], args[5], args[6], args[7], name);
-            break;
-        case SamplerTypes::FORCEPRESSURE:
-            Logger::Log("\nAdding ForcePressure sampler\n");
-            return std::make_unique<ForcePressure>(args[0], volume, 0.5 * args[4], name);
-            break;
-        case SamplerTypes::FORCE:
-            Logger::Log("\nAdding Force sampler\n");
-            return std::make_unique<Force>(args[0], name);
-            break;
-        case SamplerTypes::CLIFFPRESSURE:
-            Logger::Log("\nAdding Cliff pressure sampler\n");
-            return std::make_unique<CliffPressure>(args[0], args[1], args[5], args[6], name);
-            break;
-        case SamplerTypes::MODIFIEDWIDOM:
-            Logger::Log("\nAdding Modified Widom sampler\n");
-            return std::make_unique<ModifiedWidom>(args[0], name);
-            break;
-        case SamplerTypes::MODIFIEDWIDOMCOULOMB:
-            Logger::Log("\nAdding Modified Widom Coulomb sampler\n");
-            return std::make_unique<ModifiedWidomCoulomb>(args[0], name);
-            break;
-        default:
-            Logger::Log("Invalid sampler");
-            break;
-    }
-}
-
 Density::Density(int d, double dl, double binWidth, double xb, double yb, int interval, std::string filename) : SamplerBase(interval){
     this->binWidth = binWidth;
     this->bins = dl / binWidth;
@@ -102,13 +25,11 @@ Density::Density(int d, double dl, double binWidth, double xb, double yb, int in
 void Density::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
         //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
-        if(state.particles.particles[i]->q > 0){
+        if(state.particles.particles[i]->q > 0)
             pDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
-        }
 
-        else{
+        else
             nDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
-        }
     }
     this->samples++;
 }
@@ -139,13 +60,37 @@ void Density::save(){
 
 void Density::close(){};
 
+namespace {
+    std::unique_ptr<SamplerBase> createDensity(std::string name, std::vector<double> args){
+        return std::make_unique<Density>(2, args[7], args[1], args[2], args[3], args[0], name);
+    }
+
+    bool registered_density_x = samplerFactory.registerObject(SamplerTypes::DENSITY_Z, createDensity);
+}
+
+namespace {
+    std::unique_ptr<SamplerBase> createDensityX(std::string name, std::vector<double> args){
+        return std::make_unique<Density>(0, args[5], args[1], 
+                                args[3], args[4], args[0], name);
+    }
+
+    bool registered_density_y = samplerFactory.registerObject(SamplerTypes::DENSITY_X, createDensityX);
+}
+
+namespace {
+    std::unique_ptr<SamplerBase> createDensityY(std::string name, std::vector<double> args){
+            return std::make_unique<Density>(1, args[6], args[1], 
+                                            args[2], args[4], args[0], name);
+    }
+
+    bool registered_density_z = samplerFactory.registerObject(SamplerTypes::DENSITY_Y, createDensityY);
+}
 
 
-
-
-
-
-
+Energy::Energy(int interval, std::string filename) : SamplerBase(interval){
+    energies.reserve(50000);
+    this->filename = "energies_" + filename + ".txt";
+}
 
 void Energy::sample(State &state){
     energies.push_back(state.cummulativeEnergy);
@@ -164,7 +109,13 @@ void Energy::save(){
 
 void Energy::close(){};
 
+namespace {
+    std::unique_ptr<SamplerBase> createEnergy(std::string name, std::vector<double> args){
+        return std::make_unique<Energy>(args[0], name);
+    }
 
+    bool registered_energy = samplerFactory.registerObject(SamplerTypes::ENERGY, createEnergy);
+}
 
 
 
@@ -203,7 +154,13 @@ void WidomHS::save(){
 
 void WidomHS::close(){};
 
+namespace {
+    std::unique_ptr<SamplerBase> createWidomHS(std::string name, std::vector<double> args){
+        return std::make_unique<WidomHS>(args[0], name);
+    }
 
+    bool registered_widom_hs = samplerFactory.registerObject(SamplerTypes::WIDOMHS, createWidomHS);
+}
 
 
 
@@ -249,7 +206,13 @@ void QDist::save(){
 void QDist::close(){};
 
 
+namespace {
+    std::unique_ptr<SamplerBase> createQDist(std::string name, std::vector<double> args){
+        return std::make_unique<QDist>(4, args[1], args[0], name);
+    }
 
+    bool registered_qdist = samplerFactory.registerObject(SamplerTypes::QDIST, createQDist);
+}
 
 
 
@@ -295,7 +258,13 @@ void XDR::sample(State& state){
     }
 }
 
+namespace {
+    std::unique_ptr<SamplerBase> createXDR(std::string name, std::vector<double> args){
+        return std::make_unique<XDR>(args[0], name);
+    }
 
+    bool registered_xdr = samplerFactory.registerObject(SamplerTypes::XDR, createXDR);
+}
 
 
 
@@ -330,6 +299,13 @@ void NumIons::save(){
 
 void NumIons::close(){};
 
+namespace {
+    std::unique_ptr<SamplerBase> createNumIons(std::string name, std::vector<double> args){
+        return std::make_unique<NumIons>(args[0], name);
+    }
+
+    bool registered_num_ions = samplerFactory.registerObject(SamplerTypes::NUMIONS, createNumIons);
+}
 
 
 
@@ -409,7 +385,13 @@ void Pressure::save(){
 void Pressure::close(){};
 
 
+namespace {
+    std::unique_ptr<SamplerBase> createPressure(std::string name, std::vector<double> args){
+        return std::make_unique<Pressure>(args[0], args[2] * args[3] * args[4], 0.5 * args[4], name);
+    }
 
+    bool registered_pressure = samplerFactory.registerObject(SamplerTypes::PRESSURE, createPressure);
+}
 
 
 
@@ -489,7 +471,13 @@ void PressureV::save(){
 void PressureV::close(){};
 
 
+namespace {
+    std::unique_ptr<SamplerBase> createPressureV(std::string name, std::vector<double> args){
+        return std::make_unique<PressureV>(args[0], args[1], args[5], args[6], args[7], name);
+    }
 
+    bool registered_pressure_v = samplerFactory.registerObject(SamplerTypes::PRESSUREV, createPressureV);
+}
 
 
 
@@ -573,7 +561,13 @@ void ForcePressure::save(){
 void ForcePressure::close(){};
 
 
+namespace {
+    std::unique_ptr<SamplerBase> createForcePressure(std::string name, std::vector<double> args){
+        return std::make_unique<ForcePressure>(args[0], args[2] * args[3] * args[4], 0.5 * args[4], name);
+    }
 
+    bool registered_force_pressure = samplerFactory.registerObject(SamplerTypes::FORCEPRESSURE, createForcePressure);
+}
 
 
 
@@ -603,7 +597,13 @@ void Force::save(){}
 void Force::close(){};
 
 
+namespace {
+    std::unique_ptr<SamplerBase> createForce(std::string name, std::vector<double> args){
+        return std::make_unique<Force>(args[0], name);
+    }
 
+    bool registered_force = samplerFactory.registerObject(SamplerTypes::FORCE, createForce);
+}
 
 
 
@@ -697,7 +697,13 @@ void CliffPressure::save(){
 
 void CliffPressure::close(){};
 
+namespace {
+    std::unique_ptr<SamplerBase> createCliffPressure(std::string name, std::vector<double> args){
+        return std::make_unique<CliffPressure>(args[0], args[1], args[5], args[6], name);
+    }
 
+    bool registered_cliff_pressure = samplerFactory.registerObject(SamplerTypes::CLIFFPRESSURE, createCliffPressure);
+}
 
 
 
@@ -851,7 +857,13 @@ void ModifiedWidom::save(){
 
 void ModifiedWidom::close(){};
 
+namespace {
+    std::unique_ptr<SamplerBase> createModifiedWidom(std::string name, std::vector<double> args){
+        return std::make_unique<ModifiedWidom>(args[0], name);
+    }
 
+    bool registered_modified_widom = samplerFactory.registerObject(SamplerTypes::MODIFIEDWIDOM, createModifiedWidom);
+}
 
 
 
@@ -1012,6 +1024,15 @@ void ModifiedWidomCoulomb::save(){
 }
 
 void ModifiedWidomCoulomb::close(){};
+
+namespace {
+    std::unique_ptr<SamplerBase> createModifiedWidomCoulomb(std::string name, std::vector<double> args){
+        return std::make_unique<ModifiedWidomCoulomb>(args[0], name);
+    }
+
+    bool registered_modified_widom_coulomb = samplerFactory.registerObject(SamplerTypes::MODIFIEDWIDOMCOULOMB, 
+                                                                        createModifiedWidomCoulomb);
+}
 
 } // end of namespace Samplers
 

@@ -4,6 +4,7 @@
 #include "xdrfile.h"
 #include "xdrfile_xtc.h"
 #include "xdrfile_trr.h"
+#include "genericfactory.h"
 
 namespace Simulator{
 
@@ -30,8 +31,12 @@ enum class SamplerTypes{
     MODIFIEDWIDOMCOULOMB
 };
 
+//      0       1    2     3     4     5      6       7
+// { interval, ds, d[0], d[1], d[2], _d[0], _d[1], _d[2] }
+
 // Factory method for Samplers
-std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, std::string name, std::vector<double> args);
+using samplerCreator = std::function<std::unique_ptr<SamplerBase>(std::string, std::vector<double>)>;
+inline GenericFactory< SamplerBase, SamplerTypes, samplerCreator> samplerFactory;
 
 // Base class for all samplers
 class SamplerBase{
@@ -54,11 +59,7 @@ class SamplerBase{
     virtual void close() = 0;
     // Needed by particlesimulator::run
     int getInterval();
-    
-    //friend std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, 
-    //                                            std::string name, std::vector<double> args);
 };
-
 
 class Density : public SamplerBase{
 
@@ -80,16 +81,12 @@ class Density : public SamplerBase{
     void close() override;
 };
 
-
 class Energy : public SamplerBase{
 
     std::vector<double> energies;
 
     public:
-    Energy(int interval, std::string filename) : SamplerBase(interval){
-        energies.reserve(50000);
-        this->filename = "energies_" + filename + ".txt";
-    }
+    Energy(int interval, std::string filename);
     ~Energy() override = default;
 
     void sample(State &state) override;

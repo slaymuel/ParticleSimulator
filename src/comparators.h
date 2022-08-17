@@ -9,11 +9,11 @@ namespace comparators{
     } mLess;
 
     struct {
-        bool operator()(const double a, Move* b) const{   
+        bool operator()(const double a, Moves::Move* b) const{   
             return a < b->weight;
         }  
 
-        bool operator()(Move* a, const double b) const{   
+        bool operator()(Moves::Move* a, const double b) const{   
             return a->weight < b;
         }  
     } mdLess;

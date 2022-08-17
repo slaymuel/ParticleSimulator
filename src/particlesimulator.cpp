@@ -4,7 +4,7 @@ namespace Simulator{
 
 Simulator::Simulator(double Dielec, double T, std::string _name) : name(_name){
     constants::set(T, Dielec);
-    Move::state = &state;
+    Moves::Move::state = &state;
 
     #ifdef _OPENMP
         Logger::Log("OpenMP is ENABLED with ", omp_get_num_procs()," threads.");
@@ -31,8 +31,9 @@ void Simulator::set_cp(double cp){
     constants::cp = cp;
 }
 
-void Simulator::add_move(MoveTypes move_type, std::vector<double> args){
-    moves.push_back(Move::createMove(move_type, args));
+void Simulator::add_move(Moves::MoveTypes move_type, std::vector<double> args){
+    //moves.push_back(Move::createMove(move_type, args));
+    moves.push_back(Moves::moveFactory.createObject(move_type, this->name, args));
 }
 
 void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> args){
@@ -46,14 +47,13 @@ void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> arg
     // Add values needed by the samplers
     args.insert(args.end(), this->state.geo->d.begin(), this->state.geo->d.end());
     args.insert(args.end(), this->state.geo->_d.begin(), this->state.geo->_d.end());
-
-    Samplers::createSampler(type, this->name, args);
+    sampler.push_back(Samplers::samplerFactory.createObject(type, this->name, args));
 }
 
 void Simulator::finalize(){
     // Create the vector with weights
     std::for_each( this->moves.begin(), this->moves.end(), 
-                    [&](std::unique_ptr<Move>& m){ this->mWeights.push_back(m->weight); } );
+                    [&](std::unique_ptr<Moves::Move>& m){ this->mWeights.push_back(m->weight); } );
     std::sort(this->moves.begin(), this->moves.end(), comparators::mLess);
     std::sort(this->mWeights.begin(), this->mWeights.end());
 

@@ -40,7 +40,7 @@ class Simulator{
     //The relative probability weights of the moves
     std::vector<double> mWeights;
     //The list of moves
-    std::vector< std::unique_ptr<Move> > moves;
+    std::vector< std::unique_ptr<Moves::Move> > moves;
     //List of samplers
     std::vector< std::unique_ptr<Samplers::SamplerBase> > sampler;
 
@@ -51,7 +51,7 @@ class Simulator{
     Simulator(double Dielec, double T, std::string _name);
     void set_temperature(double T);
     void set_cp(double cp);
-    void add_move(MoveTypes move_type, std::vector<double> args);
+    void add_move(Moves::MoveTypes move_type, std::vector<double> args);
     void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
     // Finalize the settings, called by user when user is done adding moves etc.
     void finalize();
