@@ -6,6 +6,7 @@
 
 namespace Simulator{
 
+    // RAII timer
     struct Timer{
         private:
         std::chrono::high_resolution_clock::time_point start;
@@ -19,9 +20,8 @@ namespace Simulator{
         }
 
         ~Timer(){
-            std::chrono::duration<float> duration = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
-
-            //std::cout << location.function_name() << " took" << duration.count() << "s" << std::endl;
+            std::chrono::duration<float> duration = 
+                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
             Logger::Log(location, " took ", duration.count(), "s");
         }
     };

@@ -9,6 +9,8 @@ namespace Simulator{
 
 namespace Samplers{
 
+class SamplerBase;
+
 enum class SamplerTypes{
     DENSITY_X,
     DENSITY_Y,
@@ -25,14 +27,21 @@ enum class SamplerTypes{
     FORCE,
     CLIFFPRESSURE,
     MODIFIEDWIDOM,
-    MODIFIEDWIDOMCOLOUMB
+    MODIFIEDWIDOMCOULOMB
 };
 
+// Factory method for Samplers
+std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, std::string name, std::vector<double> args);
+
+// Base class for all samplers
 class SamplerBase{
 
     protected:
+    // Number of samples taken
     int samples = 1;
+    // How often should we sample
     int interval;
+    // Output filename
     std::string filename;
 
     public:
@@ -43,9 +52,11 @@ class SamplerBase{
     virtual void sample(State& state) = 0;
     virtual void save() = 0;
     virtual void close() = 0;
-
+    // Needed by particlesimulator::run
     int getInterval();
-    static std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, std::vector<double> args);
+    
+    //friend std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, 
+    //                                            std::string name, std::vector<double> args);
 };
 
 
@@ -358,8 +369,6 @@ class ModifiedWidomCoulomb: public SamplerBase{
     void save() override;
     void close() override;
 };
-
-
 
 } // end of namespace Samplers
 

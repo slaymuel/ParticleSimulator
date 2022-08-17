@@ -136,7 +136,7 @@ class PairEnergy : public EnergyBase{
                 }
             }
         }
-
+        
         return e * constants::lB;
     }
 

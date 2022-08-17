@@ -881,43 +881,34 @@ namespace EwaldLike{
             this->kVec.clear();
             this->resFac.clear();
             this->kNorm.clear();
-
+            
             double k2 = 0;
-
-            //printf("Setting up k-vectors\n");
-            //printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
 
             //get k-vectors
             double factor = 1;
             Eigen::Vector3d vec;
-            //printf("Calculating k-vectors");
-            //printf("%lf %lf %lf\n", this->xb, this->yb, this->zb);
-            for(int kx = -kM[0]; kx <= kM[0]; kx++){
+
+            for(int kx = 0; kx <= kM[0]; kx++){
                 for(int ky = -kM[1]; ky <= kM[1]; ky++){
                     for(int kz = -kM[2]; kz <= kM[2]; kz++){
 
                         factor = 1.0;
-                        /*if(kx > 0){
+                        if(kx > 0){
                             factor *= 2.0;
-                        }*/
+                        }
 
                         vec[0] = (2.0 * constants::PI * kx / this->xb);
                         vec[1] = (2.0 * constants::PI * ky / this->yb);
                         vec[2] = (2.0 * constants::PI * kz / this->zb);
+                        //2 times the magnitude of the k-vector
                         k2 = math::dot(vec, vec);
 
                         if(fabs(k2) > 1e-12) {
-                            if(spherical){
-                                if(kx * kx + ky * ky + kz * kz < kMax * kMax){
-                                    this->kVec.push_back(vec);
-                                    this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
-                                }
-                            }
+                            if(spherical && (kx * kx + ky * ky + kz * kz > kMax * kMax))
+                                continue;
 
-                            else{
-                                this->kVec.push_back(vec);
-                                this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
-                            }
+                            this->kVec.push_back(vec);
+                            this->resFac.push_back(factor * std::exp(-k2 / (4.0 * alpha * alpha)) / k2);
                         }
                     }
                 }

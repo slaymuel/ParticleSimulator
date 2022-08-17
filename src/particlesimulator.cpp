@@ -20,11 +20,13 @@ Simulator::Simulator(double Dielec, double T, std::string _name) : name(_name){
     printf("\n");
 }
 
+// Set the temperature
 void Simulator::set_temperature(double T){
     constants::T = T; 
     constants::lB = constants::C * (1.0 / (constants::D * T));
 }
 
+// Set the chemical potential
 void Simulator::set_cp(double cp){
     constants::cp = cp;
 }
@@ -32,15 +34,26 @@ void Simulator::set_cp(double cp){
 void Simulator::add_move(MoveTypes move_type, std::vector<double> args){
     moves.push_back(Move::createMove(move_type, args));
 }
-
+/*
 void Simulator::add_sampler(int i, int interval, double ds){
     sampler.push_back(_add_sampler(i, interval, ds));
 }
+*/
+void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> args){
+    //      0       1    2     3     4     5      6       7
+    // { interval, ds, d[0], d[1], d[2], _d[0], _d[1], _d[2] }
+    assert(args.size() > 0);
+    assert(args.size() < 3);
+    // If user did not supply a ds argument, push back default value
+    if(args.size() == 1)
+        args.push_back(0.01);
+    // Add values needed by the samplers
+    args.insert(args.end(), this->state.geo->d.begin(), this->state.geo->d.end());
+    args.insert(args.end(), this->state.geo->_d.begin(), this->state.geo->_d.end());
 
-/*void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> args){
-    Samplers::createSampler(type, args, this->state.geo);
-}*/
-
+    Samplers::createSampler(type, this->name, args);
+}
+/*
 std::unique_ptr<Samplers::SamplerBase> Simulator::_add_sampler(int i, int interval, double ds){
     switch(i){
         case 0:
@@ -113,56 +126,61 @@ std::unique_ptr<Samplers::SamplerBase> Simulator::_add_sampler(int i, int interv
             break;
     }
 }
-
+*/
 void Simulator::finalize(){
+    // Create the vector with weights
     std::for_each( this->moves.begin(), this->moves.end(), 
                     [&](std::unique_ptr<Move>& m){ this->mWeights.push_back(m->weight); } );
     std::sort(this->moves.begin(), this->moves.end(), comparators::mLess);
     std::sort(this->mWeights.begin(), this->mWeights.end());
 
-    for(unsigned int i = 1; i < this->mWeights.size(); i++){
+    // Calculate the accumulated weights
+    for(unsigned int i = 1; i < this->mWeights.size(); i++)
         this->mWeights[i] += this->mWeights[i - 1];
-    }
 
-    //Make sure move list is not corrupted
+    // Make sure move list is not corrupted
     assert(this->mWeights.back() == 1.0);
 
+    // Sets up the old system and calculated the starting energy
     this->state.finalize(this->name);
 
-    //Save starting configuration for XTC trajectory
+    // Save starting configuration for XTC trajectory
     IO::to_gro(this->name, state.particles, state.geo->d);
 }
 
+// Runner
 void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps){
     Logger::Log("Bjerrum length is: ", constants::lB);
     Logger::Log("Running Simulation at: ", constants::T, "K", " with ", state.particles.particles.size(), " particles (", state.particles.cTot, " cations and ", state.particles.aTot, " anions)");
 
+    // For each macrostep
     for(unsigned int macro = 0; macro < macroSteps; macro++){
         #ifdef _TIMERS_
             TIMEIT;
         #endif
+        // For each microstep
         for(unsigned int micro = 0; micro <= microSteps; micro++){
-            wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
+            // Get a random move using move probability distribution 
+            auto wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
             (*moves[wIt - mWeights.begin()])();
 
-            if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() )){
+            if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() ))
                 state.save();
-            }
-            else{
-                state.revert();
-            }
 
+            else
+                state.revert();
+
+            // Sample the state
             if(macro >= eqSteps){
                 for(auto& s : sampler){
-                    if(micro % s->getInterval() == 0){
-                        s->sample(state);  
-                    }
+                    if(micro % s->getInterval() == 0)
+                        s->sample(state);
                 }
             }
         }
 
         /*                                "HALF TIME"                                  */
-        //Print progress
+        // Print progress
         printf("\n");
         Logger::Log("Iteration (macrostep): ", macro);
 
@@ -183,24 +201,24 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         state.control();
         state.advance();
 
-        for(const auto& s : sampler){
+        // Save sampled data to file
+        for(const auto& s : sampler)
             s->save();
-        }
     }
 
-    for(const auto& s : sampler){
+    for(const auto& s : sampler)
         s->close();
-    }
 
+    // Save final configuration and checkpoint file
     IO::to_xyz(this->name, state.particles, state.geo->d);
     IO::to_cpt(this->name, state.particles, state.geo->d);
 
-    //this->state.close();
     Logger::Log("Energy of last frame: ", this->state.cummulativeEnergy);
     Logger::Log("Simulation Done!");
     printf("\n\n");
 }
 
+// Deprecated, currently cannot use without Pybind11
 #ifndef PY11
 int main(){
     std::string infile = "fgarpm_bulk.cp";

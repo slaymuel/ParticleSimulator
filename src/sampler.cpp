@@ -7,78 +7,81 @@ namespace Samplers{
 
 int SamplerBase::getInterval(){ return this->interval; }
 
-//void Samplers::SamplerBase::addSampler(int i, int interval, double ds = 0.05){
-std::unique_ptr<SamplerBase> SamplerBase::createSampler(SamplerTypes sampler_type, std::vector<double> args){
-        /*switch(sampler_type){
-            case SamplerTypes::DENSITY_Z:
-                Logger::Log("\nAdding z density sampler\n");
-                return std::make_unique<Density>(2, this->state.geo->_d[2], ds, 
-                                              this->state.geo->d[0], this->state.geo->d[1], interval, this->name);
-                break;
-            case SamplerTypes::WIDOMHS:
-                Logger::Log("Adding Widom HS-CP sampler\n");
-                sampler.push_back(new WidomHS(interval, this->name));
-                break;
+//      0       1    2     3     4     5      6       7
+// { interval, ds, d[0], d[1], d[2], _d[0], _d[1], _d[2] }
+std::unique_ptr<SamplerBase> createSampler(SamplerTypes sampler_type, std::string name, std::vector<double> args){
+    double volume = args[2] * args[3] * args[4];
 
-            case SamplerTypes::ENERGY:
-                Logger::Log("Adding energy sampler\n");
-                return std::make_unique<Energy>(interval, this->name);
-                break;
+    switch(sampler_type){
+        case SamplerTypes::DENSITY_Z:
+            Logger::Log("\nAdding z density sampler\n");
+            return std::make_unique<Density>(2, args[7], args[1], 
+                                            args[2], args[3], args[0], name);
+            break;
+        case SamplerTypes::WIDOMHS:
+            Logger::Log("Adding Widom HS-CP sampler\n");
+            return std::make_unique<WidomHS>(args[0], name);
+            break;
 
-            case SamplerTypes::QDIST:
-                Logger::Log("Adding charge distribution sampler\n");
-                return std::make_unique<QDist>(4, ds, interval, this->name);
-                break;
-            case SamplerTypes::XDR:
-                Logger::Log("Adding XDR trajectory sampler\n");
-                return std::make_unique<XDR>(interval, this->name);
-                break;
-            case SamplerTypes::NUMIONS:
-                Logger::Log("Adding number of ions sampler\n");
-                return std::make_unique<NumIons>(interval, this->name);
-                break;
-            case SamplerTypes::DENSITY_X:
-                Logger::Log("\nAdding x density sampler\n");
-                return std::make_unique<Density>(0, this->state.geo->_d[0], ds, 
-                                              this->state.geo->d[1], this->state.geo->d[2], interval, this->name);
-                break;
-            case SamplerTypes::DENSITY_Y:
-                Logger::Log("\nAdding y density sampler\n");
-                return std::make_unique<Density>(1, this->state.geo->_d[1], ds, 
-                                              this->state.geo->d[0], this->state.geo->d[2], interval, this->name);
-                break;
-            case SamplerTypes::PRESSURE:
-                Logger::Log("\nAdding virial pressure sampler\n");
-                return std::make_unique<Pressure>(interval, this->state.geo->volume, this->state.geo->dh[2], this->name);
-                break;
-            case SamplerTypes::PRESSUREV:
-                Logger::Log("\nAdding pressureV sampler\n");
-                return std::make_unique<PressureV>(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->state.geo->_d[2], this->name);
-                break;
-            case SamplerTypes::FORCEPRESSURE:
-                Logger::Log("\nAdding ForcePressure sampler\n");
-                return std::make_unique<ForcePressure>(interval, this->state.geo->volume, this->state.geo->dh[2], this->name);
-                break;
-            case SamplerTypes::FORCE:
-                Logger::Log("\nAdding Force sampler\n");
-                return std::make_unique<Force>(interval, this->name);
-                break;
-            case SamplerTypes::CLIFFPRESSURE:
-                Logger::Log("\nAdding Cliff pressure sampler\n");
-                return std::make_unique<CliffPressure>(interval, ds, this->state.geo->_d[0], this->state.geo->_d[1], this->name);
-                break;
-            case SamplerTypes::MODIFIEDWIDOM:
-                Logger::Log("\nAdding Modified Widom sampler\n");
-                return std::make_unique<ModifiedWidom>(interval, this->name);
-                break;
-            case SamplerTypes::MODIFIEDWIDOMCOULOMB:
-                Logger::Log("\nAdding Modified Widom Coulomb sampler\n");
-                return std::make_unique<ModifiedWidomCoulomb>(interval, this->name);
-                break;
-            default:
-                Logger::Log("Invalid sampler");
-                break;
-        }*/
+        case SamplerTypes::ENERGY:
+            Logger::Log("Adding energy sampler\n");
+            return std::make_unique<Energy>(args[0], name);
+            break;
+
+        case SamplerTypes::QDIST:
+            Logger::Log("Adding charge distribution sampler\n");
+            return std::make_unique<QDist>(4, args[1], args[0], name);
+            break;
+        case SamplerTypes::XDR:
+            Logger::Log("Adding XDR trajectory sampler\n");
+            return std::make_unique<XDR>(args[0], name);
+            break;
+        case SamplerTypes::NUMIONS:
+            Logger::Log("Adding number of ions sampler\n");
+            return std::make_unique<NumIons>(args[0], name);
+            break;
+        case SamplerTypes::DENSITY_X:
+            Logger::Log("\nAdding x density sampler\n");
+            return std::make_unique<Density>(0, args[5], args[1], 
+                                            args[3], args[4], args[0], name);
+            break;
+        case SamplerTypes::DENSITY_Y:
+            Logger::Log("\nAdding y density sampler\n");
+            return std::make_unique<Density>(1, args[6], args[1], 
+                                            args[2], args[4], args[0], name);
+            break;
+        case SamplerTypes::PRESSURE:
+            Logger::Log("\nAdding virial pressure sampler\n");
+            return std::make_unique<Pressure>(args[0], volume, 0.5 * args[4], name);
+            break;
+        case SamplerTypes::PRESSUREV:
+            Logger::Log("\nAdding pressureV sampler\n");
+            return std::make_unique<PressureV>(args[0], args[1], args[5], args[6], args[7], name);
+            break;
+        case SamplerTypes::FORCEPRESSURE:
+            Logger::Log("\nAdding ForcePressure sampler\n");
+            return std::make_unique<ForcePressure>(args[0], volume, 0.5 * args[4], name);
+            break;
+        case SamplerTypes::FORCE:
+            Logger::Log("\nAdding Force sampler\n");
+            return std::make_unique<Force>(args[0], name);
+            break;
+        case SamplerTypes::CLIFFPRESSURE:
+            Logger::Log("\nAdding Cliff pressure sampler\n");
+            return std::make_unique<CliffPressure>(args[0], args[1], args[5], args[6], name);
+            break;
+        case SamplerTypes::MODIFIEDWIDOM:
+            Logger::Log("\nAdding Modified Widom sampler\n");
+            return std::make_unique<ModifiedWidom>(args[0], name);
+            break;
+        case SamplerTypes::MODIFIEDWIDOMCOULOMB:
+            Logger::Log("\nAdding Modified Widom Coulomb sampler\n");
+            return std::make_unique<ModifiedWidomCoulomb>(args[0], name);
+            break;
+        default:
+            Logger::Log("Invalid sampler");
+            break;
+    }
 }
 
 Density::Density(int d, double dl, double binWidth, double xb, double yb, int interval, std::string filename) : SamplerBase(interval){

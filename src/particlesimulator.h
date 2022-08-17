@@ -37,26 +37,31 @@ class Simulator{
     private:
     //Name will be used for output files
     std::string name;
+    //The relative probability weights of the moves
     std::vector<double> mWeights;
-    std::vector<double>::iterator wIt;
+    //The list of moves
     std::vector< std::unique_ptr<Move> > moves;
+    //List of samplers
     std::vector< std::unique_ptr<Samplers::SamplerBase> > sampler;
 
     public:
-    //The current state of the system
+    //The current state of the system, i.e particles, geometry etc
     State state;
 
     Simulator(double Dielec, double T, std::string _name);
     void set_temperature(double T);
     void set_cp(double cp);
     void add_move(MoveTypes move_type, std::vector<double> args);
-    void add_sampler(int i, int interval, double ds = 0.05);
+    //void add_sampler(int i, int interval, double ds = 0.05);
+    void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
     //void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
-    std::unique_ptr<Samplers::SamplerBase> _add_sampler(int i, int interval, double ds = 0.05);
+    //std::unique_ptr<Samplers::SamplerBase> _add_sampler(int i, int interval, double ds = 0.05);
+    // Finalize the settings, called when user is done adding moves etc.
     void finalize();
+    // Run the simulation
     void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps);
 };
 
 #include "pybind.h"
 
-}
+} // end of namespace Simulator

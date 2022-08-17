@@ -65,7 +65,9 @@ target_sources(
 	PRIVATE
 	io.cpp
 	sampler.cpp
+	state.cpp
 	Faddeeva.cpp
+	constants.cpp
 	particlesimulator.cpp
 )
 target_include_directories(particlesimulator

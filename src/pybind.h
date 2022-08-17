@@ -17,6 +17,22 @@ PYBIND11_MODULE(particlesimulator, m) {
         .value("GCREMOVE", MoveTypes::GCREMOVE)
         .value("CHARGETRANSLATE", MoveTypes::CHARGETRANSLATE);
 
+    py::enum_<Samplers::SamplerTypes>(m, "SamplerTypes")
+        .value("DENSITY_X", Samplers::SamplerTypes::DENSITY_X)
+        .value("DENSITY_Y", Samplers::SamplerTypes::DENSITY_Y)
+        .value("DENSITY_Z", Samplers::SamplerTypes::DENSITY_Z)
+        .value("ENERGY", Samplers::SamplerTypes::ENERGY)
+        .value("WIDOMHS", Samplers::SamplerTypes::WIDOMHS)
+        .value("QDIST", Samplers::SamplerTypes::QDIST)
+        .value("XDR", Samplers::SamplerTypes::XDR)
+        .value("NUMIONS", Samplers::SamplerTypes::NUMIONS)
+        .value("PRESSURE", Samplers::SamplerTypes::PRESSURE)
+        .value("PRESSUREV", Samplers::SamplerTypes::PRESSUREV)
+        .value("FORCEPRESSURE", Samplers::SamplerTypes::FORCEPRESSURE)
+        .value("FORCE", Samplers::SamplerTypes::FORCE)
+        .value("CLIFFPRESSURE", Samplers::SamplerTypes::CLIFFPRESSURE)
+        .value("MODIFIEDWIDOM", Samplers::SamplerTypes::MODIFIEDWIDOM)
+        .value("MODIFIEDWIDOMCOULOMB", Samplers::SamplerTypes::MODIFIEDWIDOMCOULOMB);
     
 
     py::class_<Simulator>(m, "Simulator")
@@ -24,8 +40,10 @@ PYBIND11_MODULE(particlesimulator, m) {
         .def("run", &Simulator::run)
         //.def("add_move", &Simulator::add_move)
         .def("add_move", static_cast<void (Simulator::*)(MoveTypes, std::vector<double>)>(&Simulator::add_move))
+        .def("add_sampler", static_cast<void (Simulator::*)(Samplers::SamplerTypes, 
+                                                            std::vector<double>)>(&Simulator::add_sampler))
         //.def("add_move",  static_cast<void (Simulator::*)(int, std::vector<double>)>(&Simulator::add_move))
-        .def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
+        //.def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
         .def("set_temperature", &Simulator::set_temperature)
         .def("set_cp", &Simulator::set_cp)
         .def("finalize", &Simulator::finalize)

@@ -432,12 +432,10 @@ class Particles{
 
         printf("\n");
         Logger::Log("Created ", pNum, " cations and ", nNum, " anions");
-        printf("\n");
         for(auto val : params){
             Logger::Log("\t", val.first.c_str(), " ", val.second);
-            printf("\n");
         }
-
+        printf("\n");
         if(params.size() != 10){
             printf("Wrong number of arguments in particles::create params, contains %lu\n", params.size());
             exit(1);
