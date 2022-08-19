@@ -5,12 +5,13 @@ namespace Simulator {
 template<class ObjectType, typename Identifier, typename Creator>
 class GenericFactory{
     private:
+    // callbacks holds the creator functions
     using CallbackMap = std::map<Identifier, Creator>;
     CallbackMap callbacks;
 
     public:
 
-
+    // Each type which is to be created registers itself using this function
     bool registerObject(const Identifier& id, Creator callback){
         // value_type creates a pair of type std::pair<SamplerTypes::, Callback>
         bool added = callbacks.insert(std::make_pair(id, callback)).second;

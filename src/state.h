@@ -1,7 +1,5 @@
 #pragma once
 
-#define UNUSED(x) (void)(x)
-
 #include "aux_math.h"
 #include "geometry.h"
 #include "energy.h"

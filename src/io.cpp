@@ -31,10 +31,11 @@ void IO::to_cpt(std::string fileName, const Particles& p, const std::vector<doub
     {
         for(unsigned int i = 0; i < p.tot; i++){
 
-            f << std::fixed << std::setprecision(15) << " " <<  p[i]->com[0] << " " << p[i]->com[1] << " " << p[i]->com[2] << " " << 
-                                                                p[i]->pos[0] << " " << p[i]->pos[1] << " " << p[i]->pos[2] << " " << 
-                                                                p[i]->q << " " << p[i]->r << " " << p[i]->rf << " " << 
-                                                                p[i]->b << " " << p[i]->b_min << " " << p[i]->b_max << " " << p[i]->name << "\n";
+            f << std::fixed << std::setprecision(15) << " " <<  
+                    p[i]->com[0] << " " << p[i]->com[1] << " " << p[i]->com[2] << " " << 
+                    p[i]->pos[0] << " " << p[i]->pos[1] << " " << p[i]->pos[2] << " " << 
+                    p[i]->q << " " << p[i]->r << " " << p[i]->rf << " " << 
+                    p[i]->b << " " << p[i]->b_min << " " << p[i]->b_max << " " << p[i]->name << "\n";
         }
         f.close();
     }

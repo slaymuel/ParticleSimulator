@@ -31,6 +31,7 @@ namespace Random{
     Eigen::Vector3d random_pos_box(double rf, std::vector<double> box);
     Eigen::Vector3d get_random_vector(double l);
 
+    // Simulate return value overloads
     struct get_vector{
         operator Eigen::Vector3d();
         operator std::vector<double>();

@@ -67,6 +67,7 @@ target_sources(
 	sampler.cpp
 	move.cpp
 	state.cpp
+	particles.cpp
 	Faddeeva.cpp
 	constants.cpp
 	particlesimulator.cpp

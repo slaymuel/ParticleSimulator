@@ -10,8 +10,12 @@
 */
 
 namespace Simulator{
+
+
+// the Potentials namespace contains all the potential classes (functors)
 namespace Potentials{
 
+// Coulomb energy between two point charges
 class Coulomb{
     public:
 
@@ -25,12 +29,12 @@ class Coulomb{
     }
 };
 
-
+// Lennard-Jones
 class LJ{
     private:
-    const double s = 5.0;
-    double s6 = s*s*s*s*s*s;
-    double s12 = s6*s6;
+    inline static constexpr double s = 5.0;
+    inline static constexpr double s6 = s*s*s*s*s*s;
+    inline static constexpr double s12 = s6*s6;
     double k = 1.0;
 
     public:
@@ -54,6 +58,7 @@ class LJ{
     }
 };
 
+// Lennard-Jones, shifted and truncated
 class LJST{
     private:
     const double s = 5.0;
@@ -87,7 +92,7 @@ class LJST{
     }
 };
 
-
+// Only the repulsive part Lennard-Jones (Pauli repulsion)
 class LJRep{
     private:
     const double s = 4.0;
@@ -117,7 +122,7 @@ class LJRep{
 };
 
 
-
+// Lennard Jones repulsion from the walls
 class LJWallRep{
     private:
     double k;
@@ -160,7 +165,7 @@ class LJWallRep{
     }
 };
 
-
+// Exponential wall repulsion
 class ExpWallRep{
     private:
     double k;
@@ -202,6 +207,7 @@ class ExpWallRep{
 };
 
 
+// Harmonic potential
 class Harmonic{
     private:
     double k;
@@ -300,7 +306,7 @@ class Sture{
 
 
 
-
+// All the different variants of the Fanourgakis potential
 namespace Fanourgakis{
     static double R;
 
@@ -431,7 +437,7 @@ namespace Fanourgakis{
 
 
 
-
+// Using a splined potential
 class Spline{
     std::vector<double> knots;
 
@@ -517,35 +523,23 @@ class BSpline2D{
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// All the Ewald like potentials
 namespace EwaldLike{
-    static double alpha = 0.0;
-    static double kMax = 0.0;
-    static std::vector<int> kM;
-    static double R;
-    static double eta;
-    static bool spherical;
 
-    static void set_km(std::vector<int> v){
+    inline double alpha = 0.0;
+    inline double kMax = 0.0;
+    inline std::vector<int> kM;
+    inline double R;
+    inline double eta;
+    inline bool spherical;
+
+    [[maybe_unused]]static void set_km(std::vector<int> v){
         kM = v;
     }
 
 
 
-
+    // Short part of the normal 3D Ewald potential
     class Short{
 
         public:
@@ -578,7 +572,7 @@ namespace EwaldLike{
 
 
 
-
+    // Short part of truncated Ewald
     class ShortTruncated{
         private:
 
@@ -595,12 +589,10 @@ namespace EwaldLike{
                 exit(0);
             }
             else{
-                //energy = math::erfc_x(R * std::sqrt(2.0) * q / (2.0 * alpha)) - math::erfc_x(R * std::sqrt(2) / (2.0 * alpha)) - (1.0 - q) * R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (alpha * std::sqrt(constants::PI));
-                //energy /= 1 - math::erfc_x(R * std::sqrt(2.0) / (2.0 * alpha)) - R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (alpha * std::sqrt(constants::PI));
-                //energy = alpha * std::sqrt(constants::PI) * (math::erf_x(std::sqrt(2.0) * R / (2.0 * alpha)) - math::erf_x(std::sqrt(2.0) * dist / (2.0 * alpha))) * std::exp(R*R / (2.0 * alpha*alpha)) + std::sqrt(2.0)*(dist - R);
-                //energy /= dist * (math::erf_x(std::sqrt(2.0) * R / (2.0 * alpha)) * std::exp(R*R / (2.0 * alpha * alpha)) * alpha * std::sqrt(constants::PI) - R*std::sqrt(2.0));
-                energy = math::erfc_x(eta * q) - math::erfc_x(eta) - (1.0 - q) * 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
-                energy /= 1.0 - math::erfc_x(eta) - 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
+                energy = math::erfc_x(eta * q) - 
+                         math::erfc_x(eta) - (1.0 - q) * 2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
+                energy /= 1.0 - math::erfc_x(eta) - 
+                          2.0 * eta / std::sqrt(constants::PI) * std::exp(-eta * eta);
 
                 //printf("Real %.15lf\n", energy);
                 return energy * q1 * q2 / dist;
@@ -620,7 +612,7 @@ namespace EwaldLike{
 
 
 
-
+    // Long part of truncated Ewald
     class LongTruncated{
         private:
         std::vector<double> resFac, kNorm;
@@ -717,10 +709,7 @@ namespace EwaldLike{
 
 
         inline std::complex<double> Ak(unsigned int i){
-            //std::complex<double> energy1;
-            //std::complex<double> energy2;
-            //std::complex<double> energy3;
-            std::complex<double> energy4;
+            std::complex<double> energy;
 
             std::complex<double> c1;
             std::complex<double> c2;
@@ -749,34 +738,23 @@ namespace EwaldLike{
             e2.real(std::cos(kNorm[i] * R));
             e2.imag(-std::sin(kNorm[i] * R));
 
-            //std::cout << Faddeeva::w(zcf) << " " << Faddeeva::w(zf) << " " << (Faddeeva::w(zcf) * e1  + Faddeeva::w(zf) * e2) / 2.0 << std::endl;
-            //energy1 = (Faddeeva::erf(c1) + Faddeeva::erf(c2)) * std::exp(-kNorm[i] * kNorm[i] * alpha * alpha / 2.0) / 2.0 - std::sqrt(2.0) * std::sin(R * kNorm[i]) * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha * kNorm[i]);
-            //energy2 = (1.0 - ( (Faddeeva::w(zcf) * e1  + Faddeeva::w(zf) * e2) / 2.0 + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * std::exp(kNorm[i]*kNorm[i] * R*R / (4.0 * eta*eta) - eta*eta)) * std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta));
-            //energy3 = std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta)) - ( (Faddeeva::w(zcf) * e1  + Faddeeva::w(zf) * e2) / 2.0 + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * std::exp(-eta*eta);
             c3 = Faddeeva::w(zf) * e2;
-            energy4 = std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta)) - ( c3.real() + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * std::exp(-eta*eta);
+            energy = std::exp(-kNorm[i]*kNorm[i] * R*R / (4.0 * eta * eta)) - 
+                    ( c3.real() + std::sin(R * kNorm[i]) / (R * kNorm[i]) * 2.0 * eta / std::sqrt(constants::PI)) * 
+                    std::exp(-eta*eta);
 
-            double den = 1.0 - math::erfc_x(R / (std::sqrt(2.0) * alpha)) - R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha);
-            //energy1 /= den;
-            //energy2 /= den;
-            //energy3 /= den;    
-            energy4 /= den;       
+            double den = 1.0 - math::erfc_x(R / (std::sqrt(2.0) * alpha)) - 
+                        R * std::sqrt(2.0) * std::exp(-R*R / (2.0 * alpha * alpha)) / (std::sqrt(constants::PI) * alpha);
+  
+            energy /= den;       
 
-            //if((std::fabs(energy1.real() - energy2.real()) > 1E-14) || (std::fabs(energy1.real() - energy3.real()) > 1E-14 )){
-            //    printf("Energy difference\n");
-                //exit(0);
-            //}
-
-            //printf("Ak1 real: %.15lf, complex1: %.15lf\n", energy1.real(), energy1.imag());
-            //printf("Ak2 real: %.15lf, complex2: %.15lf\n", energy2.real(), energy2.imag());
-            //printf("Ak3 real: %.15lf, complex3: %.15lf\n", energy3.real(), energy3.imag());
-            //printf("Ak4 real: %.15lf, complex4: %.15lf\n", energy4.real(), energy4.imag());
-            return energy4;
+            return energy;
         }
 
 
 
-        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, 
+                           const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
 
@@ -858,7 +836,7 @@ namespace EwaldLike{
 
 
 
-
+    // Long/Reciprocal part of normal Ewald
     //In GC ewald should only return reciprocal part in previous state
     class Long{
         private:
@@ -874,7 +852,6 @@ namespace EwaldLike{
             this->yb = y;
             this->zb = z;
             this->volume = x * y * z;
-            //printf("Setting volume in energy to: %lf\n", this->volume);
         }
 
         void set_kvectors(){
@@ -954,7 +931,8 @@ namespace EwaldLike{
             }
         }
 
-        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, const std::vector< std::shared_ptr<Particle> >& _new){
+        inline void update(const std::vector< std::shared_ptr<Particle> >& _old, 
+                           const std::vector< std::shared_ptr<Particle> >& _new){
             std::complex<double> rk_new;
             std::complex<double> rk_old;
 
@@ -968,7 +946,7 @@ namespace EwaldLike{
 
                     #pragma omp parallel for private(rk_new, rk_old) if(kM[2] > 8)
                     for(unsigned int k = 0; k < kVec.size(); k++){
-                        double dot = o->pos.dot(this->kVec[k]);//math::dot(o->pos, this->kVec[k]);
+                        double dot = o->pos.dot(this->kVec[k]);
                         rk_old.imag(std::sin(dot));
                         rk_old.real(std::cos(dot));
 
@@ -986,7 +964,7 @@ namespace EwaldLike{
 
                     #pragma omp parallel for private(rk_new, rk_old) if(kM[2] > 8)
                     for(unsigned int k = 0; k < kVec.size(); k++){
-                        double dot = n->pos.dot(this->kVec[k]);//math::dot(n->pos, this->kVec[k]);
+                        double dot = n->pos.dot(this->kVec[k]);
                         rk_new.imag(std::sin(dot));
                         rk_new.real(std::cos(dot));
 
@@ -1004,10 +982,8 @@ namespace EwaldLike{
             for(unsigned int k = 0; k < this->kVec.size(); k++){
                     energy += std::norm(this->rkVec[k]) * this->resFac[k];
             }
-            //printf("Reciprocal term: %.15lf selfterm: %.15lf\n", energy * 2.0 * constants::PI / (this->volume), this->selfTerm);
 
             return energy * 2.0 * constants::PI / (this->volume) - this->selfTerm;
-            //return energy * 2.0 * constants::PI / (this->volume);
         } 
 
 
@@ -1021,27 +997,9 @@ namespace EwaldLike{
                 rec += this->kVec[k] / kSq * std::exp(-kSq / (4.0 * alpha)) * std::sin(this->kVec[k].dot(disp));
             }
             rec *= 4.0 * constants::PI / this->volume;
-            /*printf("\nReciprocal force: \n");
-            std::cout << q1*q2*rec << std::endl;
-            printf("\n");*/
             return q1 * q2 * rec;
         }
     };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1078,14 +1036,9 @@ namespace EwaldLike{
 
             double k2 = 0;
 
-            //printf("Setting up k-vectors\n");
-            //printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
-
             //get k-vectors
             double factor = 1;
             Eigen::Vector3d vec;
-            //printf("Calculating k-vectors");
-            //printf("%lf %lf %lf\n", this->xb, this->yb, this->zb);
             for(int kx = -kM[0]; kx <= kM[0]; kx++){
                 for(int ky = -kM[1]; ky <= kM[1]; ky++){
                     for(int kz = -kM[2]; kz <= kM[2]; kz++){
@@ -1248,24 +1201,9 @@ namespace EwaldLike{
                 rec += this->kVec[k] / kSq * std::exp(-kSq / (4.0 * alpha)) * std::sin(this->kVec[k].dot(disp));
             }
             rec *= 4.0 * constants::PI / this->volume;
-            /*printf("\nReciprocal force: \n");
-            std::cout << q1*q2*rec << std::endl;
-            printf("\n");*/
             return q1 * q2 * rec;
         }
     };
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1538,27 +1476,7 @@ namespace EwaldLike{
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    // Ewald + vacuum slabs and plane-wise summation geometry
     class Long2{
         private:
         std::vector<double> resFac, kNorm;
@@ -1583,13 +1501,8 @@ namespace EwaldLike{
 
             double k2 = 0;
 
-            //printf("Setting up k-vectors\n");
-            //printf("\tWavevectors in x, y, z: %i, %i, %i\n", kM[0], kM[1], kM[2]);
-
             //get k-vectors
             Eigen::Vector3d vec;
-            //printf("Calculating k-vectors");
-            //printf("%lf %lf %lf\n", this->xb, this->yb, this->zb);
             for(int kx = -kM[0]; kx <= kM[0]; kx++){
                 for(int ky = -kM[1]; ky <= kM[1]; ky++){
                     vec[0] = (2.0 * constants::PI * kx / this->xb);
@@ -1928,17 +1841,7 @@ namespace EwaldLike{
         }
 
         inline double operator()(){
-            //printf("dip: %lf, Q: %lf, Q2: %lf\n", this->fac * this->dipoleMoment * this->dipoleMoment , this->fac * this->totQ*this->qs, this->fac * this->totQ*this->totQ * this->zb*this->zb / 12.0);
-            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb*this->zb / 12.0);
-            //return this->fac * (this->dipoleMoment * this->dipoleMoment + this->surfaceCharge*this->qs - this->surfaceCharge*this->surfaceCharge * this->zb*this->zb / 12.0);
-            
-            //printf("slabcorr %lf\n", this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs));
-            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs - this->totQ*this->totQ * this->zb * this->zb / 12.0) - constants::PI * this->totQ*this->totQ / (2.0 * alpha * alpha * this->volume);
-            //return this->fac * this->dipoleMoment * this->dipoleMoment - constants::PI * this->totQ*this->totQ / (2.0 * alpha * alpha * this->volume);
             return this->fac * this->dipoleMoment * this->dipoleMoment;
-            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs) - constants::PI * this->totQ*this->totQ / (2.0 * alpha * alpha * this->volume);
-            //return this->fac * (this->dipoleMoment * this->dipoleMoment - this->totQ*this->qs);
-            //return this->fac * this->dipoleMoment * this->dipoleMoment + 4.0 * constants::PI * this->surfaceCharge * this->dipoleMoment + 2.0 * constants::PI * this->surfaceCharge * this->surfaceCharge * this->xb * this->yb * 30.0;
         }
 
         inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
@@ -1954,7 +1857,7 @@ namespace EwaldLike{
 
 
 
-
+    // Halfwald with isotropic PBC
     class LongHWIPBC{
         private:
         std::vector<double> resFac, kNorm;
@@ -2562,7 +2465,7 @@ namespace EwaldLike{
                     vec[1] = (2.0 * constants::PI * ky/this->yb);
                     vec[2] = 0.0;
                     k2 = vec.dot(vec);
-                    if(fabs(k2) > 1e-5){// && ky * ky + kx * kx <= 11){
+                    if(fabs(k2) > 1e-5){
                         this->kVec.push_back(vec);
                         kNum++;
                     }
@@ -2619,49 +2522,6 @@ namespace EwaldLike{
             double reciprocal = this->get_reciprocal(p1, p2, dispVec);
             return p1->q * p2->q * constants::PI/(2.0 * this->xb * this->yb) * reciprocal;
         }
-/*
-        double get_energy(Particles &particles){
-            double energy = 0;
-            double distance = 0;
-            double real = 0;
-            double self = 0;
-            double reciprocal = 0;
-            double reci = 0;
-            double dipCorr = 0;
-            double done = 0;
-            double gE = 0;
-            int k = 0;
-
-            for(int i = 0; i < particles.tot; i++){
-
-                k = i + 1;
-                while(k < particles.tot){
-                    distance = particles.distances[i][k];
-                    if(k != i){
-
-                        real += particles[i]->q * particles[k]->q * math::erfc_x(alpha * distance) / distance;
-                    }
-                    k++;
-                }
-
-                for(int j = 0; j < particles.tot; j++){
-                    double zDist = particles[i]->pos[2] - particles[j]->pos[2];
-                    reciprocal += particles[i]->q * particles[j]->q * get_reciprocal(particles[i], particles[j]) * 1.0 / 2.0;
-                    gE += particles[i]->q * particles[j]->q * (zDist * math::erf_x(alpha * zDist) +
-                        exp(-(zDist * zDist * alpha * alpha)) / (alpha * sqrt(constants::PI)));
-                }
-                //dipCorr += dipole_correction(particles[i]);
-                self += get_self_correction(particles[i]);
-                printf("Rec: %lf g: %lf: reci: %lf Done: %lf\r", reciprocal, gE, reci,(double)i/particles.tot * 100);
-            }
-            reciprocal = (reciprocal - gE) * constants::PI/(Base::xL * Base::yL);
-            dipCorr = -2.0 * constants::PI/(this->xb * this->yb * this->zb) * dipCorr * dipCorr;
-            self = alpha/std::sqrt(constants::PI) * self;
-            energy = (real + reciprocal - self);// + dipCorr);
-            printf("Real: %lf, self: %lf, reciprocal: %lf dipCorr: %lf, energy: %lf\n", real * Base::lB, self * Base::lB, reciprocal * Base::lB, dipCorr, energy * Base::lB);
-            return energy * constants::lB;
-        }
-        */
 
         inline Eigen::Vector3d force(double q1, double q2, Eigen::Vector3d disp){
             Eigen::Vector3d force;
@@ -2671,126 +2531,6 @@ namespace EwaldLike{
 }
 
 
+} // end of namespace Potentials
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
-class Levin{
-
-    private:
-    double sumC, xb, yb, zb, volume, dipoleM;
-    std::vector<double> f1, f2, f3, f4, kNorms;
-    std::vector<int> kM;
-    std::vector< Eigen::Vector2d> kVec;
-
-    public:
-
-    void set_km(std::vector<int> v){
-        kM = v;
-    }
-
-    void set_box(double x, double y, double z){
-        this->xb = x;
-        this->yb = y;
-        this->zb = z;
-        this->volume = x * y * z;
-    }
-
-    void initialize(Particles &particles){
-        Eigen::Vector2d vec;
-
-        for(int x = -kM[0]; x <= kM[0]; x++){
-            for(int y = -kM[1]; y <= kM[1]; y++){
-                if(x != 0 || y != 0){
-                    vec[0] = (double) x;//(double) x * 2.0 * PI / Base::xL; // 
-                    vec[1] = (double) y;//(double) y * 2.0 * PI / Base::xL; // 
-                    kVec.push_back(vec);
-                    kNorms.push_back(2.0 * PI * sqrt((double)(x * x)/(Base::xL * Base::xL) + (double)(y * y)/(Base::yL * Base::yL)));
-
-                }
-            }
-        }
-        printf("\tFound %lu k-vectors.\n", kVec.size());
-
-        double factor = 0;
-        for(int i = 0; i < kVec.size(); i++){
-            for(int j = 0; j < particles.tot; j++){
-                factor = 2.0 * constants::PI / Base::xL * (kVec[i][0] * particles[j]->pos[0] + kVec[i][1] * particles[j]->pos[1]);
-                double fac = kNorms[i] * (particles[j]->pos[2] + this->zb / 2.0);
-                f1[i] += particles[j]->q * std::cos(factor) * std::exp(-fac);
-                f2[i] += particles[j]->q * std::sin(factor) * std::exp(-fac);
-                f3[i] += particles[j]->q * std::cos(factor) * std::exp( fac);
-                f4[i] += particles[j]->q * std::sin(factor) * std::exp( fac);
-            }  
-        }
-
-        printf("Calculated f-functions\n");
-        for(int i = 0; i < kVec.size(); i++){
-            eFactors[i] = exp(-2.0 * kNorms[i] * Base::zLBox);
-        }
-
-        for(int i = 0; i < particles.tot; i++){
-            sumC += particles[i]->q;
-        }
-
-        for(int i = 0; i < particles.numOfParticles; i++){
-            dipoleM += particles[i].q * ( particles[i].pos[2] + this->zb / 2.0 );
-        }
-    }
-
-    inline double operator()(){
-        double polarization = 0.0, gamma = 0.0, dipoleM = 0.0;;
-
-        for(int i = 0; i < kVec.size(); i++){    
-            polarization += -1.0 / (kNorms[i] * (1.0 - eFactors[i])) * 
-                    (f1[i] * f1[i] + f2[i] * f2[i] + eFactors[i] * (f3[i] * f3[i] + f4[i] * f4[i]) - 
-                    2.0 * eFactors[i] * (f3[i] * f1[i] + f2[i] * f4[i]));
-        }
-
-        gamma = -2.0 * (dipoleM * dipoleM / this->zb - sumC * dipoleM);
-
-        return constants::PI / (Base::xL * Base::xL) * (polarization + gamma);
-    }
-
-    void update_f(Particle &_old, Particle &_new){
-        for(int i = 0; i < kVec.size(); i++){
-            double oldFactor = 2.0 * constants::PI / this->xb * (kVec[i][0] * _old.pos[0] + kVectors[i][1] * _old.pos[1]);
-            double newFactor = 2.0 * constants::PI / this->xb * (kVec[i][0] * _new.pos[0] + kVectors[i][1] * _new.pos[1]);
-            f1[i] -= _old.q * std::cos(oldFactor) * std::exp(-kNorms[i] * (_old.pos[2] + this->zb/ 2.0));
-            f1[i] += _new.q * std::cos(newFactor) * std::exp(-kNorms[i] * (_new.pos[2] + this->zb / 2.0));
-
-            f2[i] -= _old.q * std::sin(oldFactor) * std::exp(-kNorms[i] * (_old.pos[2] + this->zb / 2.0));
-            f2[i] += _new.q * std::sin(newFactor) * std::exp(-kNorms[i] * (_new.pos[2] + this->zb / 2.0) );
-
-            f3[i] -= _old.q * std::cos(oldFactor) * std::exp(kNorms[i] * (_old.pos[2] + this->zb / 2.0) );
-            f3[i] += _new.q * std::cos(newFactor) * std::exp(kNorms[i] * (_new.pos[2] + this->zb / 2.0) );
-
-            f4[i] -= _old.q * std::sin(oldFactor) * std::exp(kNorms[i] * (_old.pos[2] + this->zb / 2.0) );
-            f4[i] += _new.q * std::sin(newFactor) * std::exp(kNorms[i] * (_new.pos[2] + this->zb / 2.0));
-
-            sumC += _new.q;
-            sumC -= _old.q;
-
-            dipoleM += 
-        }
-    }
-};
-
-*/
-}
-
-}
+}// end of namespace Simulator

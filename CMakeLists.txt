@@ -10,7 +10,7 @@ if(APPLE)
 endif()
 find_package(Python 3.6 REQUIRED COMPONENTS Interpreter Development)
 
-find_package(OPENMP REQUIRED COMPONENTS CXX)
+find_package(OpenMP REQUIRED COMPONENTS CXX)
 
 Include(FetchContent)
 include(CTest)

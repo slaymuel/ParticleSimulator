@@ -794,8 +794,8 @@ void State::load_cp(std::vector< std::vector<double> > com, std::vector< std::ve
         this->particles.add(com[i], pos[i], qDisp, r[i], rf[i], charges[i], b[i], b_min[i], b_max[i], names[i]);
 
     }
-    if(!this->particles.setPModel || !this->particles.setNModel){
-        Logger::Log<Logger::LogLevel::FATAL>("Cation or anion model not set!");
+    if(!this->particles.is_valid()){
+        Logger::Log<Logger::LogLevel::FATAL>("Particles object is not valid!");
         exit(1);
     }
     Logger::Log("Loaded ", this->particles.tot, " particles, ", this->particles.cTot, " cations and ", this->particles.aTot, " anions.");

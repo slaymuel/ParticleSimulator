@@ -1,3 +1,4 @@
+// Pre-compiled header
 #pragma once
 
 #include <Eigen/Dense>

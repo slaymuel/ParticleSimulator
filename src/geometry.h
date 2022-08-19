@@ -29,7 +29,7 @@ class Geometry{
 
 };
 
-
+// Template parameters controls the PBC in each of the dimensions
 template<bool X = true, bool Y = true, bool Z = true>
 class Cuboid : public Geometry{
 

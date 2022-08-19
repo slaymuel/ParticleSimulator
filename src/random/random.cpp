@@ -3,15 +3,13 @@
 namespace Simulator{
 
 void Random::create_CDF(std::string filename){
-    
-    
     std::cout << "Creating CDF" << std::endl;
     std::ifstream f(filename);
     std::string line;
-    double integral = 0;
+    auto integral = 0.0;
     
     while (std::getline(f, line)) {
-        double x, y;
+        auto x = 0.0, y = 0.0;
         
         std::istringstream ss(line);
         ss >> x >> y;
@@ -22,9 +20,9 @@ void Random::create_CDF(std::string filename){
             integral += y;
         }
     }
-    double dx = customVals[1][0] - customVals[0][0];
+    auto dx = customVals[1][0] - customVals[0][0];
     std::cout << "dx is: " << dx << std::endl;
-    //integral *= dx;
+
     for(std::vector<double>& val : customVals){
         val[1] /= integral;
     }
@@ -47,7 +45,6 @@ double Random::get_random_from_distribution(){
 }
 
 double Random::get_random(){
-    //return (*real_dist)(rand_gen);
     return ran2::get_random();
 }
 
@@ -84,15 +81,15 @@ Random::get_vector::operator std::vector<double>(){
 }
 
 Random::get_norm_vector::operator Eigen::Vector3d(){
-    double phi = get_random() * 2.0 * PI;
-    double z = get_random() * 2.0 - 1.0;
+    auto phi = get_random() * 2.0 * PI;
+    auto z = get_random() * 2.0 - 1.0;
     Eigen::Vector3d v(std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z);
     
     return v;
 }
 Random::get_norm_vector::operator std::vector<double>(){
-    double phi = get_random() * 2.0 * PI;
-    double z = get_random() * 2.0 - 1.0;
+    auto phi = get_random() * 2.0 * PI;
+    auto z = get_random() * 2.0 - 1.0;
     std::vector<double> v = {std::sqrt(1.0 - z*z) * std::cos(phi), std::sqrt(1.0 - z*z) * std::sin(phi), z};
     
     return v;

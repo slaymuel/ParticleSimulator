@@ -17,7 +17,8 @@ std::string Move::dump() const{
     std::ostringstream s;
     s.precision(1);
     s << std::fixed;
-    s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << this->attempted << " (" << this->accepted <<") ";
+    s << "\t" << this->id << ": " << (double) this->accepted / this->attempted * 100.0 << "%, " << 
+                                                this->attempted << " (" << this->accepted <<") ";
     return s.str();
 }
 

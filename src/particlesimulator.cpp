@@ -32,7 +32,6 @@ void Simulator::set_cp(double cp){
 }
 
 void Simulator::add_move(Moves::MoveTypes move_type, std::vector<double> args){
-    //moves.push_back(Move::createMove(move_type, args));
     moves.push_back(Moves::moveFactory.createObject(move_type, this->name, args));
 }
 
