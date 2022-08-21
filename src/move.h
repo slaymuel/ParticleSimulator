@@ -37,27 +37,32 @@ enum class MoveTypes{
 using moveCreator = std::function<std::unique_ptr<Move>(std::string, std::vector<double>)>;
 inline GenericFactory< Move, MoveTypes, moveCreator> moveFactory;
 
-// Base class for moves
+// Pure virtuwl base class for moves
 class Move{
 
     protected:
+    // Number of accepted moves etc
     mutable int accepted, rejected, attempted;
+    // Magnitude of the chosen step
     double stepSize;
+    // String id used in logging
     std::string id;
 
     public:
+    // Probability weight of each move
     double weight;
     static State* state;
 
     Move(double step, double w, std::string id);
     virtual ~Move() = default;
 
+    // Performs the move
     virtual void operator()() = 0;
+    // Check if the move should be accepted
     virtual bool accept(double dE) const = 0;
+    // Print status (rename as it does dump anything anymore)
     virtual std::string dump() const = 0;
 };
-
-//std::string Move::dump() const;
 
 class Translate : public Move{
     public:
@@ -133,7 +138,6 @@ class GrandCanonicalSingle : public Move{
     GrandCanonicalSingle(double chemPot, double donnan, double w) : Move(0.0, w, ADD ? "GCSINGLEADD" : "GCSINGLEREM"),
                   d(donnan), cp(chemPot){
 
-        constants::cp = chemPot;
         this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
         this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         Logger::Log("\tCation accessible volume: ", this->pVolume, " Anion accessible volume: ", this->nVolume);
@@ -214,6 +218,7 @@ class GrandCanonicalSingle : public Move{
     }
 };
 
+// Register the moves to the move factory
 namespace {
     std::unique_ptr<Move> createGrandCanonicalSingleADD(std::string name, std::vector<double> args){
         return std::make_unique< GrandCanonicalSingle<true> >(args[1], args[2], args[0]);
@@ -248,7 +253,6 @@ class GrandCanonical : public Move{
     public:
 
     GrandCanonical(double chemPot, double w) : Move(0.0, w, ADD ? "GCADD" : "GCREM"), cp(chemPot){
-        constants::cp = chemPot;
         this->pVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.pModel.rf);
         this->nVolume = state->geo->_d[0] * state->geo->_d[1] * (state->geo->_d[2] - 2.0 * state->particles.nModel.rf);
         this->valency = state->particles.pModel.q;

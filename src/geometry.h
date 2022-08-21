@@ -19,7 +19,7 @@ class Geometry{
     double volume;
 
     virtual void resize() = 0;
-    virtual bool is_inside(std::shared_ptr<Particle>& p) = 0;
+    virtual bool is_inside(std::shared_ptr<Particle> p) = 0;
     virtual void pbc(std::shared_ptr<Particle>&& p) = 0;
     virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
@@ -50,7 +50,7 @@ class Cuboid : public Geometry{
 
 
 
-    bool is_inside(std::shared_ptr<Particle>& p){
+    bool is_inside(std::shared_ptr<Particle> p){
         if(X){
             if(p->com[0] >= this->_dh[0] || p->com[0] <= -this->_dh[0]){
                 return false;
@@ -252,7 +252,7 @@ class CuboidImg : public Geometry{
 
 
 
-    bool is_inside(std::shared_ptr<Particle>& p){
+    bool is_inside(std::shared_ptr<Particle> p){
         if(p->com[0] >= this->_dh[0] || p->com[0] <= -this->_dh[0] ||
            p->com[1] >= this->_dh[1] || p->com[1] <= -this->_dh[1] ||
            p->com[2] + p->rf >= this->_dh[2] || p->com[2] - p->rf <= -this->_dh[2]){
@@ -380,7 +380,7 @@ class Sphere : public Geometry{
 
     }
 
-    bool is_inside(std::shared_ptr<Particle>& p){
+    bool is_inside(std::shared_ptr<Particle> p){
         if(sqrt(p->com[0] * p->com[0] + p->com[1] * p->com[1] + p->com[2] * p->com[2]) < this->dh[0]){
                return true;
            }

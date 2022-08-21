@@ -2,6 +2,11 @@
 
 namespace Simulator{
 
+Particles::ParticleVec::iterator Particles::begin(){ return this->particles.begin(); }
+Particles::ParticleVec::iterator Particles::end(){ return this->particles.end(); }
+Particles::ParticleVec::const_iterator Particles::begin() const{ return this->particles.cbegin(); }
+Particles::ParticleVec::const_iterator Particles::end() const{ return this->particles.cend(); }
+
 bool Particles::is_valid(){
     return setPModel && setNModel && particles.size() > 0;
 }

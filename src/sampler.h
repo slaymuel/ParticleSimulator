@@ -53,9 +53,11 @@ class SamplerBase{
 
     SamplerBase(int interval) : interval(interval){}
     virtual ~SamplerBase() = default;
-
+    // Samples the state
     virtual void sample(State& state) = 0;
+    // Save the data to file
     virtual void save() = 0;
+    // Close the file stream
     virtual void close() = 0;
     // Needed by particlesimulator::run
     int getInterval();

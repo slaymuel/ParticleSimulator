@@ -8,11 +8,11 @@
 namespace Simulator{
     
 namespace IO{
-
+    // Write configuration in Gromacs format
     void to_gro(std::string fileName, const Particles& p, const std::vector<double> d);
-
+    // Write checkpoint file
     void to_cpt(std::string fileName, const Particles& p, const std::vector<double> d);
-
+    // Write configuration in xyz format
     template<typename T>
     void to_xyz(std::string fileName, const T& p, const std::vector<double> d){
         // Write charge positions

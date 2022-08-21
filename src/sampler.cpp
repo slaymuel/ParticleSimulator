@@ -24,8 +24,8 @@ Density::Density(int d, double dl, double binWidth, double xb, double yb, int in
 
 void Density::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
-        //printf("%lu %i\n", this->density.size(), (int) (particles.particles[i]->pos[d] + this->dh));
-        if(state.particles.particles[i]->q > 0)
+        //printf("%lu %i\n", this->density.size(), (int) (particles[i]->pos[d] + this->dh));
+        if(state.particles[i]->q > 0)
             pDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
 
         else
@@ -167,8 +167,8 @@ namespace {
 
 void QDist::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
-        int index = (int)((state.geo->distance(state.particles.particles[i]->pos, state.particles.particles[i]->com)) / this->binWidth);
-        if(state.particles.particles[i]->q > 0.0){
+        int index = (int)((state.geo->distance(state.particles[i]->pos, state.particles[i]->com)) / this->binWidth);
+        if(state.particles[i]->q > 0.0){
             
             pqDist[index]++;
         }
@@ -752,7 +752,7 @@ void ModifiedWidom::sample(State& state){
     ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
     for(int scale = 1; scale <= 10; scale++){
         elDE = startExt;
-        state.particles.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.pModel.q;
+        state.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.pModel.q;
         
         std::vector< std::shared_ptr<Particle> > empty = {};
         int k = 0;
@@ -806,7 +806,7 @@ void ModifiedWidom::sample(State& state){
     ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
     for(int scale = 1; scale <= 10; scale++){
         elDE = startExt;
-        state.particles.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.nModel.q;
+        state.particles[state.particles.tot - 1]->q = ((double) (scale - 1) * 0.1 + 0.1) * state.particles.nModel.q;
         std::vector< std::shared_ptr<Particle> > empty = {};
         int k = 0;
         for(auto& e : state.energyFunc){
@@ -890,11 +890,11 @@ void ModifiedWidomCoulomb::sample(State& state){
     int k = 0;
 
     for(int l = 0; l < state.particles.tot - 1; l++){
-        state.particles.particles[l]->q *= (1.0 - state.particles.particles[l]->q / (state.particles.tot - 1));
+        state.particles[l]->q *= (1.0 - state.particles[l]->q / (state.particles.tot - 1));
     }
     sElDE += e->i2all(state.particles[state.particles.tot - 1], state.particles);
     for(int l = 0; l < state.particles.tot - 1; l++){
-        state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+        state.particles[l]->q = state.particles[l]->q < 0.0 ? -1.0 : 1.0;
     }
     for(auto& e1 : state.energyFunc){
 
@@ -912,9 +912,9 @@ void ModifiedWidomCoulomb::sample(State& state){
     ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
     for(int scale = 1; scale <= 10; scale++){
         double lambda = ((double) (scale - 1.0) * 0.1 + 0.1);
-        state.particles.particles[state.particles.tot - 1]->q = lambda * state.particles.pModel.q;
+        state.particles[state.particles.tot - 1]->q = lambda * state.particles.pModel.q;
         for(int l = 0; l < state.particles.tot - 1; l++){
-            state.particles.particles[l]->q *= (1.0 - state.particles.particles[l]->q * lambda / (state.particles.tot - 1));
+            state.particles[l]->q *= (1.0 - state.particles[l]->q * lambda / (state.particles.tot - 1));
         }
 
         std::vector< std::shared_ptr<Particle> > empty = {};
@@ -930,7 +930,7 @@ void ModifiedWidomCoulomb::sample(State& state){
         denomP[scale] += std::exp(-(sSrDE + elDE));
 
         for(int l = 0; l < state.particles.tot - 1; l++){
-            state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+            state.particles[l]->q = state.particles[l]->q < 0.0 ? -1.0 : 1.0;
         }
     }
     nomP[0] += elDE * std::exp(-sSrDE);
@@ -950,11 +950,11 @@ void ModifiedWidomCoulomb::sample(State& state){
     state.particles.add(com, com, qDisp, state.particles.nModel.r, state.particles.nModel.rf, state.particles.nModel.q, 0.0, 0.0, 0.0, "WIDOM_PARTICLE");
     /////////////////////////////////////////////////////////////// Calculate full addition energy /////////////////////////////////////////////////////////////////////////////
     for(int l = 0; l < state.particles.tot - 1; l++){
-        state.particles.particles[l]->q *= (1.0 + state.particles.particles[l]->q / (state.particles.tot - 1));
+        state.particles[l]->q *= (1.0 + state.particles[l]->q / (state.particles.tot - 1));
     }
     sElDE = e->i2all(state.particles[state.particles.tot - 1], state.particles);
     for(int l = 0; l < state.particles.tot - 1; l++){
-        state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+        state.particles[l]->q = state.particles[l]->q < 0.0 ? -1.0 : 1.0;
     }
     for(auto& e1 : state.energyFunc){
         std::vector< std::shared_ptr<Particle> > empty = {};
@@ -971,9 +971,9 @@ void ModifiedWidomCoulomb::sample(State& state){
     ////////////////////////////////////////////////////////////// Integrate charge //////////////////////////////////////////////////////////////////////////////////////////////
     for(int scale = 1; scale <= 10; scale++){
         double lambda = ((double) (scale - 1) * 0.1 + 0.1);
-        state.particles.particles[state.particles.tot - 1]->q = lambda * state.particles.nModel.q;
+        state.particles[state.particles.tot - 1]->q = lambda * state.particles.nModel.q;
         for(int l = 0; l < state.particles.tot - 1; l++){
-            state.particles.particles[l]->q *= (1.0 + state.particles.particles[l]->q * lambda / (state.particles.tot - 1));
+            state.particles[l]->q *= (1.0 + state.particles[l]->q * lambda / (state.particles.tot - 1));
         }
 
         std::vector< std::shared_ptr<Particle> > empty = {};
@@ -987,7 +987,7 @@ void ModifiedWidomCoulomb::sample(State& state){
         denomN[scale] += std::exp(-(sSrDE + elDE));  
     
         for(int l = 0; l < state.particles.tot - 1; l++){
-            state.particles.particles[l]->q = state.particles.particles[l]->q < 0.0 ? -1.0 : 1.0;
+            state.particles[l]->q = state.particles[l]->q < 0.0 ? -1.0 : 1.0;
         }
     }
     nomN[0] += elDE * std::exp(-sSrDE);

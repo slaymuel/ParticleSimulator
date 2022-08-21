@@ -11,9 +11,12 @@ namespace Simulator{
 class Particles{
 
     private:
+    using ParticleVec = std::vector< std::shared_ptr<Particle> >;
+
     // If the models are created
     bool setPModel = false;
     bool setNModel = false;
+    ParticleVec particles;
 
     public:
 
@@ -23,13 +26,18 @@ class Particles{
     Particle pModel;
     Particle nModel;
     // Optimize by setting fixed capacity of particles vector
-    std::vector< std::shared_ptr<Particle> > particles;
     // Holds moved particles after each move
     std::vector<int> movedParticles;
     //The number of particles
     unsigned int cTot = 0, aTot = 0, tot = 0;
 
     Particles();
+
+    // Iterator behaviour for range based loops etc
+    ParticleVec::iterator begin();
+    ParticleVec::iterator end();
+    ParticleVec::const_iterator begin() const;
+    ParticleVec::const_iterator end() const;
 
     bool is_valid();
     // Get a subset of particle positions using positions matrix

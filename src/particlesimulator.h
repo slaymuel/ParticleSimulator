@@ -49,8 +49,8 @@ class Simulator{
     State state;
 
     Simulator(double Dielec, double T, std::string _name);
+    // Reset the temperature, as in parallel tempering
     void set_temperature(double T);
-    void set_cp(double cp);
     void add_move(Moves::MoveTypes move_type, std::vector<double> args);
     void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
     // Finalize the settings, called by user when user is done adding moves etc.

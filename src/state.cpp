@@ -29,50 +29,51 @@ void State::control(){
 
     #ifdef DEBUG
     if(this->particles.tot != _old->particles.tot){
-        Logger::Log<Logger::LogLevel::FATAL>("_old state has ", _old->particles.tot, " particles and current state has", this->particles.tot);
+        Logger::Log<Logger::LogLevel::FATAL>("_old state has ", _old->particles.tot, " particles and current state has", 
+                                                                                            this->particles.tot);
         exit(1);
     }
     unsigned int cations = 0, anions = 0;
-    for(unsigned int i = 0; i < this->particles.tot; i++){
-        if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
-                                                            this->particles.particles[i]->b) > 1e-5){
+    for(const auto& p : this->particles){
+        if(std::abs(this->geo->distance(p.com, p.pos) - 
+                                                            p.b) > 1e-5){
             Logger::Log<Logger::LogLevel::FATAL>("|Pos - com| is not b! it is: ", 
-                                                    this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos), 
-                                                    "and should be: ",
-                                                    this->particles.particles[i]->b);
+                                                    this->geo->distance(p.com, p.pos), "and should be: ", p.b);
             exit(1);
         }
-        if(std::abs(this->geo->distance(this->particles.particles[i]->com, this->particles.particles[i]->pos) - 
-                                                            this->particles.particles[i]->qDisp.norm()) > 1e-5){
+        if(std::abs(this->geo->distance(p.com, p.pos) - 
+                                                            p.qDisp.norm()) > 1e-5){
             Logger::Log<Logger::LogLevel::FATAL>("|Pos - com| is not equal to |qDisp|!");
             exit(1);
         }
-        if(this->particles.particles[i]->b > this->particles.particles[i]->b_max){
+        if(p.b > p.b_max){
             Logger::Log<Logger::LogLevel::FATAL>("Ooops, b is larger than b_max!");
             exit(1);
         }
-        if(this->particles.particles[i]->pos != this->_old->particles.particles[i]->pos){
+        if(p.pos != this->_old->particles[i]->pos){
             Logger::Log<Logger::LogLevel::FATAL>("current positions is not equal to old positions for particle ", i);
-            std::cout << this->particles.particles[i]->pos) << std::endl;
-            std::cout << "\n" << this->_old->particles.particles[i]->pos<< std::endl;
+            std::cout << p.pos) << std::endl;
+            std::cout << "\n" << this->_old->particles[i]->pos<< std::endl;
             exit(1);
         }
-        if(this->particles.particles[i]->com != this->_old->particles.particles[i]->com){
+        if(p.com != this->_old->particles[i]->com){
             Logger::Log<Logger::LogLevel::FATAL>("current center of mass is not equal to old for particle ", i);
-            std::cout << this->particles.particles[i]->com << std::endl;
-            std::cout << "\n" << this->_old->particles.particles[i]->com << std::endl;
+            std::cout << p.com << std::endl;
+            std::cout << "\n" << this->_old->particles[p.index]->com << std::endl;
             exit(1);
         }
-        if(this->particles.particles[i]->index != i){
-            Logger::Log<Logger::LogLevel::FATAL>("index is wrong in current for particle ", i, " it has index ", this->particles.particles[i]->index);
+        if(p.index != i){
+            Logger::Log<Logger::LogLevel::FATAL>("index is wrong in current for particle ", i, " it has index ", 
+                                                                            p.index);
             exit(1);
         }
-        if(this->_old->particles.particles[i]->index != i){
-            Logger::Log<Logger::LogLevel::FATAL>("index is wrong in in _old for particle ", i, " it has index ", this->_old->particles.particles[i]->index);
+        if(this->_old->particles[i]->index != i){
+            Logger::Log<Logger::LogLevel::FATAL>("index is wrong in in _old for particle ", i, " it has index ", 
+                                                                        this->_old->particles[i]->index);
             exit(1);
         }
 
-        (this->particles.particles[i]->q > 0.0) ? cations++ : anions++;
+        (p.q > 0.0) ? cations++ : anions++;
     }
 
     if(cations != this->particles.cTot || anions != this->particles.aTot){
@@ -96,26 +97,23 @@ void State::control(){
     }
     #endif
     if(this->error > 1e-10 || this->energy > 1e30){
-        Logger::Log<Logger::LogLevel::FATAL>("Energy drift is too large: ", this->error, " (all2all: ", this->energy, " cummulative: " ,this->cummulativeEnergy, ")");
+        Logger::Log<Logger::LogLevel::FATAL>("Energy drift is too large: ", this->error, " (all2all: ", this->energy, 
+                                                                    " cummulative: " ,this->cummulativeEnergy, ")");
         exit(1);
     } 
-    /*if(this->energy != 0 && this->cummulativeEnergy != 0){
-
-    }*/
 }
 
 void State::finalize(std::string name){
     printf("\n");
     Logger::Log("Finalizing simulation: ", name.c_str());
     // Set up the _old system
-    for(auto p : this->particles.particles){
+    for(auto p : this->particles){
         _old->particles.add(p);
     }
 
     //Calculate the initial energy of the system
     for(auto& e : this->energyFunc){
         e->initialize(particles);
-        //printf("energy: %lf\n", e->all2all(this->particles));
         this->energy += e->all2all(this->particles);
     }
     this->cummulativeEnergy = this->energy;
@@ -135,10 +133,10 @@ void State::reset_energy(){
 void State::save(){
     for(const auto i : this->movedParticles){
         if(this->particles.tot > this->_old->particles.tot){
-            this->_old->particles.add(this->particles.particles[i]);
+            this->_old->particles.add(this->particles[i]);
         }
         else if(this->particles.tot == this->_old->particles.tot){
-            *(this->_old->particles.particles[i]) = *(this->particles.particles[i]);
+            *(this->_old->particles[i]) = *(this->particles[i]);
             //For SingleSwap move
             this->_old->particles.cTot = this->particles.cTot;
             this->_old->particles.aTot = this->particles.aTot;
@@ -184,7 +182,7 @@ void State::revert(){
 
     if(this->particles.tot == this->_old->particles.tot){
         for(const auto i : this->movedParticles){
-            *(this->particles.particles[i]) = *(this->_old->particles.particles[i]);
+            *(this->particles[i]) = *(this->_old->particles[i]);
             //For SingleSwap move
             this->particles.cTot = this->_old->particles.cTot;
             this->particles.aTot = this->_old->particles.aTot;
@@ -200,7 +198,7 @@ void State::revert(){
         std::reverse(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
 
         for(const auto i : this->_old->movedParticles){
-            this->particles.add(this->_old->particles.particles[i], i);
+            this->particles.add(this->_old->particles[i], i);
         }
     }
 
@@ -221,7 +219,7 @@ double State::get_energy_change(){
     auto E1 = 0.0, E2 = 0.0;
     //auto start = std::chrono::steady_clock::now();
     for(const auto p : this->movedParticles){
-        if(!this->geo->is_inside(this->particles.particles[p]) || this->overlap(p)){
+        if(!this->geo->is_inside(this->particles[p]) || this->overlap(p)){
             this->dE = std::numeric_limits<double>::infinity();
             return this->dE;
         }
@@ -279,8 +277,8 @@ void State::equilibrate(double step){
     if(overlaps > 0){
         Logger::Log("\tRandomly placing particles");
         for(unsigned int i = 0; i < this->particles.tot; i++){
-            this->particles.particles[i]->com = this->geo->random_pos(this->particles.particles[i]->rf);
-            this->particles.particles[i]->pos = this->particles.particles[i]->com + this->particles.particles[i]->qDisp;
+            this->particles[i]->com = this->geo->random_pos(this->particles[i]->rf);
+            this->particles[i]->pos = this->particles[i]->com + this->particles[i]->qDisp;
         }
     }
 
@@ -325,10 +323,10 @@ void State::equilibrate(double step){
 
 
 bool State::overlap(std::size_t i) const{
-    for(auto p : this->particles.particles){
+    for(auto p : this->particles){
         if(p->index == i) continue;
 
-        if(this->geo->distance(p->com, this->particles.particles[i]->com) <= p->r + this->particles.particles[i]->r){
+        if(this->geo->distance(p->com, this->particles[i]->com) <= p->r + this->particles[i]->r){
             return true;
         }
     }
@@ -337,7 +335,7 @@ bool State::overlap(std::size_t i) const{
 
 int State::get_overlaps() const{
     int count = 0;
-    for(auto p : this->particles.particles){
+    for(auto p : this->particles){
         (this->overlap(p->index)) ? count++ : 0;
     }
     return count;

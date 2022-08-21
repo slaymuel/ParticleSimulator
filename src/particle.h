@@ -12,11 +12,16 @@ class Particle{
 
     public:
 
-    Eigen::Vector3d pos;    //Position of charge
-    Eigen::Vector3d com;    //COM position
-    Eigen::Vector3d qDisp;  //Charge vector
-    std::string name;       //name
-    double r, b, b_min, b_max, q, rf;     //radius, length of charge vector, charge, minimum distance to wall
+    // Position of charge
+    Eigen::Vector3d pos;    
+    // center of mass position
+    Eigen::Vector3d com;  
+    // Local position of the charge 
+    Eigen::Vector3d qDisp;  
+    // Name of the particle
+    std::string name;       
+    //radius, length of charge vector, charge, minimum distance to wall
+    double r, b, b_min, b_max, q, rf;     
 
     unsigned int index;
 
@@ -52,16 +57,11 @@ class Particle{
         this->pos = this->com + this->qDisp;
     };
 
-
-    void translate(std::vector<double> &v){
+    template<typename T>
+    void translate(T &v){
         this->com[0] +=  v[0];
         this->com[1] +=  v[1];
         this->com[2] +=  v[2];
-        this->pos = this->qDisp + this->com;
-    }
-
-    void translate(Eigen::Vector3d &v){
-        this->com +=  v;
         this->pos = this->qDisp + this->com;
     }
 

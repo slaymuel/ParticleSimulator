@@ -56,6 +56,7 @@ std::string Translate::dump() const {
     return Move::dump();
 }
 
+// Register the move to the move factory
 namespace {
     std::unique_ptr<Move> createTranslate(std::string name, std::vector<double> args){
         return std::make_unique<Translate>(args[1], args[0]);
@@ -121,8 +122,8 @@ void Swap::operator()()  {
         rand2 = Random::get_random(state->particles.tot);
     } while(state->particles[rand]->q == state->particles[rand2]->q);
 
-    std::swap(state->particles.particles[rand]->pos, state->particles.particles[rand2]->pos);
-    std::swap(state->particles.particles[rand]->com, state->particles.particles[rand2]->com);
+    std::swap(state->particles[rand]->pos, state->particles[rand2]->pos);
+    std::swap(state->particles[rand]->com, state->particles[rand2]->com);
 
     attempted++;
     state->move_callback({static_cast<unsigned int>(rand), static_cast<unsigned int>(rand2)});
@@ -442,7 +443,7 @@ void Cluster::operator()() {
     std::vector<unsigned int> indices;
     Eigen::Vector3d disp;
 
-    for(auto i : state->particles.particles){
+    for(auto i : state->particles){
         if(i->index == this->p->index) continue;
 
         if(state->geo->distance(i->pos, this->p->pos) <= this->minDist){
@@ -480,7 +481,7 @@ bool Cluster::accept(double dE) const {
 
     if(found){
 
-        for(auto i : state->particles.particles){
+        for(auto i : state->particles){
             if(i->index == this->p->index) continue;
             if(state->geo->distance(i->pos, this->p->pos) <= this->minDist){
                 count++;

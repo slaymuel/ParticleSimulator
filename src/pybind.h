@@ -45,7 +45,6 @@ PYBIND11_MODULE(particlesimulator, m) {
         //.def("add_move",  static_cast<void (Simulator::*)(int, std::vector<double>)>(&Simulator::add_move))
         //.def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
         .def("set_temperature", &Simulator::set_temperature)
-        .def("set_cp", &Simulator::set_cp)
         .def("finalize", &Simulator::finalize)
         .def_readwrite("state", &Simulator::state);
 
@@ -63,7 +62,6 @@ PYBIND11_MODULE(particlesimulator, m) {
 
 
     py::class_<Particles>(m, "Particles")
-        .def_readonly("particles", &Particles::particles)
         .def_readonly("pModel", &Particles::pModel)
         .def_readonly("nModel", &Particles::nModel)
         .def("create", &Particles::create, py::arg("pNum"), py::arg("nNum"), py::arg("params"));

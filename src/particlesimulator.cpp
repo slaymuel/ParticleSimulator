@@ -26,11 +26,6 @@ void Simulator::set_temperature(double T){
     constants::lB = constants::C * (1.0 / (constants::D * T));
 }
 
-// Set the chemical potential
-void Simulator::set_cp(double cp){
-    constants::cp = cp;
-}
-
 void Simulator::add_move(Moves::MoveTypes move_type, std::vector<double> args){
     moves.push_back(Moves::moveFactory.createObject(move_type, this->name, args));
 }
@@ -38,8 +33,8 @@ void Simulator::add_move(Moves::MoveTypes move_type, std::vector<double> args){
 void Simulator::add_sampler(Samplers::SamplerTypes type, std::vector<double> args){
     //      0       1    2     3     4     5      6       7
     // { interval, ds, d[0], d[1], d[2], _d[0], _d[1], _d[2] }
-    assert(args.size() > 0);
-    assert(args.size() < 3);
+    assert( (args.size() > 0) && (args.size() < 3) );
+
     // If user did not supply a ds argument, push back default value
     if(args.size() == 1)
         args.push_back(0.01);
@@ -73,8 +68,11 @@ void Simulator::finalize(){
 // Runner
 void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps){
     Logger::Log("Bjerrum length is: ", constants::lB);
-    Logger::Log("Running Simulation at: ", constants::T, "K", " with ", state.particles.particles.size(), " particles (", state.particles.cTot, " cations and ", state.particles.aTot, " anions)");
+    Logger::Log("Running Simulation at: ", constants::T, "K", " with ", 
+                state.particles.tot, " particles (", state.particles.cTot, 
+                " cations and ", state.particles.aTot, " anions)");
 
+    // Main program loop
     // For each macrostep
     for(unsigned int macro = 0; macro < macroSteps; macro++){
         #ifdef _TIMERS_
@@ -84,11 +82,13 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         for(unsigned int micro = 0; micro <= microSteps; micro++){
             // Get a random move using move probability distribution 
             auto wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
+            // Perform the move
             (*moves[wIt - mWeights.begin()])();
 
+            // If the move is accepted, save the state
             if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() ))
                 state.save();
-
+            // If the move is rejected, revert to the old state
             else
                 state.revert();
 
@@ -126,7 +126,8 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         // Save sampled data to file
         for(const auto& s : sampler)
             s->save();
-    }
+
+    } // End of main program loop
 
     for(const auto& s : sampler)
         s->close();
