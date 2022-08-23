@@ -7,6 +7,7 @@
 #include "constants.h"
 #include "logger.h"
 #include "aux_math.h"
+#include "timer.h"
 
 namespace Simulator{
 
@@ -94,9 +95,9 @@ class PairEnergy : public EnergyBase{
     inline double i2all(std::shared_ptr<Particle> p, Particles& particles){
         double e = 0.0;
         
-        for (unsigned int i = 0; i < particles.tot; i++){
-            if (p->index == particles[i]->index) continue;
-            e += i2i(p->q, particles[i]->q, this->geo->distance(p->pos, particles[i]->pos));
+        for (const auto& other : particles){
+            if (p->index == other->index) continue;
+            e += i2i(p->q, other->q, this->geo->distance(p->pos, other->pos));
         }
 
         return e;
@@ -105,20 +106,18 @@ class PairEnergy : public EnergyBase{
     double operator()(std::vector< unsigned int >& p, Particles& particles){
         double e = 0.0;
         // If a volume move has been performed
-        if(p.size() == particles.tot){
+        if(p.size() == particles.tot)
             e = all2all(particles) / constants::lB;
-        }
         else{
-            #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
             // Get the energy
-            for(auto i : p)
+            #pragma omp parallel for reduction(+:e) schedule(dynamic, 100) if(particles.tot >= 500)
+            for(const auto& i : p)
                 e += i2all(particles[i], particles);
             // Remove double counting
             for(int i = 0; i < p.size(); i++){
                 for(int j = i + 1; j < p.size(); j++)
                     e -= i2i(particles[p[i]]->q, particles[p[j]]->q, 
-                                this->geo->distance(particles[p[i]]->pos, 
-                                particles[p[j]]->pos));
+                                this->geo->distance(particles[p[i]]->pos, particles[p[j]]->pos));
             }
         }
         
@@ -728,7 +727,7 @@ class ExplicitWallChargeExtEnergy : public EnergyBase{
 
         SetCharges(1.0 / wallCharges.size());
 
-        IO::to_xyz("wallcharges", wallCharges, this->geo->d);
+        IO::instance().to_xyz("wallcharges", wallCharges, this->geo->d);
 
         longRange.initialize(particles);
         longRange.add_wall(wallCharges);

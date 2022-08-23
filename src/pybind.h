@@ -34,7 +34,7 @@ PYBIND11_MODULE(particlesimulator, m) {
         .value("MODIFIEDWIDOM", Samplers::SamplerTypes::MODIFIEDWIDOM)
         .value("MODIFIEDWIDOMCOULOMB", Samplers::SamplerTypes::MODIFIEDWIDOMCOULOMB);
     
-
+    
     py::class_<Simulator>(m, "Simulator")
         .def(py::init<double, double, std::string>())
         .def("run", &Simulator::run)
@@ -42,8 +42,6 @@ PYBIND11_MODULE(particlesimulator, m) {
         .def("add_move", static_cast<void (Simulator::*)(Moves::MoveTypes, std::vector<double>)>(&Simulator::add_move))
         .def("add_sampler", static_cast<void (Simulator::*)(Samplers::SamplerTypes, 
                                                             std::vector<double>)>(&Simulator::add_sampler))
-        //.def("add_move",  static_cast<void (Simulator::*)(int, std::vector<double>)>(&Simulator::add_move))
-        //.def("add_sampler", &Simulator::add_sampler, py::arg("i"), py::arg("interval"), py::arg("ds") = 0.05)
         .def("set_temperature", &Simulator::set_temperature)
         .def("finalize", &Simulator::finalize)
         .def_readwrite("state", &Simulator::state);

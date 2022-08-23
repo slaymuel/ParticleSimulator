@@ -311,7 +311,7 @@ void ChargeTrans::operator()()  {
         rand = Random::get_random(state->particles.tot);
     } while(state->particles[rand]->q < 0.0);
     
-    state->particles[rand]->chargeTrans(this->stepSize);
+    state->particles[rand]->chargeTranslate(this->stepSize);
 
     this->attempted++;
     state->move_callback({state->particles[rand]->index});

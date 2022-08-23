@@ -9,6 +9,12 @@ void State::advance(){
     this->step++;
 }
 
+void State::advanceMicro(){
+    // Clear moved particles before next iteration
+    this->movedParticles.clear();
+    this->_old->movedParticles.clear();
+}
+
 void State::control(){
     #ifdef _DEBUG_
     Logger::Log<Logger::LogLevel::DEBUG>("Control (DEBUG)");
@@ -24,55 +30,58 @@ void State::control(){
         this->energy += e->all2all(this->particles);
     }
 
+    // Check relative energy drift
     this->error = std::fabs((this->energy - this->cummulativeEnergy) / this->energy);
+    if(this->error > 1e-10 || this->energy > 1e30){
+        Logger::Log<Logger::LogLevel::FATAL>("Energy drift is too large: ", this->error, " (all2all: ", this->energy, 
+                                                                    " cummulative: " ,this->cummulativeEnergy, ")");
+        exit(0);
+    } 
 
-
+    // Debug checking
     #ifdef DEBUG
     if(this->particles.tot != _old->particles.tot){
         Logger::Log<Logger::LogLevel::FATAL>("_old state has ", _old->particles.tot, " particles and current state has", 
                                                                                             this->particles.tot);
-        exit(1);
+        exit(0);
     }
     unsigned int cations = 0, anions = 0;
     for(const auto& p : this->particles){
-        if(std::abs(this->geo->distance(p.com, p.pos) - 
-                                                            p.b) > 1e-5){
+        if(std::abs(this->geo->distance(p.com, p.pos) - p.b) > 1e-5){
             Logger::Log<Logger::LogLevel::FATAL>("|Pos - com| is not b! it is: ", 
                                                     this->geo->distance(p.com, p.pos), "and should be: ", p.b);
-            exit(1);
+            exit(0);
         }
-        if(std::abs(this->geo->distance(p.com, p.pos) - 
-                                                            p.qDisp.norm()) > 1e-5){
+        if(std::abs(this->geo->distance(p.com, p.pos) - p.qDisp.norm()) > 1e-5){
             Logger::Log<Logger::LogLevel::FATAL>("|Pos - com| is not equal to |qDisp|!");
-            exit(1);
+            exit(0);
         }
         if(p.b > p.b_max){
             Logger::Log<Logger::LogLevel::FATAL>("Ooops, b is larger than b_max!");
-            exit(1);
+            exit(0);
         }
         if(p.pos != this->_old->particles[i]->pos){
             Logger::Log<Logger::LogLevel::FATAL>("current positions is not equal to old positions for particle ", i);
             std::cout << p.pos) << std::endl;
             std::cout << "\n" << this->_old->particles[i]->pos<< std::endl;
-            exit(1);
+            exit(0);
         }
         if(p.com != this->_old->particles[i]->com){
             Logger::Log<Logger::LogLevel::FATAL>("current center of mass is not equal to old for particle ", i);
             std::cout << p.com << std::endl;
             std::cout << "\n" << this->_old->particles[p.index]->com << std::endl;
-            exit(1);
+            exit(0);
         }
         if(p.index != i){
             Logger::Log<Logger::LogLevel::FATAL>("index is wrong in current for particle ", i, " it has index ", 
                                                                             p.index);
-            exit(1);
+            exit(0);
         }
         if(this->_old->particles[i]->index != i){
             Logger::Log<Logger::LogLevel::FATAL>("index is wrong in in _old for particle ", i, " it has index ", 
                                                                         this->_old->particles[i]->index);
-            exit(1);
+            exit(0);
         }
-
         (p.q > 0.0) ? cations++ : anions++;
     }
 
@@ -96,26 +105,22 @@ void State::control(){
         exit(0);
     }
     #endif
-    if(this->error > 1e-10 || this->energy > 1e30){
-        Logger::Log<Logger::LogLevel::FATAL>("Energy drift is too large: ", this->error, " (all2all: ", this->energy, 
-                                                                    " cummulative: " ,this->cummulativeEnergy, ")");
-        exit(1);
-    } 
 }
 
 void State::finalize(std::string name){
     printf("\n");
     Logger::Log("Finalizing simulation: ", name.c_str());
+
     // Set up the _old system
-    for(auto p : this->particles){
+    for(const auto& p : this->particles)
         _old->particles.add(p);
-    }
 
     //Calculate the initial energy of the system
     for(auto& e : this->energyFunc){
         e->initialize(particles);
         this->energy += e->all2all(this->particles);
     }
+
     this->cummulativeEnergy = this->energy;
     Logger::Log("\tEnergy of the first frame is: ", this->energy);
 }
@@ -123,18 +128,18 @@ void State::finalize(std::string name){
 void State::reset_energy(){
     this->energy = 0.0;
 
-    for(const auto& e : this->energyFunc){
+    for(const auto& e : this->energyFunc)
         this->energy += e->all2all(this->particles);
-    }
 
     this->cummulativeEnergy = this->energy;
 }
 
 void State::save(){
     for(const auto i : this->movedParticles){
-        if(this->particles.tot > this->_old->particles.tot){
+        // If a particle has been added, add it to the old state
+        if(this->particles.tot > this->_old->particles.tot)
             this->_old->particles.add(this->particles[i]);
-        }
+
         else if(this->particles.tot == this->_old->particles.tot){
             *(this->_old->particles[i]) = *(this->particles[i]);
             //For SingleSwap move
@@ -144,42 +149,40 @@ void State::save(){
     }
 
     for(const auto i : this->_old->movedParticles){
-        if(this->particles.tot < this->_old->particles.tot){
-            //printf("removing %i from old\n", i);
+        if(this->particles.tot < this->_old->particles.tot)
             this->_old->particles.remove(i);
-        }
     }
 
-    this->movedParticles.clear();
-    this->_old->movedParticles.clear();
     this->cummulativeEnergy += this->dE;
 
+    // If a volume move has been performed
     if(this->geo->volume != this->_old->geo->volume){
         //Update old geometry
-        this->_old->geo->d = this->geo->d;
-        this->_old->geo->_d = this->geo->_d;
-        this->_old->geo->dh = this->geo->dh;
-        this->_old->geo->_dh = this->geo->_dh;
+        this->_old->geo->d      = this->geo->d;
+        this->_old->geo->_d     = this->geo->_d;
+        this->_old->geo->dh     = this->geo->dh;
+        this->_old->geo->_dh    = this->geo->_dh;
         this->_old->geo->volume = this->geo->volume;
     }
 }
 
 
 void State::revert(){
-    //Set moved partiles in current state equal to previous state
     if(this->dE != std::numeric_limits<double>::infinity()){
+        // Revert energy functors
         for(auto& e : this->energyFunc){
             if(this->geo->volume != this->_old->geo->volume){
                 // Is update really needed here?
                 e->update(this->_old->geo->d[0], this->_old->geo->d[1], this->_old->geo->d[2]);
                 e->initialize(this->_old->particles);
             }
-            else{
-                e->update( this->particles.get_subset(this->movedParticles), this->_old->particles.get_subset(this->_old->movedParticles) );
-            }
+            else
+                e->update( this->particles.get_subset(this->movedParticles), 
+                                                    this->_old->particles.get_subset(this->_old->movedParticles) );
         }
     }
 
+    //Set moved partiles in current state equal to previous state
     if(this->particles.tot == this->_old->particles.tot){
         for(const auto i : this->movedParticles){
             *(this->particles[i]) = *(this->_old->particles[i]);
@@ -188,22 +191,19 @@ void State::revert(){
             this->particles.aTot = this->_old->particles.aTot;
         }
     }
-    else if(this->particles.tot > this->_old->particles.tot){   //Added particle
+    // A particle has been added, remove it
+    else if(this->particles.tot > this->_old->particles.tot){
         std::reverse(this->movedParticles.begin(), this->movedParticles.end());
-        for(const auto i : this->movedParticles){
+        for(const auto i : this->movedParticles)
             this->particles.remove(i);
-        }
     }
-    else if(this->particles.tot < this->_old->particles.tot){   //Removed particle
+    // A particle has been removed, add it back
+    else if(this->particles.tot < this->_old->particles.tot){
         std::reverse(this->_old->movedParticles.begin(), this->_old->movedParticles.end());
 
-        for(const auto i : this->_old->movedParticles){
+        for(const auto i : this->_old->movedParticles)
             this->particles.add(this->_old->particles[i], i);
-        }
     }
-
-    this->movedParticles.clear();
-    this->_old->movedParticles.clear();
 
     //Revert geometry
     this->geo->d      = this->_old->geo->d;
@@ -214,36 +214,36 @@ void State::revert(){
 }
 
 
-//Get energy different between *this and old state
+//Get energy difference between this and old state
 double State::get_energy_change(){
     auto E1 = 0.0, E2 = 0.0;
-    //auto start = std::chrono::steady_clock::now();
-    for(const auto p : this->movedParticles){
+
+    for(const auto& p : this->movedParticles){
+        // If the particle is outside of the box, or if there is hard sphere overlap
         if(!this->geo->is_inside(this->particles[p]) || this->overlap(p)){
             this->dE = std::numeric_limits<double>::infinity();
             return this->dE;
         }
     }
-    auto counter = 0;
-    for(auto& e : this->energyFunc){
 
+    for(auto& e : this->energyFunc){
+        // Calculate the energy of the old state
         e->geo = this->_old->geo;
         E1 += (*e)( this->_old->movedParticles, this->_old->particles );
 
+        // Calculate the energy of the new state
         e->geo = this->geo;
         if(this->geo->volume != this->_old->geo->volume){
             e->update(this->geo->d[0], this->geo->d[1], this->geo->d[2]);
             e->initialize(particles);
         }
-        else{
-            e->update( this->_old->particles.get_subset(this->_old->movedParticles), this->particles.get_subset(this->movedParticles) );
-        }
+        else
+            e->update( this->_old->particles.get_subset(this->_old->movedParticles), 
+                                                        this->particles.get_subset(this->movedParticles) );
 
         E2 += (*e)( this->movedParticles, this->particles );
-
-        counter++;
     }
-    
+
     this->dE = E2 - E1;
     return this->dE;
 }
@@ -253,48 +253,43 @@ double State::get_energy_change(){
 void State::move_callback(std::vector< unsigned int > ps){  
     //If a particle is removed, this->movedparticles is empty. 
     //If particle is added this->_old->particles is empty
-    if(this->particles.tot >= this->_old->particles.tot){
-        std::for_each(std::begin(ps), std::end(ps), [this](int i){ 
+    if(this->particles.tot >= this->_old->particles.tot)
+        std::for_each(std::begin(ps), std::end(ps), [this](int i){
                                                 this->movedParticles.push_back(i); });
-    }
     
     std::copy_if(ps.begin(), ps.end(), std::back_inserter(this->_old->movedParticles), 
                                         [this](unsigned int i){ return i < this->_old->particles.tot; });
 
-    for(auto p : this->movedParticles){
+    for(auto p : this->movedParticles)
         geo->pbc(this->particles[p]);
-    }
 }
 
 
 void State::equilibrate(double step){
     printf("\n");
     Logger::Log("Equilibrating:");
-    Eigen::Vector3d v;
     
     // Initial Check
-    int i = 0, overlaps = this->get_overlaps();
+    auto overlaps = this->get_overlaps();
     if(overlaps > 0){
         Logger::Log("\tRandomly placing particles");
-        for(unsigned int i = 0; i < this->particles.tot; i++){
-            this->particles[i]->com = this->geo->random_pos(this->particles[i]->rf);
-            this->particles[i]->pos = this->particles[i]->com + this->particles[i]->qDisp;
+        for(auto& p : this->particles){
+            p->com = this->geo->random_pos(p->rf);
+            p->pos = p->com + p->qDisp;
         }
     }
 
     Logger::Log("\tInitial overlaps: ", overlaps);
-    Eigen::Vector3d oldCom;
-    Eigen::Vector3d oldPos;
-    std::shared_ptr<Particle> p;
-    double step_rand;
+
+    unsigned long i = 0;
     //Move particles to prevent overlap
     if(overlaps > 0){
         Logger::Log("\tRemoving overlaps.");
         while(overlaps > 0){
-            p = this->particles.random();
-            oldCom = p->com;
-            oldPos = p->pos;
-            step_rand = Random::get_random() * step;
+            auto p = this->particles.random();
+            Eigen::Vector3d oldCom = p->com;
+            Eigen::Vector3d oldPos = p->pos;
+            auto step_rand = Random::get_random() * step;
             p->translate(step_rand);
             //this->geo->pbc(p);
             if(!this->geo->is_inside(p) || this->overlap(p->index)){
@@ -308,15 +303,16 @@ void State::equilibrate(double step){
                 Logger::Log("\tOverlaps: ", overlaps, " iteration: ", i);
                 fflush(stdout);
             }
+
+            // This can take some time for dense systems so overflow is not impossible
             i++;
-            if(i > 1E9){
+            if(i > 1E9)
                 i = 0;
-            }
         }
     }
-    else{
+    else
         Logger::Log("\tNo overlaps to remove!");
-    }
+
     Logger::Log("\tEquilibration done");
 }
 
@@ -325,19 +321,19 @@ void State::equilibrate(double step){
 bool State::overlap(std::size_t i) const{
     for(auto p : this->particles){
         if(p->index == i) continue;
-
-        if(this->geo->distance(p->com, this->particles[i]->com) <= p->r + this->particles[i]->r){
+        // Immediately return true if there is any overlap
+        if(this->geo->distance(p->com, this->particles[i]->com) <= p->r + this->particles[i]->r)
             return true;
-        }
     }
+
     return false;
 }
 
 int State::get_overlaps() const{
     int count = 0;
-    for(auto p : this->particles){
+    for(auto p : this->particles)
         (this->overlap(p->index)) ? count++ : 0;
-    }
+
     return count;
 }
 

@@ -63,6 +63,7 @@ class SamplerBase{
     int getInterval();
 };
 
+// Sample the particle density
 class Density : public SamplerBase{
 
     private:
@@ -83,6 +84,7 @@ class Density : public SamplerBase{
     void close() override;
 };
 
+// Energy sampler
 class Energy : public SamplerBase{
 
     std::vector<double> energies;
@@ -96,7 +98,8 @@ class Energy : public SamplerBase{
     void close() override;
 };
 
-
+// Sampler the hardsphere contribution to the 
+// chemical potential using widom insertions
 class WidomHS : public SamplerBase{
     double cp = 0.0;
 
@@ -112,7 +115,7 @@ class WidomHS : public SamplerBase{
     void close() override;
 };
 
-
+// Sample the distance between the com and pos
 class QDist : public SamplerBase{
     private:
 
@@ -135,7 +138,7 @@ class QDist : public SamplerBase{
     void close() override;
 };
 
-
+// Save a trajectory
 class XDR : public SamplerBase{
     private:
     XDRFILE *xdf = nullptr;
@@ -152,7 +155,7 @@ class XDR : public SamplerBase{
     void sample(State& state) override;
 };
 
-
+// Sample the number of ions
 class NumIons : public SamplerBase{
     private:
 
@@ -171,7 +174,7 @@ class NumIons : public SamplerBase{
     void close() override;
 };
 
-
+// Pressure sampler
 class Pressure : public SamplerBase{
     private:
 

@@ -27,7 +27,8 @@ class State{
     public:
     // The current step
     int step = 0;
-    // Energy variables
+    // Energy variables, 
+    //cummulativeEnergy is the sum of all energy changes from performed moves
     double energy = 0.0, cummulativeEnergy = 0.0, dE = 0.0, error = 0.0;
     // The particles object which holds all particles that are being simulated
     Particles particles;
@@ -40,8 +41,10 @@ class State{
 
     ~State(){}
 
-    // Advance the simulation one step
+    // Advance the simulation one macro step
     void advance();
+    // Advance the simulation one micro step
+    void advanceMicro();
     // Control mechanisms for debugging
     void control();
     // Called by the user when the settings are finished

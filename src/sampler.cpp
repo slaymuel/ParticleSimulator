@@ -24,10 +24,8 @@ Density::Density(int d, double dl, double binWidth, double xb, double yb, int in
 
 void Density::sample(State& state){
     for(unsigned int i = 0; i < state.particles.tot; i++){
-        //printf("%lu %i\n", this->density.size(), (int) (particles[i]->pos[d] + this->dh));
         if(state.particles[i]->q > 0)
             pDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
-
         else
             nDens.at( (unsigned int) ( (state.particles[i]->pos[d] + this->dh) / this->binWidth ) )++;
     }

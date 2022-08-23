@@ -3,9 +3,6 @@
 #include "random/random.h"
 
 namespace Simulator{
-
-using Vector3 = Eigen::Block<Eigen::MatrixXd, 1, 3>;
-
 class Particle{
 
     private:
@@ -22,41 +19,21 @@ class Particle{
     std::string name;       
     //radius, length of charge vector, charge, minimum distance to wall
     double r, b, b_min, b_max, q, rf;     
-
+    // The index of the particle in the particles object
     unsigned int index;
 
-
-    void translate(double step){
-        Eigen::Vector3d v = Random::get_vector();
-        this->com[0] += step * v[0];
-        this->com[1] += step * v[1];
-        this->com[2] += step * v[2];
-
-        this->pos = this->com + this->qDisp;
-    };
-
-    void chargeTranslate(double step){
-        Eigen::Vector3d v = Random::get_vector();
-        this->pos[0] += step * v[0];
-        this->pos[1] += step * v[1];
-        this->pos[2] += step * v[2];
-    };
-
-    void chargeTrans(double step){
-        Eigen::Vector3d v = Random::get_vector();
-        this->pos[0] += step * v[0];
-        this->pos[1] += step * v[1];
-        this->pos[2] += step * v[2];
-    };
-
-
-    void chargeTransRand(){
-        this->qDisp = Random::get_random_vector(this->b_max);
-        this->b = this->qDisp.norm();
-
-        this->pos = this->com + this->qDisp;
-    };
-
+    // Translate the particle in a random direction
+    // with a magnitude between 0 and step
+    void translate(double step);
+    // Translate the particle charge in a random
+    // direction with maximum magnitude step
+    void chargeTranslate(double step);
+    // Moves the particle charge to a random position
+    // which lies inside the bounds of the particle
+    void chargeTransRand();
+    // Rotate the particle
+    void rotate(double step);
+    // Translate the particle according to v
     template<typename T>
     void translate(T &v){
         this->com[0] +=  v[0];
@@ -65,13 +42,6 @@ class Particle{
         this->pos = this->qDisp + this->com;
     }
 
-    void rotate(double step){
-        Eigen::Vector3d v = Random::get_vector();
-        //v *= step;
-        this->qDisp += v * step;
-        this->qDisp = this->qDisp.normalized() * this->b;
-        this->pos = this->com + this->qDisp;
-    };
 };
 
 }

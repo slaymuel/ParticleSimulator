@@ -20,7 +20,7 @@ class Geometry{
 
     virtual void resize() = 0;
     virtual bool is_inside(std::shared_ptr<Particle> p) = 0;
-    virtual void pbc(std::shared_ptr<Particle>&& p) = 0;
+    virtual void pbc(std::shared_ptr<Particle>& p) = 0;
     virtual double distance(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b) = 0;
     virtual Eigen::Vector3d mirror(Eigen::Vector3d pos) = 0;
@@ -86,7 +86,7 @@ class Cuboid : public Geometry{
         return true;
     }
 
-    void pbc(std::shared_ptr<Particle>&& p){
+    void pbc(std::shared_ptr<Particle>& p){
 
         if(X){
             if(p->com[0] > this->dh[0]){
@@ -261,7 +261,7 @@ class CuboidImg : public Geometry{
         return true;
     }
 
-    void pbc(std::shared_ptr<Particle>&& p){
+    void pbc(std::shared_ptr<Particle>& p){
         if(p->com[0] > this->_dh[0]){
             p->com[0] -= _d[0];
         }
@@ -389,7 +389,7 @@ class Sphere : public Geometry{
 
     double distance(Eigen::Vector3d& a, Eigen::Vector3d& b){ return 0.0; }
 
-    void pbc(std::shared_ptr<Particle>&& p){  }
+    void pbc(std::shared_ptr<Particle>& p){  }
 
     Eigen::Vector3d displacement(Eigen::Vector3d& a, Eigen::Vector3d& b){
         Eigen::Vector3d disp = a - b;

@@ -2,6 +2,9 @@
 
 namespace Simulator {
 
+// ObjectType is the type/base type to be created
+// Identifier is used passed to the create method when creating an object
+// The creator is a calleable which returns a new object
 template<class ObjectType, typename Identifier, typename Creator>
 class GenericFactory{
     private:

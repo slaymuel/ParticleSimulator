@@ -1,6 +1,8 @@
 #include "io.h"
 
 namespace Simulator{
+    
+IO::IO(){}
 
 void IO::to_gro(std::string fileName, const Particles& p, const std::vector<double> d){
     fileName = fileName + ".gro";

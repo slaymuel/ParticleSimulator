@@ -62,7 +62,7 @@ void Simulator::finalize(){
     this->state.finalize(this->name);
 
     // Save starting configuration for XTC trajectory
-    IO::to_gro(this->name, state.particles, state.geo->d);
+    IO::instance().to_gro(this->name, state.particles, state.geo->d);
 }
 
 // Runner
@@ -78,20 +78,19 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         #ifdef _TIMERS_
             TIMEIT;
         #endif
+        
         // For each microstep
         for(unsigned int micro = 0; micro <= microSteps; micro++){
             // Get a random move using move probability distribution 
             auto wIt = std::lower_bound(mWeights.begin(), mWeights.end(), Random::get_random());
             // Perform the move
             (*moves[wIt - mWeights.begin()])();
-
             // If the move is accepted, save the state
             if(moves[wIt - mWeights.begin()]->accept( state.get_energy_change() ))
                 state.save();
             // If the move is rejected, revert to the old state
             else
                 state.revert();
-
             // Sample the state
             if(macro >= eqSteps){
                 for(auto& s : sampler){
@@ -99,9 +98,10 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
                         s->sample(state);
                 }
             }
-        }
+            // Move to next micro step
+            state.advanceMicro();
+        } // end of inner microstepping loop
 
-        /*                                "HALF TIME"                                  */
         // Print progress
         printf("\n");
         Logger::Log("Iteration (macrostep): ", macro);
@@ -112,8 +112,10 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         }
         
         Logger::Log("Total energy is: ", state.cummulativeEnergy, ", energy drift: ", state.error);
-        Logger::Log("Cations: ", state.particles.cTot, " Anions: ", state.particles.aTot, " Tot: ", state.particles.tot);
-        Logger::Log("Box: ", state.geo->volume, " (", state.geo->_d[0] ," * " , state.geo->_d[1], " * ", state.geo->_d[2], " (", state.geo->d[2], ") )");
+        Logger::Log("Cations: ", state.particles.cTot, " Anions: ", state.particles.aTot, " Tot: ", 
+                                                                                state.particles.tot);
+        Logger::Log("Box: ", state.geo->volume, " (", state.geo->_d[0] ," * " , state.geo->_d[1], " * ", 
+                                                        state.geo->_d[2], " (", state.geo->d[2], ") )");
 
         #ifdef TRACK_MEMORY
             Logger::Log("Total allocated memory: ", allocationData.GetCurrentUsage());
@@ -121,11 +123,13 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         
         //Check energy drift etc
         state.control();
-        state.advance();
-
+        
         // Save sampled data to file
         for(const auto& s : sampler)
             s->save();
+
+        // Advance to the next macrostep
+        state.advance();
 
     } // End of main program loop
 
@@ -133,8 +137,8 @@ void Simulator::run(unsigned int macroSteps, unsigned int microSteps, unsigned i
         s->close();
 
     // Save final configuration and checkpoint file
-    IO::to_xyz(this->name, state.particles, state.geo->d);
-    IO::to_cpt(this->name, state.particles, state.geo->d);
+    IO::instance().to_xyz(this->name, state.particles, state.geo->d);
+    IO::instance().to_cpt(this->name, state.particles, state.geo->d);
 
     Logger::Log("Energy of last frame: ", this->state.cummulativeEnergy);
     Logger::Log("Simulation Done!");

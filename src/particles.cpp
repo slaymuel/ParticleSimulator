@@ -20,11 +20,11 @@ Eigen::MatrixXd Particles::get_particle_pos(int index) const{
 
 Particles::Particles(){}
 
-std::shared_ptr<Particle> Particles::operator[](std::size_t index){
+std::shared_ptr<Particle>& Particles::operator[](std::size_t index){
     return particles[index];
 }
 
-const std::shared_ptr<Particle> Particles::operator[](std::size_t index) const{
+const std::shared_ptr<Particle>& Particles::operator[](std::size_t index) const{
     return particles[index];
 }
 

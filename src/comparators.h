@@ -2,21 +2,20 @@ namespace Simulator{
 
 namespace comparators{
     struct {
+        // Main template
         template<typename T>
-        bool operator()(T& a, T& b) const{  
+        bool operator()(const T& a, const T& b) const{  
             return a->weight < b->weight;
-        }   
-    } mLess;
-
-    struct {
-        bool operator()(const double a, Moves::Move* b) const{   
+        }
+        template<typename T>
+        bool operator()(const double a, const T& b) const{   
             return a < b->weight;
-        }  
-
-        bool operator()(Moves::Move* a, const double b) const{   
+        }
+        template<typename T>
+        bool operator()(const T& a, const double b) const{   
             return a->weight < b;
         }  
-    } mdLess;
+    } mLess;
 }
 
 }

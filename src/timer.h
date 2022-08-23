@@ -10,7 +10,6 @@ namespace Simulator{
     struct Timer{
         private:
         std::chrono::high_resolution_clock::time_point start;
-        //std::source_location location;
         std::string location;
 
         public:
@@ -24,5 +23,18 @@ namespace Simulator{
                     std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start);
             Logger::Log(location, " took ", duration.count(), "s");
         }
+
+        // Time a function 
+        template<typename T>
+        static void time(T& func){
+            Timer timer(__FUNCTION__);
+            func();
+        }
     };
+
+    #ifdef _TIMERS_
+        #define TIMEIT Timer timer(__FUNCTION__);
+    #else
+        #define TIMEIT;
+    #endif
 }

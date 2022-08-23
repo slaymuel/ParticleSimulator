@@ -6,8 +6,27 @@
 #include "particles.h"
 
 namespace Simulator{
-    
-namespace IO{
+
+// Singleton class to handle output
+class IO{
+
+    private:
+    // Make constructor private
+    IO();
+    // Delete copy constructor
+    IO(const IO&) = delete;
+    // Delete copy assignment operator
+    IO& operator=(const IO&) = delete;
+    // The actual singleton object
+    static inline std::unique_ptr<IO> mInstance = nullptr;
+
+    public:
+    // Get the singleton object
+    static IO& instance(){
+        if(!mInstance)
+            mInstance = std::unique_ptr<IO>(new IO);
+        return *mInstance;
+    }
     // Write configuration in Gromacs format
     void to_gro(std::string fileName, const Particles& p, const std::vector<double> d);
     // Write checkpoint file
@@ -43,4 +62,4 @@ namespace IO{
     }
 };
 
-}
+} // end of namespace Simulator

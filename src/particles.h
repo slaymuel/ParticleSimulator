@@ -16,6 +16,7 @@ class Particles{
     // If the models are created
     bool setPModel = false;
     bool setNModel = false;
+    // Vector with the actual particles
     ParticleVec particles;
 
     public:
@@ -45,8 +46,8 @@ class Particles{
     // Get position of a particles using positions matrix
     Eigen::MatrixXd get_particle_pos(int index) const;
     // Indexing operators
-    std::shared_ptr<Particle> operator[](std::size_t index);
-    const std::shared_ptr<Particle> operator[](std::size_t index) const;
+    std::shared_ptr<Particle>& operator[](std::size_t index);
+    const std::shared_ptr<Particle>& operator[](std::size_t index) const;
     // Get the length of the particles vector
     unsigned int size() const;
     // Get a subset of particles

@@ -8,26 +8,20 @@
     namespace py = pybind11;
 #endif
 
-#ifdef _TIMERS_
-    #define TIMEIT Timer timer(__FUNCTION__);
-#else
-    #define TIMEIT;
-#endif
-
 #ifdef _OPENMP
     #include <omp.h>
 #endif
 
+// Pre-compiled header
 #include "pch.h"
 #include "random/random.h"
 #include "particles.h"
 #include "state.h"
-//#include <source_location>
-
 #include "move.h"
 #include "sampler.h"
 #include "comparators.h"
 #include "io.h"
+// timer defines the TIMEIT macro
 #include "timer.h"
 
 namespace Simulator{
@@ -49,7 +43,7 @@ class Simulator{
     State state;
 
     Simulator(double Dielec, double T, std::string _name);
-    // Reset the temperature, as in parallel tempering
+    // Reset/set the temperature, as in parallel tempering
     void set_temperature(double T);
     void add_move(Moves::MoveTypes move_type, std::vector<double> args);
     void add_sampler(Samplers::SamplerTypes type, std::vector<double> args);
@@ -59,6 +53,7 @@ class Simulator{
     void run(unsigned int macroSteps, unsigned int microSteps, unsigned int eqSteps);
 };
 
+// Python bindings using Pybind 11
 #include "pybind.h"
 
 } // end of namespace Simulator
